@@ -1,0 +1,12 @@
+name: pyglider
+dependencies:
+- python
+- conda-forge::matplotlib
+- numpy
+- pip
+- xarray
+- dask
+- netcdf4
+- versioneer
+- pip:
+  - bitstring
