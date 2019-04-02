@@ -8,5 +8,7 @@ dependencies:
 - dask
 - netcdf4
 - versioneer
+- pyyaml
+- seawater
 - pip:
   - bitstring

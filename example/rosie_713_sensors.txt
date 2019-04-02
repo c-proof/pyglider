@@ -1,0 +1,74 @@
+# Always include this!
+m_present_time
+m_present_time_fixed
+m_present_time_sci
+u_max_clothesline_lag_for_consci
+
+# Tells us if the glider thinks it's at the surface
+m_appear_to_be_at_surface
+
+# Steering parameters
+m_fin
+c_fin
+m_pitch
+c_pitch
+m_roll
+c_roll
+m_heading
+c_heading
+
+# Glider health
+m_coulomb_amphr
+m_battery
+m_vacuum
+
+# Iridium parameters
+m_iridium_call_num
+m_iridium_signal_strength
+m_iridium_redials
+
+# Depth parameters
+m_depth
+m_pressure
+m_altitude
+m_water_depth
+
+# Depth-averaged currents
+m_final_water_vx
+m_final_water_vy
+m_water_vx
+m_water_vy
+
+# GPS sensors
+c_wpt_lat
+c_wpt_lon
+m_gps_lat
+m_gps_lon
+m_lat
+m_lon
+m_gps_status
+m_gps_full_status
+
+# Science sensors
+sci_ctd41cp_timestamp
+sci_m_present_time
+m_science_clothesline_lag
+
+# CTD sensors
+sci_water_pressure
+sci_water_cond
+sci_water_temp
+
+sci_oxy4_oxygen
+sci_oxy4_saturation
+sci_oxy4_temp
+sci_oxy4_timestamp
+
+sci_flbbcd_bb_units
+sci_flbbcd_chlor_units
+sci_flbbcd_cdom_units
+sci_flbbcd_therm
+sci_flbbcd_timestamp
+
+# GliderDOS version
+x_software_ver

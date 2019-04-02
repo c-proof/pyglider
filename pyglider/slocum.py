@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from pyglider import bitstring
 import datetime
+import glob
 import itertools
 import logging
 from math import floor, fmod
@@ -9,9 +10,148 @@ import os
 import re
 import time
 import xarray as xr
+import yaml
+import pyglider.utils as utils
 
 
 _log = logging.getLogger(__name__)
+
+
+def binary_to_rawnc(indir, outdir, cacdir,
+        sensorlist, deploymentyaml,
+        incremental=True):
+    """
+    Convert slocum binary data (*.ebd/*.dbd) to raw netcdf files.
+
+    Parameters
+    ----------
+    indir : str
+        Directory with the raw *.ebd (science) and *.dbd (flight) files.
+        These usually come from ``card_offload/Science/SENTLOGS`` or
+        ``card_offload/Science/LOGS``, and ``card_offload/Main_board/SENTLOGS`
+        and ``card_offload/Main_board/LOGS`. Recommend ``binary``
+
+    outdir : str
+        Directory to write the matching ``*.ebd.nc`` and ``*.dbd.nc`` files.
+        Recommend ``rawnc``.
+
+    cacdir : str
+        Directory where the cached CAC sensor lists are kept.  These
+        lists are often in directories like ``../Main_board/STATE/CACHE/``
+        and ``../Science/STATE/CACHE/``, and the files in these directories
+        should be copied to this directory by the user.  Recommend ``cac``
+
+    sensorlist : str
+        Text file with sensor list for this glider.  This filters the many
+        sensors on the slocum gliders to just the ones listed here.  The file
+        is text, comments deelineated as ``# a comment`` and a new entry
+        on each line.
+
+    deploymentyaml : str
+        YAML text file with deployment information for this glider.
+
+    incremental : bool, optional
+        If *True* (default), only netcdf files that are older than the
+        binary files are re-parsed.
+
+    Returns
+    -------
+    status : bool
+        *True* success.
+
+    Notes
+    -----
+
+    This process can be slow for many files.
+
+    """
+
+    d = indir + '*.EBD'
+    filesScience = glob.glob(d)
+    filesScience.sort()
+
+    d = indir + '*.DBD'
+    filesMain = glob.glob(d)
+    filesMain.sort()
+
+    if len(filesMain) < 0 or len(filesScience) < 0:
+        raise FileNotFoundError(
+            'No science or flight files found in %s' % indir)
+
+    keys = parse_filter_file(sensorlist)
+
+    try:
+        os.mkdir(outdir)
+    except FileExistsError:
+        pass
+
+    scind = 0
+    badfiles = []
+    for ind in range(len(filesMain)):
+
+        # sometimes there is no science file for a flight file, so
+        # we need to make sure the files match...
+        if 1:
+            fmeta, _ = dbd_get_meta(filesMain[ind], cachedir=cacdir)
+            path, ext =  os.path.splitext(filesMain[ind])
+            sciname = indir + fmeta['the8x3_filename'] + '.EBD'
+
+            fncname = (fmeta['the8x3_filename'] + '.' +
+                       fmeta['filename_extension'] + '.nc')
+            fullfncname = outdir + '/' + fncname
+
+            if os.path.isfile(sciname):
+                smeta, _ = dbd_get_meta(sciname, cachedir=cacdir)
+                sncname = (smeta['the8x3_filename'] + '.' +
+                           smeta['filename_extension'] + '.nc')
+                fullsncname = outdir + '/' + sncname
+
+                _log.info('Working on  %s %s',
+                    os.path.basename(filesMain[ind]),
+                    os.path.basename(sciname))
+
+                ncfilesexist = (os.path.isfile(fullsncname) and
+                                os.path.isfile(fullfncname))
+                if incremental and ncfilesexist:
+                    ncfilesold = ((os.path.getmtime(sciname) >=
+                                   os.path.getmtime(fullsncname)) and
+                                  (os.path.getmtime(filesMain[ind]) >=
+                                   os.path.getmtime(fullfncname)))
+                else:
+                    ncfilesold = True
+                if ncfilesold:
+                    try:
+                        sdata, smeta = dbd_to_dict(sciname, cacdir, keys=keys)
+                        fdata, fmeta = dbd_to_dict(filesMain[ind], cacdir,
+                                keys=keys)
+                        fdata, sdata = add_times_flight_sci(fdata,
+                                sdata)
+                        datameta_to_nc(sdata, smeta, outdir=outdir,
+                            name=sncname)
+                        datameta_to_nc(fdata, fmeta, outdir=outdir,
+                            name=fncname)
+                    except ValueError:
+                        _log.warning('Could not decode %s', filesScience[ind])
+                else:
+                    _log.info('skipping %s', sciname)
+            else:
+                _log.info('No science file found for %s', filesMain[ind])
+            #        fdata, fmeta = dbd_to_dict(filesMain[ind], keys=keys)
+            # fdata, _ = add_times_flight_sci(fdata, sdata=None)
+
+            # datameta_to_nc(fdata, fmeta, outdir='./dbdnc/', name=fncname)
+        else:
+            badfiles += [filesMain[ind]]
+            _log.warning('Could not do parsing for %s', filesMain[ind])
+        _log.info('')
+
+    if len(badfiles) > 0:
+        _log.warning('Some files could not be parsed:')
+        for fn in badfiles:
+            _log.warning('%s', fn)
+
+    _log.info('All done!')
+
 
 
 def _check_diag_header(diag_tuple):
@@ -88,7 +228,7 @@ def _make_cache(outlines, cachedir, meta):
             dfh.write(line)
 
 
-def dbd_get_meta(filename, cachedir=None):
+def dbd_get_meta(filename, cachedir):
     """
     Get metadata from a dinkum binary file.
 
@@ -98,11 +238,10 @@ def dbd_get_meta(filename, cachedir=None):
     filename : str
         filename of the dinkum binary file (i.e. *.dbd, *.ebd)
 
-    cachedir : str or None
+    cachedir : str
         Directory where the cached CAC sensor lists are kept.  These
         lists are often in directories like ``../Main_board/STATE/CACHE/``.
-        These should be copied somewhere locally.  If None, defaults to and
-        creates ``./.dinkumcache`` in the local directory.
+        These should be copied somewhere locally.  Recommend ``./cac/``.
 
     Returns
     -------
@@ -110,8 +249,6 @@ def dbd_get_meta(filename, cachedir=None):
         Dictionary of the meta data for this dinkum binary file.
 
     """
-    if cachedir is None:
-        cachedir = './.dinkumcache/'
 
     meta = {}
 
@@ -154,7 +291,7 @@ def dbd_get_meta(filename, cachedir=None):
     return meta, bindatafilepos
 
 
-def dbd_to_dict(dinkum_file, cachedir=None, keys=None):
+def dbd_to_dict(dinkum_file, cachedir, keys=None):
     """
     Translate a dinkum binary file to a dictionary of data and meta values.
 
@@ -164,11 +301,10 @@ def dbd_to_dict(dinkum_file, cachedir=None, keys=None):
         These are the raw data from the glider, either offloaded from a card
         or from the dockserver.
 
-    cachedir : str or None
+    cachedir : str
         Directory where the cached CAC sensor lists are kept.  These
         lists are often in directories like ``../Main_board/STATE/CACHE/``.
-        These should be copied somewhere locally.  If None, defaults to and
-        creates ``./.dinkumcache`` in the local directory.
+        These should be copied somewhere locally.  Recommend ``./cac/``.
 
     keys : list of str
         list of sensor names to include in the *data* dictionary.  This
@@ -190,8 +326,6 @@ def dbd_to_dict(dinkum_file, cachedir=None, keys=None):
     # Parse ascii header - read in the metadata.
     data = []
     DINKUMCHUNKSIZE = int(3e4)  # how much data to pre-allocate
-    if cachedir is None:
-        cachedir = './.dinkumcache/'
 
     if isinstance(keys, str):
         keys = parse_filter_file(keys)
@@ -375,13 +509,11 @@ def parse_filter_file(filter_file):
                         keys += [key]
     return keys
 
-def _make_dinkumcache(filelist, cachedir=None):
+def _make_dinkumcache(filelist, cachedir):
     """
     Helper function to setup the cache of sensor names based on the crc
     number in the header of the first file in filelist
     """
-    if cachedir is None:
-        cachedir = './.dinkumcache/'
     for filen in filelist:
         try:
             # keep trying files until we find one that makes the cache...
@@ -458,7 +590,7 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False):
     return ds
 
 
-def _mergeMultiple(filelist, cachedir=None, keys=None):
+def _mergeMultiple(filelist, cachedir, keys=None):
     """
     Not currently used....
 
@@ -474,8 +606,6 @@ def _mergeMultiple(filelist, cachedir=None, keys=None):
         i.e. ``filelist = glob.glob('datadirectory/Science/*.ebd')``
 
     cachedir : directory to read/store sensor list caches
-        If not specified, the cache is assumed to be kept locally
-        in ``.dinkumcache/``.
 
     keys : list of strings or a str
         If a list of strings just return dictionary with those strings.
@@ -514,6 +644,132 @@ def _mergeMultiple(filelist, cachedir=None, keys=None):
     return outdata, outmeta
     """
     pass
+
+
+def merge_rawnc(indir, outdir, deploymentyaml):
+    """
+    Merge all the raw netcdf files in indir.  These are meant to be
+    the raw flight and science files from the slocum.
+
+    Parameters
+    ----------
+    indir : str
+        Directory where the raw ``*.ebd.nc`` and ``*.dbd.nc`` files are.
+        Recommend: ``./rawnc``
+
+    outdir : str
+        Directory where merged raw netcdf files will be put. Recommend:
+        ``./rawnc/``.  Note that the netcdf files will be named following
+        the data in *deploymentyaml*:
+        ``glider_nameglider_serial-YYYYmmddTHHMM-rawebd.nc`` and
+        ``...rawdbd.nc``.
+
+    deploymentyaml : str
+        YAML text file with deployment information for this glider.
+    """
+    with open(deploymentyaml) as fin:
+        deployment = yaml.safe_load(fin)
+    metadata = deployment['metadata']
+
+    dsebd = xr.open_mfdataset(indir + '/*.ebd.nc', decode_times=False)
+    dsdbd = xr.open_mfdataset(indir + '/*.dbd.nc', decode_times=False)
+
+    dt = (dsebd.time.values.astype('timedelta64[s]') +
+            np.datetime64('1970-01-01'))
+
+    id = metadata['glider_name'] + metadata['glider_serial']
+    dsebd.to_netcdf(outdir + '/' + id + '-rawebd.nc')
+    dsdbd.to_netcdf(outdir + '/' + id + '-rawdbd.nc')
+
+    return
+
+
+def raw_to_L1timeseries(indir, outdir, deploymentyaml):
+    """
+    """
+
+    with open(deploymentyaml) as fin:
+        deployment = yaml.safe_load(fin)
+    metadata = deployment['metadata']
+    ncvar = deployment['netcdf_variables']
+
+    id = metadata['glider_name'] + metadata['glider_serial']
+    ebd= xr.open_dataset(indir + '/' + id + '-rawebd.nc', decode_times=False)
+    dbd= xr.open_dataset(indir + '/' + id + '-rawdbd.nc', decode_times=False)
+
+    # build a new data set based on info in `deployment.`
+    # We will use ebd.m_present_time as the interpolant if the
+    # variabel is in dbd.
+
+    ds = xr.Dataset()
+    attr = {}
+    name = 'time'
+    for atts in ['units', 'standard_name', 'long_name']:
+        attr[atts] = ncvar[name][atts]
+    ds[name] = (('time'), ebd[name].values, attr)
+
+    thenames = list(ncvar.keys())
+    thenames.remove('time')
+
+    for name in thenames:
+        if not('method' in ncvar[name].keys()):
+            # variables that are in the data set or can be interpolated from it
+            if 'conversion' in ncvar[name].keys():
+                convert = getattr(utils, ncvar[name]['conversion'])
+            else:
+                convert = utils._passthrough
+            sensorname = ncvar[name]['source']
+            if sensorname in dbd.keys():
+                _log.debug('sensorname %s', sensorname)
+                val = convert(dbd[sensorname])
+                val = _dbd2ebd(dbd, ds, val)
+                ncvar['method'] = 'linear fill'
+            else:
+                val = ebd[sensorname]
+                val = utils._zero_screen(val)
+        #        val[val==0] = np.NaN
+                val = convert(val)
+            # make the attributes:
+            ncvar[name].pop('coordinates', None)
+            attrs = ncvar[name]
+            attrs = utils.fill_required_attrs(attrs)
+            ds[name] = (('time'), val, attrs)
+
+    # some derived variables:
+
+    ds = utils.get_distance_over_ground(ds)
+    ds = utils.get_profiles(ds)
+
+    ds = utils.get_derived_eos_raw(ds)
+
+    ds = ds.assign_coords(longitude=ds.longitude)
+    ds = ds.assign_coords(latitude=ds.latitude)
+    ds = ds.assign_coords(depth=ds.depth)
+
+    #ds = ds._get_distance_over_ground(ds)
+
+    ds = utils.fill_metadata(ds, deployment['metadata'])
+    try:
+        os.mkdir('L1-timeseries')
+    except:
+        pass
+    outname = 'L1-timeseries/' + ds.attrs['id'] +  '_L1.nc'
+    _log.info('writing %s', outname)
+    ds.to_netcdf(outname, 'w')
+
+    return outname
+
+
+def _dbd2ebd(dbd, ds, val):
+    """
+    Helper to interpolate from dbd to ebd data stream
+    """
+    good = ~np.isnan(val)
+    vout = ds.time * 0.0
+    goodt = ~np.isnan(ds.time)
+    vout[goodt] = np.interp(ds.time[goodt].values,
+        dbd.m_present_time.values[good], val[good].values)
+    return vout
 
 
 def _webb_to_decdeg(webb_latlon):
