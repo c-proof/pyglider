@@ -56,3 +56,13 @@ The only disadvantage of this code is that the dcoding step from binary to
 the raw netcdf is quite slow for the Slocum binary data.  That can/should
 be improved by using a C library instead of python, but really, its not *that*
 slow.  
+
+Resources
+=========
+
+- Slocum binary translator based on
+https://gitlab.oceantrack.org/ocean-gliders-canada/dinkum/tree/seabBranch_py3
+- Processing steps closly follow the work by SOCIB
+https://github.com/socib/glider_toolbox
+- Rutger's description of the binary files is very helpful: https://github.com/kerfoot/spt/wiki/Slocum-Glider-Data-File-Primer
+- The somewhat arcane metadata format for NGDAC is here: https://github.com/ioos/ioosngdac/wiki/NGDAC-NetCDF-File-Format-Version-2
