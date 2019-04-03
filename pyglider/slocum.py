@@ -704,8 +704,9 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml):
     ds = xr.Dataset()
     attr = {}
     name = 'time'
-    for atts in ['units', 'standard_name', 'long_name']:
-        attr[atts] = ncvar[name][atts]
+    for atts in ncvar[name].keys():
+        if atts != 'coordinates':
+            attr[atts] = ncvar[name][atts]
     ds[name] = (('time'), ebd[name].values, attr)
 
     thenames = list(ncvar.keys())

@@ -7,7 +7,6 @@ dependencies:
 - xarray
 - dask
 - netcdf4
-- versioneer
 - pyyaml
 - seawater
 - pip:

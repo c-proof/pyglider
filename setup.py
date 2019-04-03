@@ -2,7 +2,6 @@ import re
 from setuptools import setup, find_packages
 
 # Get the version from versioneer
-import versioneer
 __version__ = "0.0"
 
 setup(name="pyglider",

@@ -12,7 +12,6 @@ def get_distance_over_ground(ds):
     dist = np.cumsum(dist)
     attr = {'long_name': 'distance over ground flown since mission start',
      'method': 'get_distance_over_ground',
-     'standard_name': 'distance',
      'units': 'km',
      'sources': 'latitude longitude'}
     ds['distance_over_ground'] = (('time'), dist, attr)
@@ -84,7 +83,10 @@ def get_derived_eos_raw(ds):
              ('observation_type', 'calulated'),
              ('instrument', 'instrument_ctd'),
              ('valid_max', '40.0'),
-             ('valid_min', '0.0')
+             ('valid_min', '0.0'),
+             ('accuracy', '0.01'),
+             ('precision', '0.01'),
+             ('resolution', '0.001')
              ])
     attrs = utils.fill_required_attrs(attrs)
     ds['salinity'].attrs = attrs
@@ -99,6 +101,9 @@ def get_derived_eos_raw(ds):
              ('method', 'get_derived_eos_raw'),
              ('observation_type', 'calulated'),
              ('instrument', 'instrument_ctd'),
+              ('accuracy', '0.01'),
+              ('precision', '0.01'),
+              ('resolution', '0.001')
              ])
     attrs = utils.fill_required_attrs(attrs)
     ds['potential_density'].attrs = attrs
@@ -115,6 +120,9 @@ def get_derived_eos_raw(ds):
              ('method', 'get_derived_eos_raw'),
               ('valid_min', '1000.0'),
               ('valid_max', '1040.0'),
+               ('accuracy', '0.01'),
+               ('precision', '0.01'),
+               ('resolution', '0.001')
              ])
     attrs = utils.fill_required_attrs(attrs)
     ds['density'].attrs = attrs
@@ -129,9 +137,32 @@ def get_derived_eos_raw(ds):
              ('observation_type', 'calulated'),
              ('method', 'get_derived_eos_raw'),
               ('instrument', 'instrument_ctd'),
+           ('accuracy', '0.002'),
+           ('precision', '0.001'),
+           ('resolution', '0.0001')
              ])
     attrs = utils.fill_required_attrs(attrs)
     ds['potential_temperature'].attrs = attrs
+
+    ds['depth'] = (('time'), seawater.dpth(ds.pressure, ds.latitude))
+    attrs = collections.OrderedDict([('long_name', 'glider depth'),
+             ('standard_name', 'depth'),
+             ('units', 'm'),
+             ('comment', 'computed'),
+             ('sources', 'pressure, latitude'),
+             ('observation_type', 'calulated'),
+             ('method', 'get_derived_eos_raw'),
+             ('instrument', 'instrument_ctd'),
+             ('accuracy', '1'),
+             ('precision', '2'),
+             ('resolution', '0.02'),
+             ('valid_min', '0'),
+             ('valid_max', '2000'),
+             ('reference_datum', 'surface'),
+             ('positive', 'down')
+             ])
+    attrs = utils.fill_required_attrs(attrs)
+    ds['depth'].attrs = attrs
 
     return ds
 
