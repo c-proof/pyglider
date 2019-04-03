@@ -245,3 +245,19 @@ def bar2dbar(val):
 
 def _passthrough(val):
     return val
+
+
+def gappy_fill_vertical(data):
+    """
+    Fill vertical gaps from the first to last bin with data in them.
+    Applied column-wise.
+
+    data = gappy_fill_vertical(data)
+    """
+    m, n = np.shape(data)
+    for j in range(n):
+        ind = np.where(~np.isnan(data[:, j]))[0]
+        if len(ind) > 0 and len(ind) < (ind[-1] - ind[0]):
+            int = np.arange(ind[0], ind[-1])
+            data[:, j][ind[0]:ind[-1]] = np.interp(int, ind, data[ind, j])
+    return data

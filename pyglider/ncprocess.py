@@ -90,13 +90,11 @@ def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
             for name in to_fill:
                 dss[name].attrs['ancillary_variables'] = name + '_qc'
 
-            print('Hi', dss[name])
-
-
             outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
             _log.info('Writing %s', outname)
             dss.to_netcdf(outname)
-            # add traj_strlen using bare ntcdf..
+
+            # add traj_strlen using bare ntcdf to make IOOS happy
             with netCDF4.Dataset(outname, 'r+') as nc:
                 nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
@@ -134,7 +132,7 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
         if k not in ['time', 'longitude', 'latitude', 'depth']:
             _log.info('Gridding %s', k)
 
-            good = np.where(~np.isnan(ds[k]))[0]
+            good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
             if len(good) > 0:
                 dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
                         ds['profile_index'].values[good],
@@ -143,6 +141,9 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
                         bins=[profile_bins, depth_bins])
 
             dsout[k] = (('depth', 'time'), dat.T, ds[td].attrs )
+
+            # fill gaps in data:
+            dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)
 
     dsout.attrs = ds.attrs
 
