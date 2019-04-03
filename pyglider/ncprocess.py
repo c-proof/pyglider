@@ -1,5 +1,6 @@
 import collections
 import datetime
+import logging
 import seawater
 import xarray as xr
 import numpy as np
@@ -7,6 +8,9 @@ import pyglider.utils as utils
 import os
 import yaml
 import netCDF4
+import scipy.stats as stats
+
+_log = logging.getLogger(__name__)
 
 def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
     """
@@ -21,12 +25,11 @@ def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
     meta = deployment['metadata']
 
     with xr.open_dataset(inname, decode_times=False) as ds:
-        print(ds)
+        _log.info('Extracting profiles: opening %s', inname)
         profiles = np.unique(ds.profile_index)
         profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
                                             and (p > 0))]
         for p in profiles:
-
             ind = np.where(ds.profile_index==p)[0]
             dss = ds.isel(time=ind)
             # this is the id for the whole file, not just this profile..
@@ -91,6 +94,7 @@ def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
 
 
             outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
+            _log.info('Writing %s', outname)
             dss.to_netcdf(outname)
             # add traj_strlen using bare ntcdf..
             with netCDF4.Dataset(outname, 'r+') as nc:
@@ -100,3 +104,51 @@ def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
 def make_L2_gridfiles(inname, outdir, deploymentyaml):
     """
     """
+    try:
+        os.mkdir(outdir)
+    except FileExistsError:
+        pass
+
+    ds = xr.open_dataset(inname, decode_times=False)
+
+    profiles = np.unique(ds.profile_index)
+    profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
+                                                and (p > 0))]
+    profile_bins = np.arange(0.5, max(profiles)+0.51, 1.)
+
+    Nprofiles = len(profiles)
+    depth_bins = np.arange(0, 1100.1)
+    depths = depth_bins[:-1] + 0.5
+
+    dsout = xr.Dataset(coords={'depth': ('depth', depths),
+                               'profile': ('time', profiles)},
+                      )
+    for td in ('time', 'longitude', 'latitude'):
+        dat = np.zeros(len(profiles))
+        for n, p in enumerate(profiles):
+            ind = np.where(ds.profile_index == p)
+            dat[n] = ds[td][ind].values.mean()
+        dsout[td] = (('time'), dat, ds[td].attrs )
+
+    for k in ds.keys():
+        if k not in ['time', 'longitude', 'latitude', 'depth']:
+            _log.info('Gridding %s', k)
+
+            good = np.where(~np.isnan(ds[k]))[0]
+            if len(good) > 0:
+                dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
+                        ds['profile_index'].values[good],
+                        ds['depth'].values[good],
+                        values=ds[k].values[good], statistic='mean',
+                        bins=[profile_bins, depth_bins])
+
+            dsout[k] = (('depth', 'time'), dat.T, ds[td].attrs )
+
+    dsout.attrs = ds.attrs
+
+    outname = outdir + '/' + utils.get_file_id(ds) + '_L2grid.nc'
+    _log.info('Writing %s', outname)
+    dsout.to_netcdf(outname)
+    _log.info('Done gridding')
+
+    return outname

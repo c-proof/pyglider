@@ -9,5 +9,6 @@ dependencies:
 - netcdf4
 - pyyaml
 - seawater
+- scipy
 - pip:
   - bitstring

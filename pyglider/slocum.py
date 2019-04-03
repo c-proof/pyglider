@@ -646,7 +646,7 @@ def _mergeMultiple(filelist, cachedir, keys=None):
     pass
 
 
-def merge_rawnc(indir, outdir, deploymentyaml):
+def merge_rawnc(indir, outdir, deploymentyaml, incremental=False):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
     the raw flight and science files from the slocum.
@@ -666,20 +666,55 @@ def merge_rawnc(indir, outdir, deploymentyaml):
 
     deploymentyaml : str
         YAML text file with deployment information for this glider.
+
+    incremental : bool
+        Only add new files....
     """
+
     with open(deploymentyaml) as fin:
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
+    id = metadata['glider_name'] + metadata['glider_serial']
+    outnebd = outdir + '/' + id + '-rawebd.nc'
+    outndbd = outdir + '/' + id + '-rawdbd.nc'
 
+    _log.info('Opening *.ebd.nc multi-file dataset')
     dsebd = xr.open_mfdataset(indir + '/*.ebd.nc', decode_times=False)
+
+    _log.info('Opening *.dbd.nc multi-file dataset')
     dsdbd = xr.open_mfdataset(indir + '/*.dbd.nc', decode_times=False)
 
-    dt = (dsebd.time.values.astype('timedelta64[s]') +
-            np.datetime64('1970-01-01'))
+    _log.info('Opening existing merged *.ebd.nc')
 
-    id = metadata['glider_name'] + metadata['glider_serial']
-    dsebd.to_netcdf(outdir + '/' + id + '-rawebd.nc')
-    dsdbd.to_netcdf(outdir + '/' + id + '-rawdbd.nc')
+    # don't write if output files are up to date:
+    # maybe this would be faster w/ a merge?  Not sure.
+    write = False
+    try:
+        with xr.open_dataset(outnebd, decode_times=False) as bigebd:
+            ind = np.where(dsebd.time > bigebd.time[-1])[0]
+            if len(ind) > 0:
+                _log.info('New data found in raw *.ebd.nc')
+                write = True
+    except FileNotFoundError:
+        _log.info('Merged file not found: %s', outnebd )
+        write = True
+    if write:
+        _log.info('Writing ' + outnebd)
+        dsebd.to_netcdf(outnebd)
+
+    try:
+        with xr.open_dataset(outndbd, decode_times=False) as bigdbd:
+            ind = np.where(dsdbd.time > bigdbd.time[-1])[0]
+            if len(ind) > 0:
+                _log.info('New data found in raw *.dbd.nc')
+                write = True
+    except FileNotFoundError:
+        _log.info('Merged file not found: %s', outndbd )
+        write = True
+    if write:
+        _log.info('Writing ' + outndbd)
+        dsdbd.to_netcdf(outndbd)
+    _log.info('Done merge_rawnc')
 
     return
 

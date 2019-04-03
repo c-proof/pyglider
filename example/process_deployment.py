@@ -5,14 +5,14 @@ import pyglider.ncprocess as ncprocess
 
 logging.basicConfig(level='DEBUG')
 
-binarydir = './binary/'
-rawdir    = './rawnc/'
-cacdir    = './cac/'
+binarydir  = './binary/'
+rawdir     = './rawnc/'
+cacdir     = './cac/'
 sensorlist = './rosie_713_sensors.txt'
 deploymentyaml = './deployment.yml'
 l1tsdir    = './L1-timeseries/'
-profiledir    = './L1-profiles/'
-
+profiledir = './L1-profiles/'
+griddir    = './L2-gridfiles/'
 
 # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
 slocum.binary_to_rawnc(binarydir, rawdir, cacdir, sensorlist, deploymentyaml)
@@ -25,3 +25,6 @@ outname = slocum.raw_to_L1timeseries(rawdir, l1tsdir, deploymentyaml)
 
 # make profile netcdf files for ioos gdac...
 ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
+
+# make grid of dataset....
+ncprocess.make_L2_gridfiles(outname, griddir, deploymentyaml)
