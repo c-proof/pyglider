@@ -85,13 +85,14 @@ def binary_to_rawnc(indir, outdir, cacdir,
     except FileExistsError:
         pass
 
-    scind = 0
+    deployment_ind_sci = 0
+    deployment_ind_flight = 0
     badfiles = []
     for ind in range(len(filesMain)):
 
         # sometimes there is no science file for a flight file, so
         # we need to make sure the files match...
-        if 1:
+        try:
             fmeta, _ = dbd_get_meta(filesMain[ind], cachedir=cacdir)
             path, ext =  os.path.splitext(filesMain[ind])
             sciname = indir + fmeta['the8x3_filename'] + '.EBD'
@@ -120,27 +121,31 @@ def binary_to_rawnc(indir, outdir, cacdir,
                 else:
                     ncfilesold = True
                 if ncfilesold:
+                    # save these in case they get corrupted below...
+                    dis = deployment_ind_sci
+                    dif = deployment_ind_flight
                     try:
                         sdata, smeta = dbd_to_dict(sciname, cacdir, keys=keys)
                         fdata, fmeta = dbd_to_dict(filesMain[ind], cacdir,
                                 keys=keys)
                         fdata, sdata = add_times_flight_sci(fdata,
                                 sdata)
-                        datameta_to_nc(sdata, smeta, outdir=outdir,
-                            name=sncname)
-                        datameta_to_nc(fdata, fmeta, outdir=outdir,
-                            name=fncname)
-                    except ValueError:
+                        ds, deployment_ind_sci = datameta_to_nc(sdata,
+                            smeta, outdir=outdir,
+                            name=sncname, deployment_ind=deployment_ind_sci)
+                        ds, deployment_ind_flight = datameta_to_nc(fdata, fmeta,
+                            outdir=outdir, name=fncname,
+                            deployment_ind=deployment_ind_flight)
+                    except:
+                        deployment_ind_sci = dis
+                        deployment_ind_flight = dif
                         _log.warning('Could not decode %s', filesScience[ind])
                 else:
                     _log.info('skipping %s', sciname)
             else:
                 _log.info('No science file found for %s', filesMain[ind])
-            #        fdata, fmeta = dbd_to_dict(filesMain[ind], keys=keys)
-            # fdata, _ = add_times_flight_sci(fdata, sdata=None)
 
-            # datameta_to_nc(fdata, fmeta, outdir='./dbdnc/', name=fncname)
-        else:
+        except:
             badfiles += [filesMain[ind]]
             _log.warning('Could not do parsing for %s', filesMain[ind])
         _log.info('')
@@ -524,7 +529,8 @@ def _make_dinkumcache(filelist, cachedir):
     return False
 
 
-def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False):
+def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
+                deployment_ind=0):
     """
     Convert a raw dinkum data and meta dict to a netcdf fileself.
 
@@ -565,9 +571,14 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False):
     if 'sci_m_present_time' in data.keys():
         time = data['sci_m_present_time']
 
-    ds['time'] = (('time'), time, {'units': 'seconds since 1970-01-01T00:00:00Z'})
+    index = np.arange(len(time)) + deployment_ind
+    # this gets passed to the next file...
+    deployment_ind = index[-1] + 1
+    ds['_ind'] = (('_ind'), index)
+
+    ds['time'] = (('_ind'), time, {'units': 'seconds since 1970-01-01T00:00:00Z'})
     for key in data.keys():
-        ds[key] = (('time'), data[key])
+        ds[key] = (('_ind'), data[key])
         # try and find the unit for this....
         for sensor in meta['activeSensorList']:
             if sensor['name'] == key:
@@ -587,7 +598,8 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False):
     ds.attrs['Conventions'] = 'None'
 
     ds.to_netcdf(outname, format='NETCDF4')
-    return ds
+    _log.info('Wrote: %s', outname)
+    return ds, deployment_ind
 
 
 def _mergeMultiple(filelist, cachedir, keys=None):
@@ -745,6 +757,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml):
     ds[name] = (('time'), ebd[name].values, attr)
 
     thenames = list(ncvar.keys())
+    print(thenames)
     thenames.remove('time')
 
     for name in thenames:
@@ -777,7 +790,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml):
     ds = utils.get_profiles(ds)
 
     ds = utils.get_derived_eos_raw(ds)
-
+    print(ds)
     ds = ds.assign_coords(longitude=ds.longitude)
     ds = ds.assign_coords(latitude=ds.latitude)
     ds = ds.assign_coords(depth=ds.depth)

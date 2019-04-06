@@ -140,7 +140,7 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
                         values=ds[k].values[good], statistic='mean',
                         bins=[profile_bins, depth_bins])
 
-            dsout[k] = (('depth', 'time'), dat.T, ds[td].attrs )
+            dsout[k] = (('depth', 'time'), dat.T, ds[k].attrs )
 
             # fill gaps in data:
             dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)

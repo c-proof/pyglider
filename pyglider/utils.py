@@ -2,7 +2,6 @@ import collections
 import seawater
 import xarray as xr
 import numpy as np
-import pyglider.utils as utils
 
 
 def get_distance_over_ground(ds):
@@ -88,7 +87,7 @@ def get_derived_eos_raw(ds):
              ('precision', '0.01'),
              ('resolution', '0.001')
              ])
-    attrs = utils.fill_required_attrs(attrs)
+    attrs = fill_required_attrs(attrs)
     ds['salinity'].attrs = attrs
 
     ds['potential_density'] = (('time'), seawater.eos80.pden(
@@ -105,7 +104,7 @@ def get_derived_eos_raw(ds):
               ('precision', '0.01'),
               ('resolution', '0.001')
              ])
-    attrs = utils.fill_required_attrs(attrs)
+    attrs = fill_required_attrs(attrs)
     ds['potential_density'].attrs = attrs
 
     ds['density'] = (('time'), seawater.eos80.dens(
@@ -124,7 +123,7 @@ def get_derived_eos_raw(ds):
                ('precision', '0.01'),
                ('resolution', '0.001')
              ])
-    attrs = utils.fill_required_attrs(attrs)
+    attrs = fill_required_attrs(attrs)
     ds['density'].attrs = attrs
 
     ds['potential_temperature'] = (('time'), seawater.eos80.ptmp(
@@ -141,28 +140,9 @@ def get_derived_eos_raw(ds):
            ('precision', '0.001'),
            ('resolution', '0.0001')
              ])
-    attrs = utils.fill_required_attrs(attrs)
+    attrs = fill_required_attrs(attrs)
     ds['potential_temperature'].attrs = attrs
 
-    ds['depth'] = (('time'), seawater.dpth(ds.pressure, ds.latitude))
-    attrs = collections.OrderedDict([('long_name', 'glider depth'),
-             ('standard_name', 'depth'),
-             ('units', 'm'),
-             ('comment', 'computed'),
-             ('sources', 'pressure, latitude'),
-             ('observation_type', 'calulated'),
-             ('method', 'get_derived_eos_raw'),
-             ('instrument', 'instrument_ctd'),
-             ('accuracy', '1'),
-             ('precision', '2'),
-             ('resolution', '0.02'),
-             ('valid_min', '0'),
-             ('valid_max', '2000'),
-             ('reference_datum', 'surface'),
-             ('positive', 'down')
-             ])
-    attrs = utils.fill_required_attrs(attrs)
-    ds['depth'].attrs = attrs
 
     return ds
 

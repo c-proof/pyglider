@@ -130,6 +130,21 @@ netcdf_variables:
     units:        rad
     coordinates:  time depth latitude longitude
 
+  depth:
+    source:  m_depth
+    long name: glider depth
+    standard_name: depth
+    units:         m
+    comment:       from glider
+    observation_type: calculated
+    accuracy:      "1"
+    precision:     "2"
+    resolution:    "0.02"
+    valid_min:     "0"
+    valid_max:     "2000"
+    reference_datum: surface
+    positive:       down
+
   pitch:
     source:  m_pitch
     long_name:    glider pitch angle
