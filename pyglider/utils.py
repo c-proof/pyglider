@@ -16,6 +16,25 @@ def get_distance_over_ground(ds):
     ds['distance_over_ground'] = (('time'), dist, attr)
     return ds
 
+def get_glider_depth(ds):
+
+    good = np.where(~np.isnan(ds.pressure))[0]
+    ds['depth'] = seawater.eos80.dpth(ds.pressure, ds.latitude.mean())
+    # now we really want to know where it is, so interpolate:
+    if len(good) > 0:
+        ds['depth'] = np.interp(np.arange(len(ds.depth)),
+                                good, ds['depth'][good])
+
+    attr = {'source': 'pressure', 'long_name': 'glider depth',
+            'standard_name': 'depth', 'units': 'm',
+            'comment': 'from science pressure and interpolated',
+            'observation_type': 'calulated',
+            'accuracy': '1', 'precision': '2', 'resolution': '0.02',
+            'valid_min': '0', 'valid_max': '2000',
+            'reference_datum': 'surface', 'positive': 'down'}
+    ds['depth'].attrs = attr
+    return ds
+
 
 def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
                  min_nsamples=14):
@@ -28,10 +47,10 @@ def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
     lastpronum = 0
 
     good = np.where(~np.isnan(ds.pressure))[0]
-    p = np.convolve(ds.pressure[good], np.ones(filt_length) / filt_length, 'same')
+    p = np.convolve(ds.pressure.values[good],
+                    np.ones(filt_length) / filt_length, 'same')
     dpall = np.diff(p)
     inflect = np.where(dpall[:-1] * dpall[1:] < 0)[0]
-
 
     for n, i in enumerate(inflect[:-1]):
         nprofile = inflect[n+1] - inflect[n]

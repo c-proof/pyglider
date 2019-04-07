@@ -92,7 +92,7 @@ def binary_to_rawnc(indir, outdir, cacdir,
 
         # sometimes there is no science file for a flight file, so
         # we need to make sure the files match...
-        try:
+        if 1:
             fmeta, _ = dbd_get_meta(filesMain[ind], cachedir=cacdir)
             path, ext =  os.path.splitext(filesMain[ind])
             sciname = indir + fmeta['the8x3_filename'] + '.EBD'
@@ -124,19 +124,19 @@ def binary_to_rawnc(indir, outdir, cacdir,
                     # save these in case they get corrupted below...
                     dis = deployment_ind_sci
                     dif = deployment_ind_flight
-                    try:
+                    if 1:
                         sdata, smeta = dbd_to_dict(sciname, cacdir, keys=keys)
                         fdata, fmeta = dbd_to_dict(filesMain[ind], cacdir,
                                 keys=keys)
-                        fdata, sdata = add_times_flight_sci(fdata,
-                                sdata)
+                        #fdata, sdata = add_times_flight_sci(fdata,
+                        #        sdata)
                         ds, deployment_ind_sci = datameta_to_nc(sdata,
                             smeta, outdir=outdir,
                             name=sncname, deployment_ind=deployment_ind_sci)
                         ds, deployment_ind_flight = datameta_to_nc(fdata, fmeta,
                             outdir=outdir, name=fncname,
                             deployment_ind=deployment_ind_flight)
-                    except:
+                    else:
                         deployment_ind_sci = dis
                         deployment_ind_flight = dif
                         _log.warning('Could not decode %s', filesScience[ind])
@@ -145,7 +145,7 @@ def binary_to_rawnc(indir, outdir, cacdir,
             else:
                 _log.info('No science file found for %s', filesMain[ind])
 
-        except:
+        else:
             badfiles += [filesMain[ind]]
             _log.warning('Could not do parsing for %s', filesMain[ind])
         _log.info('')
@@ -379,7 +379,7 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
         for i, code in enumerate(updatedCode):
             if code == '00':  # No new value
                 currentValues[i] = np.NaN
-            if code == '01':  # Same value as before.
+            elif code == '01':  # Same value as before.
                 continue
             elif code == '10':  # New value.
                 if int(activeSensorList[i]['bits']) in [4, 8]:
@@ -390,8 +390,10 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
                     currentValues[i] = binaryData.read(
                         'uint:' + str(int(activeSensorList[i]['bits']) * 8))
                 else:
-                    raise ValueError(('Unrecognizable code in data cycle. ',
-                                      'Parsing failed'))
+                    raise ValueError('Bad bits')
+            else:
+                raise ValueError(('Unrecognizable code in data cycle. ',
+                                  'Parsing failed'))
         data[ndata] = currentValues
         binaryData.bytealign()
         # We've arrived at the next line.
@@ -602,62 +604,6 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
     return ds, deployment_ind
 
 
-def _mergeMultiple(filelist, cachedir, keys=None):
-    """
-    Not currently used....
-
-    Merge the dinkum ebd/dbd files in filelist into a dictionary with each
-    time series as a key name.
-
-    These should all be the same type of file, ie Science files (*.ebd) or
-    Main_board files (*.dbd).  Mixing them won't work.
-
-    Parameters:
-    -----------
-    filelist : list of files to merge
-        i.e. ``filelist = glob.glob('datadirectory/Science/*.ebd')``
-
-    cachedir : directory to read/store sensor list caches
-
-    keys : list of strings or a str
-        If a list of strings just return dictionary with those strings.
-        If a single string use `dinkum.parse_filter_file` to get the
-        keys
-
-    Returns:
-    --------
-    outdata : dictionary of data
-
-    outmeta : list of meta data from each file merged.
-
-    Notes:
-    ------
-
-    Most files will not have a list of sensors;  These can be read from
-    a cached file containing the list, or the files in *filelist* are
-    searched until a list of sensors is found.
-
-    outdata = dict()
-    outmeta = []
-
-    if isinstance(keys, str):
-        keys = parse_filter_file(keys)
-
-    for n in range(len(filelist)):
-        f = filelist[n]
-        fdata, fmeta = dbd_to_dict(f, keys=keys)
-        for key, dd in fdata.items():
-            if key in outdata:
-                outdata[key] = np.concatenate((outdata[key], dd))
-            else:
-                outdata[key] = dd
-        outmeta.append(fmeta)
-
-    return outdata, outmeta
-    """
-    pass
-
-
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
@@ -786,6 +732,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml):
 
     # some derived variables:
 
+    ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
     ds = utils.get_profiles(ds)
 
@@ -819,18 +766,3 @@ def _dbd2ebd(dbd, ds, val):
     vout[goodt] = np.interp(ds.time[goodt].values,
         dbd.m_present_time.values[good], val[good].values)
     return vout
-
-
-def _webb_to_decdeg(webb_latlon):
-    """
-    Not currently used.  Maybe useful later...
-    if webb_latlon is None or webb_latlon == 'NaN' or webb_latlon == '69696969.0':
-        return None
-    deg = floor(abs(webb_latlon) / 100)
-    minute = fmod(abs(webb_latlon), 100) / 60
-    if webb_latlon > 0:
-        return deg + minute
-    else:
-        return -1 * (abs(deg) + minute)
-    """
-    pass
