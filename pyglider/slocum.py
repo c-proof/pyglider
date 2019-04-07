@@ -92,7 +92,7 @@ def binary_to_rawnc(indir, outdir, cacdir,
 
         # sometimes there is no science file for a flight file, so
         # we need to make sure the files match...
-        if 1:
+        try:
             fmeta, _ = dbd_get_meta(filesMain[ind], cachedir=cacdir)
             path, ext =  os.path.splitext(filesMain[ind])
             sciname = indir + fmeta['the8x3_filename'] + '.EBD'
@@ -124,7 +124,7 @@ def binary_to_rawnc(indir, outdir, cacdir,
                     # save these in case they get corrupted below...
                     dis = deployment_ind_sci
                     dif = deployment_ind_flight
-                    if 1:
+                    try:
                         sdata, smeta = dbd_to_dict(sciname, cacdir, keys=keys)
                         fdata, fmeta = dbd_to_dict(filesMain[ind], cacdir,
                                 keys=keys)
@@ -136,7 +136,7 @@ def binary_to_rawnc(indir, outdir, cacdir,
                         ds, deployment_ind_flight = datameta_to_nc(fdata, fmeta,
                             outdir=outdir, name=fncname,
                             deployment_ind=deployment_ind_flight)
-                    else:
+                    except:
                         deployment_ind_sci = dis
                         deployment_ind_flight = dif
                         _log.warning('Could not decode %s', filesScience[ind])
@@ -145,7 +145,7 @@ def binary_to_rawnc(indir, outdir, cacdir,
             else:
                 _log.info('No science file found for %s', filesMain[ind])
 
-        else:
+        except:
             badfiles += [filesMain[ind]]
             _log.warning('Could not do parsing for %s', filesMain[ind])
         _log.info('')
