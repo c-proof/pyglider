@@ -19,11 +19,15 @@ def get_distance_over_ground(ds):
 def get_glider_depth(ds):
 
     good = np.where(~np.isnan(ds.pressure))[0]
-    ds['depth'] = seawater.eos80.dpth(ds.pressure, ds.latitude.mean())
+    ds['depth'] = ds.pressure * 0.
+    print(ds.depth)
+    ds['depth'].values = seawater.eos80.dpth(ds.pressure.values,
+            ds.latitude.mean().values)
+    print(ds)
     # now we really want to know where it is, so interpolate:
     if len(good) > 0:
-        ds['depth'] = np.interp(np.arange(len(ds.depth)),
-                                good, ds['depth'][good])
+        ds['depth'].values = np.interp(np.arange(len(ds.depth)),
+                                good, ds['depth'].values[good])
 
     attr = {'source': 'pressure', 'long_name': 'glider depth',
             'standard_name': 'depth', 'units': 'm',
