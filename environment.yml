@@ -10,5 +10,4 @@ dependencies:
 - pyyaml
 - seawater
 - scipy
-- pip:
-  - bitstring
+- jinja2
