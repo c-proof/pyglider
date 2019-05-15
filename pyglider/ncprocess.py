@@ -43,11 +43,12 @@ def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
 
             # profile-averaged variables....
             profile_meta = deployment['profile_variables']
-            dss['u'] = dss.water_velocity_eastward.mean()
-            dss['u'].attrs = profile_meta['u']
+            if 'water_velocity_eastward' in dss.keys():
+                dss['u'] = dss.water_velocity_eastward.mean()
+                dss['u'].attrs = profile_meta['u']
 
-            dss['v'] = dss.water_velocity_northward.mean()
-            dss['v'].attrs = profile_meta['v']
+                dss['v'] = dss.water_velocity_northward.mean()
+                dss['v'].attrs = profile_meta['v']
 
             dss['profile_id'] = np.array(p*1.0)
             dss['profile_id'].attrs = profile_meta['profile_id']

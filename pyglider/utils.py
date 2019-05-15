@@ -20,10 +20,8 @@ def get_glider_depth(ds):
 
     good = np.where(~np.isnan(ds.pressure))[0]
     ds['depth'] = ds.pressure * 0.
-    print(ds.depth)
     ds['depth'].values = seawater.eos80.dpth(ds.pressure.values,
             ds.latitude.mean().values)
-    print(ds)
     # now we really want to know where it is, so interpolate:
     if len(good) > 0:
         ds['depth'].values = np.interp(np.arange(len(ds.depth)),
@@ -166,13 +164,12 @@ def get_derived_eos_raw(ds):
     attrs = fill_required_attrs(attrs)
     ds['potential_temperature'].attrs = attrs
 
-
     return ds
 
 
 def time_to_datetime64(time):
     """
-    Pass in a glider undecodeed time (seconds since 1970-01-01), and
+    Pass in a glider undecoded time (seconds since 1970-01-01), and
     get a np.datetime64[s] object back.
     """
     return (time.astype('timedelta64[s]') +
@@ -180,7 +177,6 @@ def time_to_datetime64(time):
 
 
 def fill_required_attrs(attrs):
-    print(attrs)
     required = {
         'comment': " ",
         'accuracy': " ",
@@ -244,6 +240,9 @@ def nmea2deg(nmea):
 
 def bar2dbar(val):
     return val * 10.0
+
+def cbar2dbar(val):
+    return val / 10.0
 
 
 def _passthrough(val):
