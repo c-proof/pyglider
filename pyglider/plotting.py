@@ -6,6 +6,7 @@ import os
 import yaml
 import matplotlib.dates as mdates
 import matplotlib.units as munits
+import seawater
 
 _log = logging.getLogger(__name__)
 
@@ -60,7 +61,6 @@ def timeseries_plots(fname, plottingyaml):
         ax.set_ylabel('Lat [degrees north]')
         fig.savefig(config['figdir'] + '/map%s.png'%ds.attrs['deployment_name'], dpi=200)
 
-
         # timeseries of things....
         _log.info('Plotting timeseries data')
         keys = config['timeseries'].keys()
@@ -71,12 +71,13 @@ def timeseries_plots(fname, plottingyaml):
             axs = axs.flat
             for n, k in enumerate(keys):
                 print('key', k)
-                ax = axs[n]
-                good = np.where(~np.isnan(ds[k]))[0]
-                pc = ax.plot(ds.time[good], ds[k][good], '.')
-                min, max = _autoclim(ds[k][good])
-                ax.set_ylim(min, max)
-                ax.set_title(ds[k].attrs['long_name'] + ' [' +
+                if config['timeseries'][k] == 'True':
+	            ax = axs[n]
+                    good = np.where(~np.isnan(ds[k]))[0]
+                    pc = ax.plot(ds.time[good], ds[k][good], '.')
+                    min, max = _autoclim(ds[k][good])
+                    ax.set_ylim(min, max)
+                    ax.set_title(ds[k].attrs['long_name'] + ' [' +
                              ds[k].attrs['units'] + ']', loc='left', fontsize=9)
 
             fig.savefig(config['figdir'] + '/ts_%s.png'%ds.attrs['deployment_name'], dpi=200)
@@ -85,6 +86,7 @@ def timeseries_plots(fname, plottingyaml):
         fig, axs = plt.subplots(int(N / 2), 2, figsize=(7.5, 7),
                                 sharex=True, sharey=True)
         axs = axs.flat
+<<<<<<< HEAD
         _log.info('Plotting colorline data')
 
         for n, k in enumerate(keys):
@@ -117,28 +119,66 @@ def timeseries_plots(fname, plottingyaml):
         _log.info('Plotting colorline data')
 
         for n, k in enumerate(keys):
-            print('key', k)
-            ax = axs[n]
-            locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
-            formatter = mdates.ConciseDateFormatter(locator)
-            ax.xaxis.set_major_locator(locator)
-            ax.xaxis.set_major_formatter(formatter)
-            good = np.where(~np.isnan(ds[k]))[0]
-            min, max = _autoclim(ds[k][good])
+            _log.info('cl %s', k)
+            if config['timeseries'][k] == 'True':
+                ax = axs[n]
+                locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+                formatter = mdates.ConciseDateFormatter(locator)
+                ax.xaxis.set_major_locator(locator)
+                ax.xaxis.set_major_formatter(formatter)
+                good = np.where(~np.isnan(ds[k] + ds.depth))[0]
+                min, max = _autoclim(ds[k][good])
+                pc = ax.scatter(ds.time[good], ds.depth[good], s=3, c=ds[k][good],
+                    rasterized=True)
+                fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
+                ax.set_title(ds[k].attrs['long_name'] + ' [' +
+                             ds[k].attrs['units'] + ']', loc='left', fontsize=9)
+                t0 = ds.time[good][0]
+                t1 = ds.time[good][-1]
+                ax.set_xlim([t0, t1])
+                ax.set_ylim([ds['depth'].max(), ds['depth'].min()])
+                if n == 0:
+                    ax.set_ylabel('DEPTH [m]')
+        fig.savefig(config['figdir'] +
+                    '/cl_%s.png'%ds.attrs['deployment_name'], dpi=200)
 
-            pc = ax.scatter(ds.time[good], ds.depth[good], s=3, c=ds[k][good],
-                rasterized=True, vmin=min, vmax=max)
-            fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
-            ax.set_title(ds[k].attrs['long_name'] + ' [' +
-                         ds[k].attrs['units'] + ']', loc='left', fontsize=9)
-            t0 = ds.time[good][0]
-            t1 = ds.time[good][-1]
-            ax.set_xlim([t0, t1])
-            ax.set_ylim([ds['depth'].max(), ds['depth'].min()])
-            if n == 0:
-                ax.set_ylabel('DEPTH [m]')
-        fig.savefig(config['figdir'] + '/cl_%s.png'%ds.attrs['deployment_name'], dpi=200)
+        # prop_v_prop:
+        _log.info('property vs property')
 
+        fig, axs = plt.subplots(1, 2, constrained_layout=True, sharey=True)
+        ax = axs[0]
+        s = np.linspace(ds.salinity.min(), ds.salinity.max(), 100)
+        t = np.linspace(ds.temperature.min(), ds.temperature.max(), 100)
+        S, T = np.meshgrid(s, t)
+        pd = seawater.eos80.pden(S, T, 0, 0) - 1000
+        levels = np.arange(20, 30, 0.5)
+        c = ax.contour(s, t, pd, colors='0.5', levels=levels)
+        ax.clabel(c, levels[::2], fontsize=8, fmt='%1.1f')
+        ax.plot(ds['salinity'], ds['temperature'], '.', markersize=2)
+        ax.set_xlabel('$S\ [psu]$')
+        ax.set_ylabel('$T\ [^oC]$')
+
+        try:
+            ax = axs[1]
+
+            ax.plot(ds['oxygen_concentration'], ds['temperature'],
+                    '.', markersize=2)
+            ax.set_xlabel('$O^2\ [mmol/L]$')
+        except:
+            pass
+        add_suptitle(fig, ds)
+        fig.savefig(config['figdir'] +
+            '/pvp_%s.png'%ds.attrs['deployment_name'], dpi=200)
+
+def add_suptitle(fig, ds):
+    sst = 'Glider/deployment: %s; ' % ds.attrs['deployment_name']
+    sst += 'lat = %1.3f to %1.3f N; ' % (ds.attrs['geospatial_lat_min'],
+                                  ds.attrs['geospatial_lat_max'])
+    sst += 'lon = %1.3f to %1.3f E ' % (ds.attrs['geospatial_lon_min'],
+                                  ds.attrs['geospatial_lon_max'])
+    sst += '\n CPROOF: http://cproof.uvic.ca/; Preliminary data'
+
+    fig.suptitle(sst, fontsize=8, fontfamily='courier')
 
 
 def grid_plots(fname, plottingyaml):
@@ -153,35 +193,34 @@ def grid_plots(fname, plottingyaml):
     with xr.open_dataset(fname, decode_times=True) as ds:
         keys = config['timeseries'].keys()
         N = len(keys)
-
-        # figure out the maximum depth:
-        meanT = ds.temperature.mean(axis=1)
-        ind = np.where(~np.isnan(meanT))[0]
-        maxdepth = ds.depth[ind[-1]]
-
+        # get the max depth that data is at:
+        tmean = ds.temperature.mean(axis=1)
+        indmax = np.where(~np.isnan(tmean))[0][-1]
+        depmax = ds.depth[indmax]
         fig, axs = plt.subplots(int(N / 2), 2, figsize=(7.5, 7),
                                 sharex=True, sharey=True)
         axs = axs.flat
         for n, k in enumerate(keys):
             print('key', k)
-            ax = axs[n]
-            locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
-            formatter = mdates.ConciseDateFormatter(locator)
-            ax.xaxis.set_major_locator(locator)
-            ax.xaxis.set_major_formatter(formatter)
-            min, max = _autoclim(ds[k])
-            print('min, max', min, max)
-            pc = ax.pcolormesh(ds.time, ds.depth, ds[k],
-                rasterized=True, vmin=min, vmax=max)
-            print(ds[k])
+            if config['timeseries'][k] == 'True':
+                ax = axs[n]
+                locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+                formatter = mdates.ConciseDateFormatter(locator)
+                ax.xaxis.set_major_locator(locator)
+                ax.xaxis.set_major_formatter(formatter)
+                min, max = _autoclim(ds[k])
+                print('min, max', min, max)
+                pc = ax.pcolormesh(ds.time, ds.depth, ds[k],
+                    rasterized=True, vmin=min, vmax=max)
+                print(ds[k])
 
-            fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
-            ax.set_title(ds[k].attrs['long_name'] + ' [' +
+                fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
+                ax.set_title(ds[k].attrs['long_name'] + ' [' +
                          ds[k].attrs['units'] + ']', loc='left', fontsize=9)
-            t0 = ds.time[0]
-            t1 = ds.time[-1]
-            ax.set_xlim([t0, t1])
-            ax.set_ylim([maxdepth, 0])
-            if n == 0:
-                ax.set_ylabel('DEPTH [m]')
+                t0 = ds.time[0]
+                t1 = ds.time[-1]
+                ax.set_xlim([t0, t1])
+                ax.set_ylim([maxdepth, 0])
+                if n == 0:
+                    ax.set_ylabel('DEPTH [m]')
         fig.savefig(config['figdir'] + '/pcolor_%s.png'%ds.attrs['deployment_name'], dpi=200)
