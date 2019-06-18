@@ -20,10 +20,13 @@ _log = logging.getLogger(__name__)
 def _outputname(f, outdir):
     fnout = os.path.basename(f)
     fns = fnout.split('.')
+    fns = fns[:5]
+    print(fns)
     fns[4] = '%04d' % int(fns[4])
+    fns[1] = '%04d' % int(fns[1])
     fnout = ''
     for ff in fns:
-        fnout += ff + '.'
+        fnout += ff.lower() + '.'
     filenum = int(fns[4])
     return outdir + fnout + 'nc', filenum
 
@@ -78,6 +81,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
                 fnum[n] = p[4]
             inds = np.argsort(fnum)
             files = [files[ind] for ind in inds]
+            print(files)
 
             if len(files) < 0:
                 raise FileNotFoundError('No raw files found in %s' % indir)
@@ -118,7 +122,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
                     _log.warning('%s', fn)
             _log.info('All done!')
 
-def merge_rawnc(indir, outdir, deploymentyaml, incremental=False):
+def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
     the raw flight and science files from the slocum.
@@ -149,13 +153,13 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False):
     id = metadata['glider_name'] + metadata['glider_serial']
     print('id', id)
     outgli = outdir + '/' + id + '-rawgli.nc'
-    outpld = outdir + '/' + id + '-rawpld.nc'
+    outpld = outdir + '/' + id + '-' + kind + 'pld.nc'
 
     _log.info('Opening *.gli.sub.*.nc multi-file dataset from %s', indir)
     gli = xr.open_mfdataset(indir + '/*.gli.sub.*.nc', decode_times=False)
 
     _log.info('Opening *.pld.sub.*.nc multi-file dataset')
-    pld = xr.open_mfdataset(indir + '/*.pld1.raw.*.nc', decode_times=False)
+    pld = xr.open_mfdataset(indir + '/*.pld1.' + kind + '.*.nc', decode_times=False)
 
     _log.info('Opening existing merged *.ebd.nc')
 
@@ -216,7 +220,7 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
     return val
 
 
-def raw_to_L1timeseries(indir, outdir, deploymentyaml):
+def raw_to_L1timeseries(indir, outdir, deploymentyaml, kind='raw'):
     """
     """
 
@@ -227,7 +231,8 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml):
 
     id = metadata['glider_name'] + metadata['glider_serial']
     gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
-    pld = xr.open_dataset(indir + '/' + id + '-rawpld.nc', decode_times=False)
+    pld = xr.open_dataset(indir + '/' + id + '-' + kind+ 'pld.nc',
+                          decode_times=False)
 
     # build a new data set based on info in `deployment.`
     # We will use ebd.m_present_time as the interpolant if the

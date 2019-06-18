@@ -2,6 +2,10 @@ import collections
 import seawater
 import xarray as xr
 import numpy as np
+from scipy.signal import argrelextrema
+import logging
+
+_log = logging.getLogger(__name__)
 
 
 def get_distance_over_ground(ds):
@@ -41,7 +45,8 @@ def get_glider_depth(ds):
 def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
                  min_nsamples=14):
     """
-    make two variables: profile_direction and profile_index
+    make two variables: profile_direction and profile_index; this veersion
+    is good for lots of data.  Less good for sparse data
     """
     profile = ds.pressure.values * 0
     direction = ds.pressure.values * 0
@@ -53,19 +58,75 @@ def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
                     np.ones(filt_length) / filt_length, 'same')
     dpall = np.diff(p)
     inflect = np.where(dpall[:-1] * dpall[1:] < 0)[0]
-
     for n, i in enumerate(inflect[:-1]):
         nprofile = inflect[n+1] - inflect[n]
-        inds = np.arange(good[inflect[n]], good[inflect[n+1]]+1)
+        inds = np.arange(good[inflect[n]], good[inflect[n+1]]+1) + 1
         dp = np.diff(ds.pressure[inds[[-1, 0]]])
         if ((nprofile >= min_nsamples) and (np.abs(dp) > 10)):
-
+            print('Good')
             direction[inds] = np.sign(dp)
             profile[inds] = pronum
             lastpronum = pronum
             pronum += 1
         else:
             profile[good[inflect[n]]:good[inflect[n+1]]] = lastpronum + 0.5
+
+    attrs = collections.OrderedDict([('long_name', 'profile index'),
+             ('units', '1'),
+             ('comment',
+              'N = inside profile N, N + 0.5 = between profiles N and N + 1'),
+             ('sources', 'time pressure'),
+             ('method', 'get_profiles'),
+             ('min_dp', min_dp),
+             ('inversion', inversion),
+             ('filt_length', filt_length),
+             ('min_nsamples', min_nsamples)])
+    ds['profile_index'] = (('time'), profile, attrs)
+
+
+    attrs = collections.OrderedDict([('long_name', 'glider vertical speed direction'),
+             ('units', '1'),
+             ('comment',
+              '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
+             ('sources', 'time pressure'),
+             ('method', 'get_profiles')])
+    ds['profile_direction'] = (('time'), direction, attrs)
+    return ds
+
+
+def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_length=7,
+                 min_nsamples=14):
+    """
+    make two variables: profile_direction and profile_index; this veersion
+    is good for lots of data.  Less good for sparse data
+    """
+    profile = ds.pressure.values * 0 
+    direction = ds.pressure.values * 0
+    pronum = 1
+    lastpronum = 0
+
+    good = np.where(np.isfinite(ds.pressure))[0]
+    p = np.convolve(ds.pressure.values[good],
+                    np.ones(filt_length) / filt_length, 'same')
+    maxs = good[argrelextrema(ds.pressure.values[good], np.greater)[0]]
+    mins = good[argrelextrema(ds.pressure.values[good], np.less)[0]]
+    mins = np.concatenate(([0], mins, good[[-1]]))
+    _log.info(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
+
+    pronum = 0
+    for n, i in enumerate(mins[:-1]):
+        # down
+        try:
+            print(n)
+            profile[mins[n]:maxs[n]+1] = pronum
+            direction[mins[n]:maxs[n]+1] = +1
+            pronum += 1
+            # up
+            profile[maxs[n]:mins[n+1]+1] = pronum
+            direction[maxs[n]:mins[n+1]+1] = -1
+            pronum += 1
+        except:
+            pass
 
     attrs = collections.OrderedDict([('long_name', 'profile index'),
              ('units', '1'),

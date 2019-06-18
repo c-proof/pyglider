@@ -19,7 +19,7 @@ _log = logging.getLogger(__name__)
 
 def binary_to_rawnc(indir, outdir, cacdir,
         sensorlist, deploymentyaml,
-        incremental=True):
+        incremental=True, scisuffix='EBD', glidersuffix='DBD'):
     """
     Convert slocum binary data (*.ebd/*.dbd) to raw netcdf files.
 
@@ -66,11 +66,11 @@ def binary_to_rawnc(indir, outdir, cacdir,
 
     """
 
-    d = indir + '*.EBD'
+    d = indir + '*.' + scisuffix
     filesScience = glob.glob(d)
     filesScience.sort()
 
-    d = indir + '*.DBD'
+    d = indir + '*.' + glidersuffix
     filesMain = glob.glob(d)
     filesMain.sort()
 
@@ -89,14 +89,12 @@ def binary_to_rawnc(indir, outdir, cacdir,
     deployment_ind_flight = 0
     badfiles = []
     for ind in range(len(filesMain)):
-
         # sometimes there is no science file for a flight file, so
         # we need to make sure the files match...
         try:
             fmeta, _ = dbd_get_meta(filesMain[ind], cachedir=cacdir)
             path, ext =  os.path.splitext(filesMain[ind])
-            sciname = indir + fmeta['the8x3_filename'] + '.EBD'
-
+            sciname = filesMain[ind][:-3] + scisuffix
             fncname = (fmeta['the8x3_filename'] + '.' +
                        fmeta['filename_extension'] + '.nc')
             fullfncname = outdir + '/' + fncname
@@ -124,6 +122,7 @@ def binary_to_rawnc(indir, outdir, cacdir,
                     # save these in case they get corrupted below...
                     dis = deployment_ind_sci
                     dif = deployment_ind_flight
+                    _log.info(f'sciind: {dis}; gliderind: {dif}')
                     try:
                         sdata, smeta = dbd_to_dict(sciname, cacdir, keys=keys)
                         fdata, fmeta = dbd_to_dict(filesMain[ind], cacdir,
@@ -604,7 +603,8 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
     return ds, deployment_ind
 
 
-def merge_rawnc(indir, outdir, deploymentyaml, incremental=False):
+def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
+                scisuffix='EBD', glidersuffix='DBD'):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
     the raw flight and science files from the slocum.
@@ -637,47 +637,44 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False):
     outndbd = outdir + '/' + id + '-rawdbd.nc'
 
     _log.info('Opening *.ebd.nc multi-file dataset')
-    dsebd = xr.open_mfdataset(indir + '/*.ebd.nc', decode_times=False)
+    scifiles = sorted(glob.glob(indir + '/*.' + scisuffix + '.nc'))
+    for fn in scifiles:
+        print(fn)
+    glifiles = sorted(glob.glob(indir + '/*.' + glidersuffix + '.nc'))
 
-    _log.info('Opening *.dbd.nc multi-file dataset')
-    dsdbd = xr.open_mfdataset(indir + '/*.dbd.nc', decode_times=False)
-
-    _log.info('Opening existing merged *.ebd.nc')
-
-    # don't write if output files are up to date:
-    # maybe this would be faster w/ a merge?  Not sure.
-    write = False
-    try:
-        with xr.open_dataset(outnebd, decode_times=False) as bigebd:
-            ind = np.where(dsebd.time > bigebd.time[-1])[0]
-            if len(ind) > 0:
-                _log.info('New data found in raw *.ebd.nc')
-                write = True
-    except FileNotFoundError:
-        _log.info('Merged file not found: %s', outnebd )
-        write = True
-    if write:
-        _log.info('Writing ' + outnebd)
-        dsebd.to_netcdf(outnebd)
-
-    try:
-        with xr.open_dataset(outndbd, decode_times=False) as bigdbd:
-            ind = np.where(dsdbd.time > bigdbd.time[-1])[0]
-            if len(ind) > 0:
-                _log.info('New data found in raw *.dbd.nc')
-                write = True
-    except FileNotFoundError:
-        _log.info('Merged file not found: %s', outndbd )
-        write = True
-    if write:
-        _log.info('Writing ' + outndbd)
-        dsdbd.to_netcdf(outndbd)
-    _log.info('Done merge_rawnc')
-
+    if len(scifiles) > 1:
+        with xr.open_dataset(scifiles[0], decode_times=False) as ds1:
+            _log.info(f'merging {scifiles[0]}')
+            ds = ds1.copy()
+            for nn, name in enumerate(scifiles[1:]):
+                try:
+                    _log.info(f'merging {scifiles[nn]}')
+                    with xr.open_dataset(name, decode_times=False) as ds2:
+                        ds = xr.merge((ds, ds2))
+                except:
+                    _log.info(f'Failed to merge {name}')
+        dsnew = ds.sortby(ds.time)
+        dsnew.to_netcdf(outnebd, 'w')
+        _log.info('Wrote ' + outnebd)
+    if len(glifiles) > 1:
+        with xr.open_dataset(glifiles[0], decode_times=False) as ds1:
+            ds = ds1.copy()
+            _log.info(f'merging {glifiles[0]}')
+            for nn, name in enumerate(glifiles[1:]):
+                try:
+                    _log.info(f'merging {glifiles[nn]}')
+                    with xr.open_dataset(name, decode_times=False) as ds2:
+                        ds = xr.merge((ds, ds2))
+                except:
+                    _log.info(f'Failed to merge {name}')
+            dsnew = ds.sortby(ds.time)
+            dsnew.to_netcdf(outndbd, 'w')
+            _log.info('Wrote ' + outndbd)
     return
 
 
-def raw_to_L1timeseries(indir, outdir, deploymentyaml):
+def raw_to_L1timeseries(indir, outdir, deploymentyaml,
+                        profile_filt_len=7, profile_min_nsamples=14):
     """
     """
 
@@ -714,6 +711,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml):
             else:
                 convert = utils._passthrough
             sensorname = ncvar[name]['source']
+            print('names:', name, sensorname)
             if sensorname in dbd.keys():
                 _log.debug('sensorname %s', sensorname)
                 val = convert(dbd[sensorname])
@@ -731,19 +729,20 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml):
             ds[name] = (('time'), val, attrs)
 
     # some derived variables:
+    # trim bad times...
+    ds = ds.sel(time=slice(1e8, None))
 
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
-    ds = utils.get_profiles(ds)
-
+    ds = utils.get_profiles_new(ds,
+            filt_length=profile_filt_len, min_nsamples=profile_min_nsamples)
+    print('indices:', ds.profile_index)
     ds = utils.get_derived_eos_raw(ds)
-    print(ds)
     ds = ds.assign_coords(longitude=ds.longitude)
     ds = ds.assign_coords(latitude=ds.latitude)
     ds = ds.assign_coords(depth=ds.depth)
 
     #ds = ds._get_distance_over_ground(ds)
-
     ds = utils.fill_metadata(ds, deployment['metadata'])
     try:
         os.mkdir('L1-timeseries')

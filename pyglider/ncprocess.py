@@ -113,9 +113,10 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
     profiles = np.unique(ds.profile_index)
     profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
                                                 and (p > 0))]
-    profile_bins = np.arange(0.5, max(profiles)+0.51, 1.)
+    profile_bins = np.hstack((np.array(profiles) - 0.5, [profiles[-1]+0.5]))
 
     Nprofiles = len(profiles)
+    _log.info(f'Nprofiles {Nprofiles}')
     depth_bins = np.arange(0, 1100.1)
     depths = depth_bins[:-1] + 0.5
 
@@ -127,6 +128,7 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
         for n, p in enumerate(profiles):
             ind = np.where(ds.profile_index == p)
             dat[n] = ds[td][ind].values.mean()
+        _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs )
 
     for k in ds.keys():
@@ -141,7 +143,8 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
                         values=ds[k].values[good], statistic='mean',
                         bins=[profile_bins, depth_bins])
 
-            dsout[k] = (('depth', 'time'), dat.T, ds[k].attrs )
+            print('dat', np.shape(dat))
+            dsout[k] = (('depth', 'time'), dat.T, ds[k].attrs)
 
             # fill gaps in data:
             dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)

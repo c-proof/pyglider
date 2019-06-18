@@ -37,13 +37,19 @@ def timeseries_plots(fname, plottingyaml):
 
     with open(plottingyaml) as fin:
         config = yaml.safe_load(fin)
+        if 'starttime' in config.keys():
+            starttime = np.datetime64(config['starttime'])
+        else:
+            starttime = None
+        print('starttime:', starttime)
 
     try:
         os.mkdir(config['figdir'])
     except:
         pass
 
-    with xr.open_dataset(fname, decode_times=True) as ds:
+    with xr.open_dataset(fname, decode_times=True) as ds0:
+        ds = ds0.sel(time=slice(starttime, None))
         # map!
         fig, axs = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]})
         ax = axs[0]
@@ -192,14 +198,20 @@ def add_suptitle(fig, ds):
 def grid_plots(fname, plottingyaml):
     with open(plottingyaml) as fin:
         config = yaml.safe_load(fin)
+        if 'starttime' in config.keys():
+            starttime = np.datetime64(config['starttime'])
+        else:
+            starttime = None
 
     try:
         os.mkdir(config['figdir'])
     except:
         pass
 
-    with xr.open_dataset(fname, decode_times=True) as ds:
-        keys = config['timeseries'].keys()
+    with xr.open_dataset(fname, decode_times=True) as ds0:
+        ds = ds0.sel(time=slice(starttime, None))
+
+        keys = config['pcolor']['vars'].keys()
         N = len(keys)
         # get the max depth that data is at:
         tmean = ds.temperature.mean(axis=1)
@@ -210,25 +222,50 @@ def grid_plots(fname, plottingyaml):
         axs = axs.flat
         for n, k in enumerate(keys):
             print('key', k)
-            if config['timeseries'][k] == 'True':
-                ax = axs[n]
-                locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
-                formatter = mdates.ConciseDateFormatter(locator)
-                ax.xaxis.set_major_locator(locator)
-                ax.xaxis.set_major_formatter(formatter)
-                min, max = _autoclim(ds[k])
-                print('min, max', min, max)
-                pc = ax.pcolormesh(ds.time, ds.depth, ds[k],
-                    rasterized=True, vmin=min, vmax=max)
+
+            pconf = config['pcolor']['vars'][k]
+            print(pconf)
+            cmap = pconf.get('cmap', 'viridis')
+            vmin = pconf.get('vmin', None)
+            vmax = pconf.get('vmax', None)
+
+            ax = axs[n]
+            locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+            formatter = mdates.ConciseDateFormatter(locator)
+            ax.xaxis.set_major_locator(locator)
+            ax.xaxis.set_major_formatter(formatter)
+
+
+            min, max = _autoclim(ds[k])
+            if vmin is not None:
+                min = vmin
+            if vmax is not None:
+                max = vmax
+            # make time windows:
+            # get good profiles.  i.e. those w data
+            ind = np.where(np.sum(np.isfinite(ds[k].values), axis=0)>10)[0]
+            print(ind)
+            print(len(ds.time))
+            if len(ind) > 1:
+                time = ds.time[ind[:-1]] - np.diff(ds.time[ind])
+                time = np.hstack((time, time[-1] + np.diff(ds.time[ind])[-1]))
+                depth = ds.depth[:-1] - np.diff(ds.depth)
+                depth = np.hstack((depth, depth[-1] + np.diff(ds.depth)[-1]))
+                pc = ax.pcolormesh(time, depth, ds[k][:, ind],
+                    rasterized=True, vmin=min, vmax=max, cmap=cmap)
+                ax.contour(ds.time, ds.depth, ds.potential_density, colors='0.5',
+                       levels=np.arange(22, 28, 0.5)+1000, linewidths=0.85,)
+
                 print(ds[k])
 
                 fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
-                ax.set_title(ds[k].attrs['long_name'] + ' [' +
-                         ds[k].attrs['units'] + ']', loc='left', fontsize=9)
-                t0 = ds.time[0]
-                t1 = ds.time[-1]
-                ax.set_xlim([t0, t1])
-                ax.set_ylim([depmax, 0])
-                if n == 0:
-                    ax.set_ylabel('DEPTH [m]')
+            ax.set_title(ds[k].attrs['long_name'] + ' [' +
+                     ds[k].attrs['units'] + ']', loc='left', fontsize=9)
+            t0 = ds.time[0]
+            t1 = ds.time[-1]
+            ax.set_xlim([t0, t1])
+            ax.set_ylim([depmax, 0])
+            if n == 0:
+                ax.set_ylabel('DEPTH [m]')
+            ax.set_facecolor('0.8')
         fig.savefig(config['figdir'] + '/pcolor_%s.png'%ds.attrs['deployment_name'], dpi=200)
