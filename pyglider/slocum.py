@@ -598,6 +598,9 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
     ds.attrs['_processing'] = __name__ + ' python library'
     ds.attrs['Conventions'] = 'None'
 
+    # trim data that has time==0
+    ind = np.where(ds.time > 1e4)[0]
+    ds = ds.isel(_ind=ind)
     ds.to_netcdf(outname, format='NETCDF4')
     _log.info('Wrote: %s', outname)
     return ds, deployment_ind
@@ -643,33 +646,47 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
     glifiles = sorted(glob.glob(indir + '/*.' + glidersuffix + '.nc'))
 
     if len(scifiles) > 1:
-        with xr.open_dataset(scifiles[0], decode_times=False) as ds1:
-            _log.info(f'merging {scifiles[0]}')
-            ds = ds1.copy()
-            for nn, name in enumerate(scifiles[1:]):
+        # this is complicated because merging is very slow compared to
+        # mfd dataset.  So merge 10 at a time, save the intermeddairies,
+        # and then re-open.  We have to do this file by file because some
+        # of the files are bad...
+        ds = xr.Dataset()
+        num = 0
+        for nn, name in enumerate(scifiles):
+            _log.info(f'merging {scifiles[nn]}')
+            with xr.open_dataset(name, decode_times=False) as ds2:
                 try:
-                    _log.info(f'merging {scifiles[nn]}')
-                    with xr.open_dataset(name, decode_times=False) as ds2:
-                        ds = xr.merge((ds, ds2))
+                    ds = ds.merge(ds2)
+                    num = num + 1
                 except:
                     _log.info(f'Failed to merge {name}')
-        dsnew = ds.sortby(ds.time)
-        dsnew.to_netcdf(outnebd, 'w')
-        _log.info('Wrote ' + outnebd)
+            if num % 10 == 0 or nn == len(scifiles) - 1:
+                ds.to_netcdf(indir+f'TEMP{num:04d}.nc', 'w')
+                ds = xr.Dataset()
+        with xr.open_mfdataset(indir+f'TEMP*.nc', decode_times=False) as ds:
+            dsnew = ds.sortby(ds.time)
+            dsnew.to_netcdf(outnebd, 'w')
+            _log.info('Wrote ' + outnebd)
+
     if len(glifiles) > 1:
-        with xr.open_dataset(glifiles[0], decode_times=False) as ds1:
-            ds = ds1.copy()
-            _log.info(f'merging {glifiles[0]}')
-            for nn, name in enumerate(glifiles[1:]):
+        ds = xr.Dataset()
+        num = 0
+        for nn, name in enumerate(glifiles):
+            _log.info(f'merging {glifiles[nn]}')
+            with xr.open_dataset(name, decode_times=False) as ds2:
                 try:
-                    _log.info(f'merging {glifiles[nn]}')
-                    with xr.open_dataset(name, decode_times=False) as ds2:
-                        ds = xr.merge((ds, ds2))
+                    ds = ds.merge(ds2)
+                    num = num + 1
                 except:
                     _log.info(f'Failed to merge {name}')
+            if num % 10 == 0 or nn == len(scifiles) - 1:
+                ds.to_netcdf(indir+f'TEMPG{num:04d}.nc', 'w')
+                ds = xr.Dataset()
+        with xr.open_mfdataset(indir+f'TEMPG*.nc', decode_times=False) as ds:
             dsnew = ds.sortby(ds.time)
             dsnew.to_netcdf(outndbd, 'w')
             _log.info('Wrote ' + outndbd)
+
     return
 
 

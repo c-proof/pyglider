@@ -34,6 +34,7 @@ def index_deployments(dir, templatedir='./.templates/'):
     for d in subdirs:
         if os.path.isdir(d):
             if 1:
+                print(d)
                 nc = glob.glob(d+'/L1-timeseries/*.nc')
                 with xr.open_dataset(nc[0]) as ds:
                     att = ds.attrs
@@ -41,7 +42,7 @@ def index_deployments(dir, templatedir='./.templates/'):
             else:
                 pass
     output = template.render(atts=atts,
-        title=atts[0]['glider_name'] + atts[0]['glider_serial'])
+        title=atts[-1]['glider_name'] + atts[-1]['glider_serial'])
     with open(dir + '/index.html', 'w') as fout:
         fout.write(output)
 

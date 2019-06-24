@@ -100,7 +100,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_length=7,
     make two variables: profile_direction and profile_index; this veersion
     is good for lots of data.  Less good for sparse data
     """
-    profile = ds.pressure.values * 0 
+    profile = ds.pressure.values * 0
     direction = ds.pressure.values * 0
     pronum = 1
     lastpronum = 0
@@ -296,8 +296,9 @@ def _zero_screen(val):
 
 
 def nmea2deg(nmea):
-    return np.fix(nmea / 100) + np.remainder(nmea, 100) / 60
-
+    deg = (np.fix(nmea / 100) +
+           np.sign(nmea) * np.remainder(np.abs(nmea), 100) / 60)
+    return deg
 
 def bar2dbar(val):
     return val * 10.0
