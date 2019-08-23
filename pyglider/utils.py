@@ -108,8 +108,8 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_length=7,
     good = np.where(np.isfinite(ds.pressure))[0]
     p = np.convolve(ds.pressure.values[good],
                     np.ones(filt_length) / filt_length, 'same')
-    maxs = good[argrelextrema(ds.pressure.values[good], np.greater)[0]]
-    mins = good[argrelextrema(ds.pressure.values[good], np.less)[0]]
+    maxs = good[argrelextrema(p, np.greater)[0]]
+    mins = good[argrelextrema(p, np.less)[0]]
     mins = np.concatenate(([0], mins, good[[-1]]))
     _log.info(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
 
@@ -278,6 +278,7 @@ def fill_metadata(ds, metadata):
     ds.attrs['date_issued'] = str(np.datetime64('now')) + 'Z'
     ds.attrs['date_modified'] = " "
     ds.attrs['id'] = get_file_id(ds)
+    ds.attrs['deployment_name'] = metadata['deployment_name']
     ds.attrs['title'] = ds.attrs['id']
 
     dt = time_to_datetime64(ds.time.values)
@@ -321,7 +322,8 @@ def gappy_fill_vertical(data):
     m, n = np.shape(data)
     for j in range(n):
         ind = np.where(~np.isnan(data[:, j]))[0]
-        if len(ind) > 0 and len(ind) < (ind[-1] - ind[0]):
+        if (len(ind) > 0 and len(ind) < (ind[-1] - ind[0])
+                and len(ind) > (ind[-1] - ind[0]) * 0.05):
             int = np.arange(ind[0], ind[-1])
             data[:, j][ind[0]:ind[-1]] = np.interp(int, ind, data[ind, j])
     return data

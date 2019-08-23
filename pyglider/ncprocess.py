@@ -109,6 +109,11 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
         pass
 
     ds = xr.open_dataset(inname, decode_times=False)
+    print('Working on:')
+    print(ds)
+    print(ds.time[0])
+    print(ds.time[-1])
+
 
     profiles = np.unique(ds.profile_index)
     profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
@@ -151,7 +156,7 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
 
     dsout.attrs = ds.attrs
 
-    outname = outdir + '/' + utils.get_file_id(ds) + '_L2grid.nc'
+    outname = outdir + '/' + ds.attrs['deployment_name'] + '_L2grid.nc'
     _log.info('Writing %s', outname)
     dsout.to_netcdf(outname)
     _log.info('Done gridding')

@@ -7,6 +7,7 @@ import yaml
 import matplotlib.dates as mdates
 import matplotlib.units as munits
 import seawater
+from datetime import datetime
 
 _log = logging.getLogger(__name__)
 
@@ -196,6 +197,7 @@ def add_suptitle(fig, ds):
 
 
 def grid_plots(fname, plottingyaml):
+    print('Gird plots!')
     with open(plottingyaml) as fin:
         config = yaml.safe_load(fin)
         if 'starttime' in config.keys():
@@ -210,6 +212,7 @@ def grid_plots(fname, plottingyaml):
 
     with xr.open_dataset(fname, decode_times=True) as ds0:
         ds = ds0.sel(time=slice(starttime, None))
+        print(ds)
 
         keys = config['pcolor']['vars'].keys()
         N = len(keys)
@@ -253,7 +256,7 @@ def grid_plots(fname, plottingyaml):
                 depth = np.hstack((depth, depth[-1] + np.diff(ds.depth)[-1]))
                 pc = ax.pcolormesh(time, depth, ds[k][:, ind],
                     rasterized=True, vmin=min, vmax=max, cmap=cmap)
-                ax.contour(ds.time, ds.depth, ds.potential_density, colors='0.5',
+                ax.contour(time, ds.depth, ds.potential_density[:, ind], colors='0.5',
                        levels=np.arange(22, 28, 0.5)+1000, linewidths=0.85,)
 
                 print(ds[k])
@@ -268,4 +271,7 @@ def grid_plots(fname, plottingyaml):
             if n == 0:
                 ax.set_ylabel('DEPTH [m]')
             ax.set_facecolor('0.8')
+        now = str(datetime.utcnow())[:-10]
+        lastdata = str(ds.time[-1].values)[:-13]
+        fig.suptitle(f'Processed: {now}, Lastdata: {lastdata} ')
         fig.savefig(config['figdir'] + '/pcolor_%s.png'%ds.attrs['deployment_name'], dpi=200)

@@ -605,8 +605,34 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
     _log.info('Wrote: %s', outname)
     return ds, deployment_ind
 
-
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
+                scisuffix='EBD', glidersuffix='DBD'):
+
+    with open(deploymentyaml) as fin:
+        deployment = yaml.safe_load(fin)
+    metadata = deployment['metadata']
+    id = metadata['glider_name'] + metadata['glider_serial']
+
+    # different missions get a different numbe,r and they may not merge
+    # smoothly, hence the different files made here.
+
+    for num in range(1, 500):
+        d = indir + f'/{num:04d}*.' + glidersuffix + '.nc'
+
+        if glob.glob(d):
+            outnebd = outdir + '/' + id + f'-{num:04d}-rawdbd.nc'
+            _log.info('Opening *.dbd.nc multi-file dataset')
+            with xr.open_mfdataset(d, decode_times=True) as ds:
+                ds.to_netcdf(outnebd, 'w')
+        d = indir + f'/{num:04d}*.' + scisuffix + '.nc'
+        if glob.glob(d):
+            outndbd = outdir + '/' + id + f'-{num:04d}-rawebd.nc'
+            _log.info('Opening *.ebd.nc multi-file dataset')
+            with xr.open_mfdataset(d, decode_times=True) as ds:
+                ds.to_netcdf(outndbd, 'w')
+
+
+def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
                 scisuffix='EBD', glidersuffix='DBD'):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
@@ -650,38 +676,45 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
         # mfd dataset.  So merge 10 at a time, save the intermeddairies,
         # and then re-open.  We have to do this file by file because some
         # of the files are bad...
-        ds = xr.Dataset()
+        ds = None
         num = 0
         for nn, name in enumerate(scifiles):
+            print('Hello')
             _log.info(f'merging {scifiles[nn]}')
-            with xr.open_dataset(name, decode_times=False) as ds2:
-                try:
-                    ds = ds.merge(ds2)
+            with xr.open_dataset(name, decode_times=True) as ds2:
+                if 1:
+                    if ds is not None:
+                        ds = ds.merge(ds2)
+                    else:
+                        ds = ds2.copy()
                     num = num + 1
-                except:
+                else:
                     _log.info(f'Failed to merge {name}')
             if num % 10 == 0 or nn == len(scifiles) - 1:
                 ds.to_netcdf(indir+f'TEMP{num:04d}.nc', 'w')
-                ds = xr.Dataset()
+                ds = None
         with xr.open_mfdataset(indir+f'TEMP*.nc', decode_times=False) as ds:
             dsnew = ds.sortby(ds.time)
             dsnew.to_netcdf(outnebd, 'w')
             _log.info('Wrote ' + outnebd)
 
     if len(glifiles) > 1:
-        ds = xr.Dataset()
+        ds = None
         num = 0
         for nn, name in enumerate(glifiles):
             _log.info(f'merging {glifiles[nn]}')
             with xr.open_dataset(name, decode_times=False) as ds2:
                 try:
-                    ds = ds.merge(ds2)
+                    if ds is not None:
+                        ds = ds.merge(ds2)
+                    else:
+                        ds = ds2.copy()
                     num = num + 1
                 except:
                     _log.info(f'Failed to merge {name}')
             if num % 10 == 0 or nn == len(scifiles) - 1:
                 ds.to_netcdf(indir+f'TEMPG{num:04d}.nc', 'w')
-                ds = xr.Dataset()
+                ds = None
         with xr.open_mfdataset(indir+f'TEMPG*.nc', decode_times=False) as ds:
             dsnew = ds.sortby(ds.time)
             dsnew.to_netcdf(outndbd, 'w')
@@ -699,75 +732,95 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
-
-    id = metadata['glider_name'] + metadata['glider_serial']
-    ebd= xr.open_dataset(indir + '/' + id + '-rawebd.nc', decode_times=False)
-    dbd= xr.open_dataset(indir + '/' + id + '-rawdbd.nc', decode_times=False)
-
-    # build a new data set based on info in `deployment.`
-    # We will use ebd.m_present_time as the interpolant if the
-    # variabel is in dbd.
-
-    ds = xr.Dataset()
-    attr = {}
-    name = 'time'
-    for atts in ncvar[name].keys():
-        if atts != 'coordinates':
-            attr[atts] = ncvar[name][atts]
-    ds[name] = (('time'), ebd[name].values, attr)
-
     thenames = list(ncvar.keys())
-    print(thenames)
     thenames.remove('time')
 
-    for name in thenames:
-        if not('method' in ncvar[name].keys()):
-            # variables that are in the data set or can be interpolated from it
-            if 'conversion' in ncvar[name].keys():
-                convert = getattr(utils, ncvar[name]['conversion'])
-            else:
-                convert = utils._passthrough
-            sensorname = ncvar[name]['source']
-            print('names:', name, sensorname)
-            if sensorname in dbd.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(dbd[sensorname])
-                val = _dbd2ebd(dbd, ds, val)
-                ncvar['method'] = 'linear fill'
-            else:
-                val = ebd[sensorname]
-                val = utils._zero_screen(val)
-        #        val[val==0] = np.NaN
-                val = convert(val)
-            # make the attributes:
-            ncvar[name].pop('coordinates', None)
-            attrs = ncvar[name]
-            attrs = utils.fill_required_attrs(attrs)
-            ds[name] = (('time'), val, attrs)
+    id = metadata['glider_name'] + metadata['glider_serial']
 
-    # some derived variables:
-    # trim bad times...
-    ds = ds.sel(time=slice(1e8, None))
+    id0 = None
+    prev_profile = 0
+    for mnum in range(0, 500):
+        if 1:
+            ebdn = indir + '/' + id + f'-{mnum:04d}-rawebd.nc'
+            dbdn = indir + '/' + id + f'-{mnum:04d}-rawdbd.nc'
+            if os.path.exists(ebdn) and os.path.exists(dbdn):
+                print('Opening:', ebdn, dbdn)
+                ebd = xr.open_dataset(ebdn, decode_times=False)
+                dbd = xr.open_dataset(dbdn, decode_times=False)
+                if len(ebd.time) > 2:
+                    # build a new data set based on info in `deployment.`
+                    # We will use ebd.m_present_time as the interpolant if the
+                    # variabel is in dbd.
 
-    ds = utils.get_glider_depth(ds)
-    ds = utils.get_distance_over_ground(ds)
-    ds = utils.get_profiles_new(ds,
-            filt_length=profile_filt_len, min_nsamples=profile_min_nsamples)
-    print('indices:', ds.profile_index)
-    ds = utils.get_derived_eos_raw(ds)
-    ds = ds.assign_coords(longitude=ds.longitude)
-    ds = ds.assign_coords(latitude=ds.latitude)
-    ds = ds.assign_coords(depth=ds.depth)
+                    ds = xr.Dataset()
+                    attr = {}
+                    name = 'time'
+                    for atts in ncvar[name].keys():
+                        if atts != 'coordinates':
+                            attr[atts] = ncvar[name][atts]
+                    ds[name] = (('time'), ebd[name].values, attr)
 
-    #ds = ds._get_distance_over_ground(ds)
-    ds = utils.fill_metadata(ds, deployment['metadata'])
-    try:
-        os.mkdir('L1-timeseries')
-    except:
-        pass
-    outname = 'L1-timeseries/' + ds.attrs['id'] +  '_L1.nc'
-    _log.info('writing %s', outname)
-    ds.to_netcdf(outname, 'w')
+                    print('Thenames', thenames)
+                    for name in thenames:
+                        print('working on ', name)
+                        if not('method' in ncvar[name].keys()):
+                            # variables that are in the data set or can be interpolated from it
+                            if 'conversion' in ncvar[name].keys():
+                                convert = getattr(utils, ncvar[name]['conversion'])
+                            else:
+                                convert = utils._passthrough
+                            sensorname = ncvar[name]['source']
+                            print('names:', name, sensorname)
+                            if sensorname in dbd.keys():
+                                _log.debug('sensorname %s', sensorname)
+                                val = convert(dbd[sensorname])
+                                val = _dbd2ebd(dbd, ds, val)
+                                ncvar['method'] = 'linear fill'
+                            else:
+                                val = ebd[sensorname]
+                                val = utils._zero_screen(val)
+                        #        val[val==0] = np.NaN
+                                val = convert(val)
+                            # make the attributes:
+                            ncvar[name].pop('coordinates', None)
+                            attrs = ncvar[name]
+                            attrs = utils.fill_required_attrs(attrs)
+                            ds[name] = (('time'), val, attrs)
+
+                    # some derived variables:
+                    # trim bad times...
+                    ds = ds.sel(time=slice(1e8, None))
+
+                    ds = utils.get_glider_depth(ds)
+                    ds = utils.get_distance_over_ground(ds)
+                    ds = utils.get_profiles_new(ds,
+                            filt_length=profile_filt_len, min_nsamples=profile_min_nsamples)
+                    # ds = utils.get_profiles(ds)
+                    ds.profile_index.values = ds.profile_index.values + prev_profile
+                    ind = np.where(np.isfinite(ds.profile_index))[0]
+                    prev_profile = ds.profile_index.values[ind][-1]
+                    ds = utils.get_derived_eos_raw(ds)
+                    ds = ds.assign_coords(longitude=ds.longitude)
+                    ds = ds.assign_coords(latitude=ds.latitude)
+                    ds = ds.assign_coords(depth=ds.depth)
+
+                    #ds = ds._get_distance_over_ground(ds)
+                    ds = utils.fill_metadata(ds, deployment['metadata'])
+                    try:
+                        os.mkdir('L1-timeseries')
+                    except:
+                        pass
+                    outname = ('L1-timeseries/' + ds.attrs['deployment_name'] +
+                                f'-M{mnum:04d}_L1.nc')
+                    _log.info('writing %s', outname)
+                    ds.to_netcdf(outname, 'w')
+                    if id0 is None:
+                        id0 = ds.attrs['deployment_name']
+
+    # now merge:
+    with xr.open_mfdataset('L1-timeseries/' + id + '*-M*_L1.nc', decode_times=False) as ds:
+        outname = 'L1-timeseries/' + id0 + '_L1.nc'
+        ds.to_netcdf(outname)
 
     return outname
 

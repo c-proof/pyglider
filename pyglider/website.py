@@ -71,7 +71,7 @@ def index_deployments(dir, templatedir='./.templates/'):
                         except KeyError:
                             unit = 'no units'
                         keys.append(key + ' [' + unit +']')
-                depname = att['title']
+                depname = att['deployment_name']
                 output = template.render(deploy_name=depname,
                     title=att['glider_name'] + att['glider_serial'],
                     figs=figs, att=att, keys=keys)
