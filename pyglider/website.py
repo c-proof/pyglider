@@ -2,13 +2,18 @@ import yaml
 import glob
 import os
 import xarray as xr
+import numpy as np
 from jinja2 import Environment, FileSystemLoader
+import geojson
+
+import logging
 
 """
 Utilities to make smart directories for the websites.  Dumb persons erdapp
 server...
 """
 
+_log = logging.getLogger(__name__)
 
 def index_deployments(dir, templatedir='./.templates/'):
     """
@@ -79,3 +84,49 @@ def index_deployments(dir, templatedir='./.templates/'):
                     fout.write(output)
             else:
                 pass
+
+def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
+    props = ['deployment_start', 'deployment_end', 'platform_type',
+             'glider_model', 'glider_name', 'glider_serial',
+             'deployment_name', 'project', 'institution', 'comment']
+    subdirs = glob.glob(dir + '/*')
+    features = []
+    np.random.seed(20190101)
+
+    for d in subdirs:
+        if os.path.isdir(d):
+            subdirs2 = glob.glob(d + '/*')
+            for d2 in subdirs2:
+                if os.path.isdir(d2):
+                    try:
+                        nc = glob.glob(d2+'/L2-gridfiles/*.nc')
+                        with xr.open_dataset(nc[0]) as ds:
+                            print(ds)
+                            att = ds.attrs
+                            line = np.vstack((ds.longitude, ds.latitude)).T
+                            ls = geojson.LineString(line.tolist())
+                            feat = geojson.Feature(geometry=ls)
+                            for prop in props:
+                                if prop in ds.attrs.keys():
+                                    feat.properties[prop] = ds.attrs[prop]
+                                else:
+                                    feat.properties[prop] = ''
+
+                            # get URL....
+                            feat.properties['url'] = ('' +
+                                'http://cproof.uvic.ca/gliderdata/deployments/' +
+                                d2[2:])
+                            # get color:
+                            cols = np.random.randint(0, 255, 3)
+                            print(cols)
+                            feat.properties['color'] = '#%02X%02X%02X' % (cols[0], cols[1], cols[2])
+
+                            features += [feat]
+
+
+                    except:
+                        _log.info(f'Could not find grid file {d2}')
+    feature_collection = geojson.FeatureCollection(features)
+    with open(outfile, 'w') as fout:
+        s = geojson.dumps(feature_collection)
+        fout.write(s)

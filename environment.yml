@@ -11,3 +11,4 @@ dependencies:
 - seawater
 - scipy
 - jinja2
+- geojson

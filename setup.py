@@ -19,6 +19,7 @@ setup(name="pyglider",
           "dask",
           "bitstring",
           "netcdf4",
+          "geojson"
       ],
       zip_safe=True
       )
