@@ -327,3 +327,54 @@ def gappy_fill_vertical(data):
             int = np.arange(ind[0], ind[-1])
             data[:, j][ind[0]:ind[-1]] = np.interp(int, ind, data[ind, j])
     return data
+
+def parse_gliderxml_pos(fname):
+    """
+    returns lon, lat, timestr
+    """
+
+    xmln = fname
+    from bs4 import BeautifulSoup
+    with open(xmln, 'r') as fin:
+        y=BeautifulSoup(fin, features="xml")
+        time = None
+        lon = None
+        lat = None
+        for a in y.find_all('valid_location'):
+            try:
+                dtime = np.datetime64(a.time.text)
+                if dtime > np.datetime64('2019-07-19'):
+                    #print(dtime, float(a.lat.text), float(a.lon.text))
+                    #print(np.array(dtime))
+                    if time is not None:
+                        time = np.append(time, dtime)
+                        lat = np.append(lat, float(a.lat.text))
+                        lon = np.append(lon, float(a.lon.text))
+                    else:
+                        time = np.array(dtime)
+                        lat = np.array(float(a.lat.text))
+                        lon = np.array(float(a.lon.text))
+            except:
+                pass
+        lon = nmea2deg(lon)
+        lat = nmea2deg(lat)
+    return lon, lat, time
+
+def parse_gliderxml_surfacedatetime(fname):
+    """
+    returns lon, lat, timestr
+    """
+
+    xmln = fname
+    from bs4 import BeautifulSoup
+    with open(xmln, 'r') as fin:
+        y=BeautifulSoup(fin, features="xml")
+        time = None
+        for a in y.find_all('report'):
+            print(a)
+            if a.text is not None:
+                try:
+                    time = np.append(time, np.datetime64(a.text))
+                except:
+                    pass
+    return time
