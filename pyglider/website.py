@@ -117,9 +117,9 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
                                 'http://cproof.uvic.ca/gliderdata/deployments/' +
                                 d2[2:])
                             # get color:
-                            cols = np.random.randint(0, 255, 3)
+                            cols = np.random.randint(0, 200, 3)
                             print(cols)
-                            feat.properties['color'] = '#%02X%02X%02X' % (cols[0], cols[1], cols[2])
+                            feat.properties['color'] = '#%02X%02X%02X' % (cols[0], cols[1], int(cols[2] / 2))
 
                             features += [feat]
 
