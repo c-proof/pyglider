@@ -760,9 +760,8 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
                             attr[atts] = ncvar[name][atts]
                     ds[name] = (('time'), ebd[name].values, attr)
 
-                    print('Thenames', thenames)
                     for name in thenames:
-                        print('working on ', name)
+                        _log.info('working on ', name)
                         if not('method' in ncvar[name].keys()):
                             # variables that are in the data set or can be interpolated from it
                             if 'conversion' in ncvar[name].keys():
@@ -770,7 +769,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
                             else:
                                 convert = utils._passthrough
                             sensorname = ncvar[name]['source']
-                            print('names:', name, sensorname)
+                            _log.info('names:', name, sensorname)
                             if sensorname in dbd.keys():
                                 _log.debug('sensorname %s', sensorname)
                                 val = convert(dbd[sensorname])
@@ -819,6 +818,16 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
 
     # now merge:
     with xr.open_mfdataset('L1-timeseries/' + id + '*-M*_L1.nc', decode_times=False) as ds:
+        print(ds.attrs)
+        # put the real start and end times:
+        start = ((ds['time'].values[0]).astype('timedelta64[s]') +
+            np.datetime64('1970-01-01T00:00:00'))
+        end = ((ds['time'].values[-1]).astype('timedelta64[s]')  +
+            np.datetime64('1970-01-01T00:00:00'))
+
+        ds.attrs['deployment_start'] = str(start)
+        ds.attrs['deployment_end'] = str(end)
+
         outname = 'L1-timeseries/' + id0 + '_L1.nc'
         ds.to_netcdf(outname)
 

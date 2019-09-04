@@ -5,6 +5,7 @@ import xarray as xr
 import numpy as np
 from jinja2 import Environment, FileSystemLoader
 import geojson
+import datetime
 
 import logging
 
@@ -120,6 +121,10 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
                             cols = np.random.randint(0, 200, 3)
                             print(cols)
                             feat.properties['color'] = '#%02X%02X%02X' % (cols[0], cols[1], int(cols[2] / 2))
+                            if ds['time'][-1] > np.datetime64(datetime.datetime.now()):
+                                feat.properties['active'] = 'True'
+                            else:
+                                feat.properties['active'] = 'False'
 
                             features += [feat]
 

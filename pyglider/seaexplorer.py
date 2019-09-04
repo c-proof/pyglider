@@ -303,6 +303,14 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, kind='raw'):
     #ds = ds._get_distance_over_ground(ds)
 
     ds = utils.fill_metadata(ds, deployment['metadata'])
+    start = ((ds['time'].values[0]).astype('timedelta64[s]') +
+        np.datetime64('1970-01-01T00:00:00'))
+    end = ((ds['time'].values[-1]).astype('timedelta64[s]')  +
+        np.datetime64('1970-01-01T00:00:00'))
+
+    ds.attrs['deployment_start'] = str(start)
+    ds.attrs['deployment_end'] = str(end)
+
     try:
         os.mkdir('L1-timeseries')
     except:
