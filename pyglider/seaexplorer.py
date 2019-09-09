@@ -315,7 +315,8 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, kind='raw'):
         os.mkdir('L1-timeseries')
     except:
         pass
-    outname = 'L1-timeseries/' + ds.attrs['id'] +  '_L1.nc'
+    id0 = ds.attrs['deployment_name']
+    outname = 'L1-timeseries/' + id0 +  '_L1.nc'
     _log.info('writing %s', outname)
     ds.to_netcdf(outname, 'w')
 

@@ -613,23 +613,52 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
     metadata = deployment['metadata']
     id = metadata['glider_name'] + metadata['glider_serial']
 
-    # different missions get a different numbe,r and they may not merge
+    # different missions get a different number and they may not merge
     # smoothly, hence the different files made here.
+
+    # first weed out singleton files.  These cause merge problems...
+    d = indir + '/*.' + scisuffix + '.nc'
+    fin = glob.glob(d)
+    for f in fin:
+        with xr.open_dataset(f) as ds:
+            if len(ds._ind) < 2:
+                bad = True
+            else:
+                bad = False
+        if bad:
+            os.rename(f, f+'.singleton')
+            fglider = f
+            try:
+                fglider = fglider.replace(scisuffix, glidersuffix)
+                os.rename(fglider, fglider+'.singleton')
+            except FileNotFoundError:
+                pass
 
     for num in range(1, 500):
         d = indir + f'/{num:04d}*.' + glidersuffix + '.nc'
+        fin = glob.glob(d)
+        if fin:
+            d = indir + f'/{num:04d}*.' + glidersuffix + '.nc'
+            if glob.glob(d):
+                outnebd = outdir + '/' + id + f'-{num:04d}-rawdbd.nc'
+                _log.info('Opening *.dbd.nc multi-file dataset')
+                with xr.open_mfdataset(d, decode_times=False) as ds:
+                    ds = ds.sortby('time')
+                    ds['_ind'] = np.arange(len(ds.time))
+                    print(ds)
+                    ds.to_netcdf(outnebd, 'w')
 
-        if glob.glob(d):
-            outnebd = outdir + '/' + id + f'-{num:04d}-rawdbd.nc'
-            _log.info('Opening *.dbd.nc multi-file dataset')
-            with xr.open_mfdataset(d, decode_times=True) as ds:
-                ds.to_netcdf(outnebd, 'w')
         d = indir + f'/{num:04d}*.' + scisuffix + '.nc'
-        if glob.glob(d):
-            outndbd = outdir + '/' + id + f'-{num:04d}-rawebd.nc'
-            _log.info('Opening *.ebd.nc multi-file dataset')
-            with xr.open_mfdataset(d, decode_times=True) as ds:
-                ds.to_netcdf(outndbd, 'w')
+        fin = glob.glob(d)
+        if fin:
+            d = indir + f'/{num:04d}*.' + scisuffix + '.nc'
+            if glob.glob(d):
+                outndbd = outdir + '/' + id + f'-{num:04d}-rawebd.nc'
+                _log.info('Opening *.ebd.nc multi-file dataset')
+                with xr.open_mfdataset(d, decode_times=False) as ds:
+                    ds = ds.sortby('time')
+                    ds['_ind'] = np.arange(len(ds.time))
+                    ds.to_netcdf(outndbd, 'w')
 
 
 def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
@@ -761,7 +790,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
                     ds[name] = (('time'), ebd[name].values, attr)
 
                     for name in thenames:
-                        _log.info('working on ', name)
+                        _log.info('working on %s', name)
                         if not('method' in ncvar[name].keys()):
                             # variables that are in the data set or can be interpolated from it
                             if 'conversion' in ncvar[name].keys():
@@ -769,7 +798,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
                             else:
                                 convert = utils._passthrough
                             sensorname = ncvar[name]['source']
-                            _log.info('names:', name, sensorname)
+                            _log.info('names: %s %s', name, sensorname)
                             if sensorname in dbd.keys():
                                 _log.debug('sensorname %s', sensorname)
                                 val = convert(dbd[sensorname])

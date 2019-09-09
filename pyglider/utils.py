@@ -3,6 +3,7 @@ import seawater
 import xarray as xr
 import numpy as np
 from scipy.signal import argrelextrema
+import webcolors
 import logging
 
 _log = logging.getLogger(__name__)
@@ -378,3 +379,28 @@ def parse_gliderxml_surfacedatetime(fname):
                 except:
                     pass
     return time
+
+def get_html_non_blue(num=None):
+    """
+    """
+
+    colors = list(webcolors.css3_names_to_hex.keys())
+    colors0 = colors.copy()
+    for c in colors0:
+        if (c.lower().find('blue') >= 0 or
+                c.lower().find('cyan') >= 0 or
+                c.lower().find('turquoise') >= 0 or
+                c.lower().find('aqua')>= 0 or
+                c.lower().find('navy') >= 0 or
+                c.lower().find('teal')>= 0 or
+                c.lower().find('teal')>= 0 or
+                c.lower().find('gray')>= 0 or
+                c.lower().find('grey')>= 0  or
+                c.lower().find('white')>= 0  or
+                c.lower().find('sea')>= 0):
+            colors.remove(c)
+    if num is None:
+        num = np.random.randint(0, len(colors))
+    cname = colors[num]
+    ints = webcolors.name_to_rgb(cname)
+    return ints

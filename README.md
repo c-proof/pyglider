@@ -24,10 +24,7 @@ If you do so consider making a pull-request with your changes!
 Getting Started
 ===============
 
-This repository has a fully-working example in `pyglider/example`.  Running
-the script `process_deployment.py` should be able to process the raw data in
-`example/binary` and make new versions of the files in the other
-subdirectories.   
+
 
 The work flow (for now) for a new deployment data set from a Slocum glider is
 
@@ -44,7 +41,7 @@ The work flow (for now) for a new deployment data set from a Slocum glider is
   variables are in the `*.CAC` files.  
 5. Edit `deployment.yaml` with appropriate metadata for your glider and
   deployment.  There are a lot of fields, but most should not change after
-  the first deploymnt unless the snsor payload changes on the glider.  
+  the first deployment unless the sensor payload changes on the glider.  
 
 Why?
 ====

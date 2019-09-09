@@ -6,6 +6,8 @@ import numpy as np
 from jinja2 import Environment, FileSystemLoader
 import geojson
 import datetime
+import simplekml
+import pyglider.utils as pygu
 
 import logging
 
@@ -42,6 +44,8 @@ def index_deployments(dir, templatedir='./.templates/'):
             if 1:
                 print(d)
                 nc = glob.glob(d+'/L1-timeseries/*.nc')
+                if len(nc) < 1:
+                    continue
                 with xr.open_dataset(nc[0]) as ds:
                     att = ds.attrs
                     atts.append(att)
@@ -65,6 +69,8 @@ def index_deployments(dir, templatedir='./.templates/'):
                 figs = glob.glob(d + '/figs/*.png')
                 for n, fig in enumerate(figs):
                     figs[n] = './figs/' + os.path.split(fig)[1]
+                if len(nc) < 1:
+                    continue
                 with xr.open_dataset(nc[0]) as ds:
                     att = ds.attrs
                     print(type(ds.keys()))
@@ -92,17 +98,23 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
              'deployment_name', 'project', 'institution', 'comment']
     subdirs = glob.glob(dir + '/*')
     features = []
-    np.random.seed(20190101)
 
+    kml = simplekml.Kml()
+
+    np.random.seed(20190101)
+    print('subdirs', subdirs)
+    colornum = 0;
     for d in subdirs:
+        _log.info(d)
         if os.path.isdir(d):
             subdirs2 = glob.glob(d + '/*')
             for d2 in subdirs2:
+                _log.info(d2)
                 if os.path.isdir(d2):
                     try:
                         nc = glob.glob(d2+'/L2-gridfiles/*.nc')
                         with xr.open_dataset(nc[0]) as ds:
-                            print(ds)
+                            _log.info(f'opened {nc[0]}')
                             att = ds.attrs
                             line = np.vstack((ds.longitude, ds.latitude)).T
                             ls = geojson.LineString(line.tolist())
@@ -119,15 +131,31 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
                                 d2[2:])
                             # get color:
                             cols = np.random.randint(0, 200, 3)
-                            print(cols)
-                            feat.properties['color'] = '#%02X%02X%02X' % (cols[0], cols[1], int(cols[2] / 2))
-                            if ds['time'][-1] > np.datetime64(datetime.datetime.now()):
-                                feat.properties['active'] = 'True'
+                            # cols = pygu.get_html_non_blue(colornum)
+                            colornum += 1
+                            feat.properties['color'] = '#%02X%02X%02X' % (cols[0], cols[1], cols[2])
+                            if ds['time'][-1] > np.datetime64(datetime.datetime.now()) - np.timedelta64(1, 'D'):
+                                feat.properties['active'] = True
                             else:
-                                feat.properties['active'] = 'False'
+                                feat.properties['active'] = False
 
                             features += [feat]
 
+                            # make the kml:
+                            pnt = kml.newpoint(coords=[line[-1]])
+                            pnt.style.iconstyle.icon.href = 'http://cproof.uvic.ca/deployments/assets/images/slocum_glider.png'
+                            coords = []
+                            for thelon, thelat  in zip(ds.longitude.values, ds.latitude.values):
+                                coords += [(thelon, thelat)]
+                            pnt.timestamp.when = f'{ds.time.values[-1]}'[:-3]
+                            ls = kml.newlinestring(coords=coords,
+                                name=att['deployment_name'],
+                                )
+                            ls.timespan.begin = f'{ds.time.values[0]}'[:-3]
+                            ls.timespan.end = f'{ds.time.values[-1]}'[:-3]
+                            ls.style.linestyle.color = 'ee' + '%02X%02X%02X' %  (cols[2], cols[1], cols[0])
+                            ls.style.linestyle.width = 3;
+                            kml.save(d2[2:]+'/'+att['deployment_name']+'.kml')
 
                     except:
                         _log.info(f'Could not find grid file {d2}')
