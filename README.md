@@ -30,8 +30,7 @@ The work flow (for now) for a new deployment data set from a Slocum glider is
 
 1. offload the data from the glider computer or get from the dockserver
 2. copy data from `offload/Science/SENTLOGS/*.EBD`,
-  `offload/Science/LOGS/*.EBD`, `offload/Main_board/SENTLOGS/*.DBD`,
-  `offload/Science/LOGS/*.DBD`, to `./binary/` of your new deployment
+  `offload/Science/LOGS/*.EBD`, `offload/Main_board/LOGS/*.DBD`, to `./binary/` of your new deployment
   presumably in a different directory than `example`
 3. copy the data from the caches to `yourdeployment/cac/`; these are
   found in `offload/Science/STATE/CACHE/*.CAC` and
