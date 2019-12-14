@@ -32,72 +32,75 @@ def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
         for p in profiles:
             ind = np.where(ds.profile_index==p)[0]
             dss = ds.isel(time=ind)
-            # this is the id for the whole file, not just this profile..
-            dss['trajectory'] =  utils.get_file_id(ds).encode()
-            trajlen = len(utils.get_file_id(ds).encode())
-            dss['trajectory'].attrs['cf_role'] = 'trajectory_id'
-            dss['trajectory'].attrs['comment'] = ('A trajectory is a single'
-                    'deployment of a glider and may span multiple data files.')
-            dss['trajectory'].attrs['long_name'] = \
-                    'Trajectory/Deployment Name'
-
-            # profile-averaged variables....
-            profile_meta = deployment['profile_variables']
-            if 'water_velocity_eastward' in dss.keys():
-                dss['u'] = dss.water_velocity_eastward.mean()
-                dss['u'].attrs = profile_meta['u']
-
-                dss['v'] = dss.water_velocity_northward.mean()
-                dss['v'].attrs = profile_meta['v']
-
-            dss['profile_id'] = np.array(p*1.0)
-            dss['profile_id'].attrs = profile_meta['profile_id']
-            dss['profile_time'] = dss.time.mean()
-            dss['profile_time'].attrs = profile_meta['profile_time']
-            dss['profile_lon'] = dss.longitude.mean()
-            dss['profile_lon'].attrs = profile_meta['profile_lon']
-            dss['profile_lat'] = dss.latitude.mean()
-            dss['profile_lat'].attrs = profile_meta['profile_lat']
-
-            dss['lat'] = dss['latitude']
-            dss['lon'] = dss['longitude']
-            dss['platform'] = np.NaN
-            comment = (meta['glider_model'] + ' opperated by ' +
-                       meta['institution'])
-            dss['platform'].attrs['comment'] =  comment
-            dss['platform'].attrs['id'] =  (meta['glider_name'] +
-                                            meta['glider_serial'])
-            dss['platform'].attrs['instrument'] =  'instrument_ctd'
-            dss['platform'].attrs['long_name'] = (meta['glider_model'] +
-                    dss['platform'].attrs['id'])
-            dss['platform'].attrs['type'] = 'platform'
-            dss['platform'].attrs['wmo_id'] = meta['wmo_id']
-
-            dss['lat_uv'] = np.NaN
-            dss['lat_uv'].attrs = profile_meta['lat_uv']
-            dss['lon_uv'] = np.NaN
-            dss['lon_uv'].attrs = profile_meta['lon_uv']
-            dss['time_uv'] = np.NaN
-            dss['time_uv'].attrs = profile_meta['time_uv']
-
-            dss['instrument_ctd'] = np.NaN
-            dss['instrument_ctd'].attrs = profile_meta['instrument_ctd']
-
-            dss.attrs['date_modified'] = str(np.datetime64('now')) + 'Z'
-
-            # ancillary variables::
-            to_fill = ['temperature', 'pressure', 'conductivity',
-                        'salinity', 'density', 'lon', 'lat', 'depth']
-            for name in to_fill:
-                dss[name].attrs['ancillary_variables'] = name + '_qc'
-
             outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
-            _log.info('Writing %s', outname)
-            dss.to_netcdf(outname)
+            _log.info('Checking %s', outname)
+            if not os.path.exists(outname):
+                # this is the id for the whole file, not just this profile..
+                dss['trajectory'] =  utils.get_file_id(ds).encode()
+                trajlen = len(utils.get_file_id(ds).encode())
+                dss['trajectory'].attrs['cf_role'] = 'trajectory_id'
+                dss['trajectory'].attrs['comment'] = ('A trajectory is a single'
+                        'deployment of a glider and may span multiple data files.')
+                dss['trajectory'].attrs['long_name'] = \
+                        'Trajectory/Deployment Name'
 
-            # add traj_strlen using bare ntcdf to make IOOS happy
-            with netCDF4.Dataset(outname, 'r+') as nc:
-                nc.renameDimension('string%d' % trajlen, 'traj_strlen')
+                # profile-averaged variables....
+                profile_meta = deployment['profile_variables']
+                if 'water_velocity_eastward' in dss.keys():
+                    dss['u'] = dss.water_velocity_eastward.mean()
+                    dss['u'].attrs = profile_meta['u']
+
+                    dss['v'] = dss.water_velocity_northward.mean()
+                    dss['v'].attrs = profile_meta['v']
+
+                dss['profile_id'] = np.array(p*1.0)
+                dss['profile_id'].attrs = profile_meta['profile_id']
+                dss['profile_time'] = dss.time.mean()
+                dss['profile_time'].attrs = profile_meta['profile_time']
+                dss['profile_lon'] = dss.longitude.mean()
+                dss['profile_lon'].attrs = profile_meta['profile_lon']
+                dss['profile_lat'] = dss.latitude.mean()
+                dss['profile_lat'].attrs = profile_meta['profile_lat']
+
+                dss['lat'] = dss['latitude']
+                dss['lon'] = dss['longitude']
+                dss['platform'] = np.NaN
+                comment = (meta['glider_model'] + ' opperated by ' +
+                           meta['institution'])
+                dss['platform'].attrs['comment'] =  comment
+                dss['platform'].attrs['id'] =  (meta['glider_name'] +
+                                                meta['glider_serial'])
+                dss['platform'].attrs['instrument'] =  'instrument_ctd'
+                dss['platform'].attrs['long_name'] = (meta['glider_model'] +
+                        dss['platform'].attrs['id'])
+                dss['platform'].attrs['type'] = 'platform'
+                dss['platform'].attrs['wmo_id'] = meta['wmo_id']
+
+                dss['lat_uv'] = np.NaN
+                dss['lat_uv'].attrs = profile_meta['lat_uv']
+                dss['lon_uv'] = np.NaN
+                dss['lon_uv'].attrs = profile_meta['lon_uv']
+                dss['time_uv'] = np.NaN
+                dss['time_uv'].attrs = profile_meta['time_uv']
+
+                dss['instrument_ctd'] = np.NaN
+                dss['instrument_ctd'].attrs = profile_meta['instrument_ctd']
+
+                dss.attrs['date_modified'] = str(np.datetime64('now')) + 'Z'
+
+                # ancillary variables::
+                to_fill = ['temperature', 'pressure', 'conductivity',
+                            'salinity', 'density', 'lon', 'lat', 'depth']
+                for name in to_fill:
+                    dss[name].attrs['ancillary_variables'] = name + '_qc'
+
+                # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
+                _log.info('Writing %s', outname)
+                dss.to_netcdf(outname)
+
+                # add traj_strlen using bare ntcdf to make IOOS happy
+                with netCDF4.Dataset(outname, 'r+') as nc:
+                    nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 
 def make_L2_gridfiles(inname, outdir, deploymentyaml):
@@ -107,6 +110,10 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
         os.mkdir(outdir)
     except FileExistsError:
         pass
+
+    with open(deploymentyaml) as fin:
+        deployment = yaml.safe_load(fin)
+    profile_meta = deployment['profile_variables']
 
     ds = xr.open_dataset(inname, decode_times=False)
     print('Working on:')
@@ -136,6 +143,18 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs )
 
+    datmax = np.zeros(len(profiles))
+    datmin = np.zeros(len(profiles))
+    for n, p in enumerate(profiles):
+        ind = np.where(ds.profile_index == p)[0]
+        datmax[n] = ds['time'][ind[-1]]
+        datmin[n] = ds['time'][ind[0]]
+    _log.info(f'{td} {len(dat)}')
+    dsout['profile_time_start'] = (('time'), dat,
+            profile_meta['profile_time_start'] )
+    dsout['profile_time_end'] = (('time'), dat,
+            profile_meta['profile_time_end'])
+
     for k in ds.keys():
         if k not in ['time', 'longitude', 'latitude', 'depth']:
             _log.info('Gridding %s', k)
@@ -154,6 +173,16 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
             # fill gaps in data:
             dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)
 
+    # fix u and v, because they should really not be gridded...
+    if (('water_velocity_eastward' in dsout.keys()) and
+            ('u' in profile_meta.keys())):
+        print(ds.water_velocity_eastward)
+        dsout['u'] = dsout.water_velocity_eastward.mean(axis=0)
+        dsout['u'].attrs = profile_meta['u']
+        dsout['v'] = dsout.water_velocity_northward.mean(axis=0)
+        dsout['v'].attrs = profile_meta['v']
+        dsout = dsout.drop(['water_velocity_eastward',
+                            'water_velocity_northward'])
     dsout.attrs = ds.attrs
 
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_L2grid.nc'

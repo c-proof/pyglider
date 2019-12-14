@@ -867,9 +867,11 @@ def _dbd2ebd(dbd, ds, val):
     """
     Helper to interpolate from dbd to ebd data stream
     """
-    good = ~np.isnan(val)
+    good = np.where(np.isfinite(val))[0]
     vout = ds.time * 0.0
-    goodt = ~np.isnan(ds.time)
-    vout[goodt] = np.interp(ds.time[goodt].values,
-        dbd.m_present_time.values[good], val[good].values)
+    goodt = np.where(np.isfinite(ds.time))[0]
+    if (len(goodt) > 1) and (len(good) > 1):
+        print('GOOOD', goodt, good)
+        vout[goodt] = np.interp(ds.time[goodt].values,
+            dbd.m_present_time.values[good], val[good].values)
     return vout

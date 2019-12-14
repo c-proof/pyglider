@@ -51,10 +51,11 @@ def index_deployments(dir, templatedir='./.templates/'):
                     atts.append(att)
             else:
                 pass
-    output = template.render(atts=atts,
-        title=atts[-1]['glider_name'] + atts[-1]['glider_serial'])
-    with open(dir + '/index.html', 'w') as fout:
-        fout.write(output)
+    if len(atts) > 0:
+        output = template.render(atts=atts,
+            title=atts[-1]['glider_name'] + atts[-1]['glider_serial'])
+        with open(dir + '/index.html', 'w') as fout:
+            fout.write(output)
 
     # now make the individual deployment index pages...
     template = env.get_template('deploymentsInfo.html')
@@ -116,7 +117,8 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
                         with xr.open_dataset(nc[0]) as ds:
                             _log.info(f'opened {nc[0]}')
                             att = ds.attrs
-                            line = np.vstack((ds.longitude, ds.latitude)).T
+                            good = (ds.longitude < -125)
+                            line = np.vstack((ds.longitude[good], ds.latitude[good])).T
                             ls = geojson.LineString(line.tolist())
                             feat = geojson.Feature(geometry=ls)
                             for prop in props:
@@ -134,7 +136,7 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
                             # cols = pygu.get_html_non_blue(colornum)
                             colornum += 1
                             feat.properties['color'] = '#%02X%02X%02X' % (cols[0], cols[1], cols[2])
-                            if ds['time'][-1] > np.datetime64(datetime.datetime.now()) - np.timedelta64(1, 'D'):
+                            if ds['time'][-1] > np.datetime64(datetime.datetime.now()) - np.timedelta64(2, 'D'):
                                 feat.properties['active'] = True
                             else:
                                 feat.properties['active'] = False

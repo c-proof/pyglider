@@ -275,3 +275,8 @@ def grid_plots(fname, plottingyaml):
         lastdata = str(ds.time[-1].values)[:-13]
         fig.suptitle(f'Processed: {now}, Lastdata: {lastdata} ')
         fig.savefig(config['figdir'] + '/pcolor_%s.png'%ds.attrs['deployment_name'], dpi=200)
+        t1 = ds.time[-1]
+        t0 = t1 - np.timedelta64(10, 'D')
+        for ax in axs:
+            ax.set_xlim([t0, t1])
+        fig.savefig(config['figdir'] + '/pcolor_%s_last10d.png'%ds.attrs['deployment_name'], dpi=200)

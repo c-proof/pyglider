@@ -3,7 +3,7 @@ import seawater
 import xarray as xr
 import numpy as np
 from scipy.signal import argrelextrema
-import webcolors
+# import webcolors
 import logging
 
 _log = logging.getLogger(__name__)
