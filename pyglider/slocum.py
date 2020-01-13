@@ -772,6 +772,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
         if 1:
             ebdn = indir + '/' + id + f'-{mnum:04d}-rawebd.nc'
             dbdn = indir + '/' + id + f'-{mnum:04d}-rawdbd.nc'
+            print(ebdn, dbdn)
             if os.path.exists(ebdn) and os.path.exists(dbdn):
                 print('Opening:', ebdn, dbdn)
                 ebd = xr.open_dataset(ebdn, decode_times=False)
@@ -824,7 +825,8 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
                     ds = utils.get_profiles_new(ds,
                             filt_length=profile_filt_len, min_nsamples=profile_min_nsamples)
                     # ds = utils.get_profiles(ds)
-                    ds.profile_index.values = ds.profile_index.values + prev_profile
+                    ds['profile_index'] = ds.profile_index + prev_profile
+
                     ind = np.where(np.isfinite(ds.profile_index))[0]
                     prev_profile = ds.profile_index.values[ind][-1]
                     ds = utils.get_derived_eos_raw(ds)
@@ -856,6 +858,8 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
 
         ds.attrs['deployment_start'] = str(start)
         ds.attrs['deployment_end'] = str(end)
+        ds = utils.get_profiles_new(ds,
+                filt_length=profile_filt_len, min_nsamples=profile_min_nsamples)
 
         outname = 'L1-timeseries/' + id0 + '_L1.nc'
         ds.to_netcdf(outname)
