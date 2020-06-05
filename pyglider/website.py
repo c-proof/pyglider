@@ -43,9 +43,11 @@ def index_deployments(dir, templatedir='./.templates/'):
         if os.path.isdir(d):
             if 1:
                 print(d)
-                nc = glob.glob(d+'/L1-timeseries/*.nc')
+                nc = glob.glob(d+'/L0-timeseries/*.nc')
                 if len(nc) < 1:
-                    continue
+                    nc = glob.glob(d+'/L1-timeseries/*.nc')
+                    if len(nc) < 1:
+                        continue
                 with xr.open_dataset(nc[0]) as ds:
                     att = ds.attrs
                     atts.append(att)
@@ -66,12 +68,15 @@ def index_deployments(dir, templatedir='./.templates/'):
         if os.path.isdir(d):
             print(d)
             if 1:
-                nc = glob.glob(d+'/L1-timeseries/*.nc')
                 figs = glob.glob(d + '/figs/*.png')
                 for n, fig in enumerate(figs):
                     figs[n] = './figs/' + os.path.split(fig)[1]
+                nc = glob.glob(d+'/L0-timeseries/*.nc')
                 if len(nc) < 1:
-                    continue
+                    # try old style
+                    nc = glob.glob(d+'/L1-timeseries/*.nc')
+                    if len(nc) < 1:
+                        continue
                 with xr.open_dataset(nc[0]) as ds:
                     att = ds.attrs
                     print(type(ds.keys()))
@@ -113,7 +118,11 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
                 _log.info(d2)
                 if os.path.isdir(d2):
                     try:
-                        nc = glob.glob(d2+'/L2-gridfiles/*.nc')
+                        nc = glob.glob(d2+'/L0-gridfiles/*.nc')
+                        if len(nc) < 1:
+                            # old style
+                            nc = glob.glob(d2+'/L2-gridfiles/*.nc')
+
                         with xr.open_dataset(nc[0]) as ds:
                             _log.info(f'opened {nc[0]}')
                             att = ds.attrs
