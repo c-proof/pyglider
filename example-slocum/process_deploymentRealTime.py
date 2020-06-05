@@ -39,7 +39,7 @@ slocum.merge_rawnc(rawdir, rawdir, deploymentyaml,
 if 1:
     # Make level-1 timeseries netcdf file from th raw files...
     outname = slocum.raw_to_L1timeseries(rawdir, l1tsdir, deploymentyaml,
-              profile_filt_len=10, profile_min_nsamples=2)
+              profile_filt_time=100, profile_min_time=300)
     # make profile netcdf files for ioos gdac...
     ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
 

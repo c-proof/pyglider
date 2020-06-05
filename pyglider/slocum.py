@@ -755,9 +755,26 @@ def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
     return
 
 
-def raw_to_L1timeseries(indir, outdir, deploymentyaml,
-                        profile_filt_len=7, profile_min_nsamples=14):
+def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
+                        profile_filt_time=100, profile_min_time=300):
     """
+    Parameters
+    ----------
+    indir : string
+        Directory with raw netcdf files.
+    outdir : string
+        Directory to put the merged timeseries files.
+    profile_filt_time : float
+        time in seconds over which to smooth the pressure time series for
+        finding up and down profiles (note, doesn't filter the data that is
+        saved)
+    profile_min_time : float
+        minimum time to consider a profile an actual profile (seconds)
+
+    Returns
+    -------
+    outname : string
+        name of the new merged netcdf file.  
     """
 
     with open(deploymentyaml) as fin:
@@ -861,7 +878,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
         ds.attrs['deployment_start'] = str(start)
         ds.attrs['deployment_end'] = str(end)
         ds = utils.get_profiles_new(ds,
-                filt_length=profile_filt_len, min_nsamples=profile_min_nsamples)
+                filt_time=profile_filt_time, profile_min_time=profile_min_time)
 
         outname = outdir + '/' + id0 + '.nc'
         ds.to_netcdf(outname)

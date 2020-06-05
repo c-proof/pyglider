@@ -8,6 +8,8 @@ metadata:
   creator_email: jklymak@uvic.ca
   creator_name:  Jody Klymak
   creator_url:   http://cproof.uvic.ca
+  # R: real time. P: provisional
+  data_mode: 'R'
   # date_created etc: added automatically
   # numbers must be eenclosed by strings so YAML keeps as strings
   deployment_id: '1'
