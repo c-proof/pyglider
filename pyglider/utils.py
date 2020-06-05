@@ -122,29 +122,38 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
         decim = 2
     # why?  because argrelextrema doesn't like repeated values, so smooth
     # then decimate to get fewer values:
-    p = p[::decim]
-    maxs = argrelextrema(p, np.greater)[0]
-    mins = argrelextrema(p, np.less)[0]
+    pp = p[::decim]
+    maxs = argrelextrema(pp, np.greater)[0]
+    mins = argrelextrema(pp, np.less)[0]
     mins = good[mins * decim]
     maxs = good[maxs * decim]
-    mins = np.concatenate(([0], mins, good[[-1]]))
+    if mins[0] > maxs[0]:
+        mins = np.concatenate(([0], mins))
+    if mins[-1] < maxs[-1]:
+        mins = np.concatenate((mins, good[[-1]]))
+
+
     _log.info(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
 
     pronum = 0
+    p = ds.pressure
     for n, i in enumerate(mins[:-1]):
         # down
-        try:
-            print(n, mins[[n, n+1]], maxs[[n, n+1]])
-            if maxs[n] - mins[n] > min_nsamples:
-                profile[mins[n]:maxs[n]+1] = pronum
-                direction[mins[n]:maxs[n]+1] = +1
+        if 1:
+            ins = range(mins[n],maxs[n]+1)
+            print('Down', ins, p[ins[0]].values,p[ins[-1]].values)
+            if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
+                profile[ins] = pronum
+                direction[ins] = +1
                 pronum += 1
-            if mins[n+1] - maxs[n] > min_nsamples:
+            ins = range(maxs[n], mins[n+1])
+            print('Up', ins, p[ins[0]].values, p[ins[-1]].values)
+            if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 # up
                 profile[maxs[n]:mins[n+1]+1] = pronum
                 direction[maxs[n]:mins[n+1]+1] = -1
                 pronum += 1
-        except:
+        else:
             print('Failed?')
 
     print('Doing this...')
