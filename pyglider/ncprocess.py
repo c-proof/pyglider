@@ -136,20 +136,35 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
                                'profile': ('time', profiles)},
                       )
     for td in ('time', 'longitude', 'latitude'):
-        dat = np.zeros(len(profiles))
-        for n, p in enumerate(profiles):
-            ind = np.where(ds.profile_index == p)
-            dat[n] = ds[td][ind].values.mean()
+        good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
+        dat, xedges, binnumber = stats.binned_statistic(
+                ds['profile_index'].values[good],
+                ds[td].values[good], statistic='mean',
+                bins=[profile_bins])
+
+        #for n, p in enumerate(profiles):
+        #    ind = np.where(ds.profile_index == p)
+        #    dat[n] = ds[td][ind].values.mean()
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs )
 
-    datmax = np.zeros(len(profiles))
-    datmin = np.zeros(len(profiles))
-    for n, p in enumerate(profiles):
-        ind = np.where(ds.profile_index == p)[0]
-        datmax[n] = ds['time'][ind[-1]]
-        datmin[n] = ds['time'][ind[0]]
-    _log.info(f'{td} {len(dat)}')
+    #datmax = np.zeros(len(profiles))
+    #datmin = np.zeros(len(profiles))
+    good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
+    datmax, xedges, binnumber = stats.binned_statistic(
+            ds['profile_index'].values[good],
+            ds['time'].values[good], statistic='max',
+            bins=[profile_bins])
+    datmin, xedges, binnumber = stats.binned_statistic(
+            ds['profile_index'].values[good],
+            ds['time'].values[good], statistic='min',
+            bins=[profile_bins])
+    if 0:
+        for n, p in enumerate(profiles):
+            ind = np.where(ds.profile_index == p)[0]
+            datmax[n] = ds['time'][ind[-1]]
+            datmin[n] = ds['time'][ind[0]]
+    _log.info(f'Done times! {len(dat)}')
     dsout['profile_time_start'] = (('time'), dat,
             profile_meta['profile_time_start'] )
     dsout['profile_time_end'] = (('time'), dat,
@@ -185,7 +200,7 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
                             'water_velocity_northward'])
     dsout.attrs = ds.attrs
 
-    outname = outdir + '/' + ds.attrs['deployment_name'] + '_L2grid.nc'
+    outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid.nc'
     _log.info('Writing %s', outname)
     dsout.to_netcdf(outname)
     _log.info('Done gridding')

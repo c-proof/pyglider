@@ -95,22 +95,38 @@ def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
     return ds
 
 
-def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_length=7,
-                 min_nsamples=14):
+def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
+                 profile_min_time=300):
     """
-    make two variables: profile_direction and profile_index; this veersion
+    make two variables: profile_direction and profile_index; this version
     is good for lots of data.  Less good for sparse data
+
+    filt_time is in seconds
+    min_nsamples is in seconds
     """
     profile = ds.pressure.values * 0
     direction = ds.pressure.values * 0
     pronum = 1
     lastpronum = 0
 
+    filt_length = int(filt_time * float(np.median(np.diff(ds.time.values[:200000])))/1e9)
+    print('Filt Len', filt_length)
+    min_nsamples = int(profile_min_time *
+                       float(np.median(np.diff(ds.time.values[:200000])))/1e9)
+
     good = np.where(np.isfinite(ds.pressure))[0]
     p = np.convolve(ds.pressure.values[good],
                     np.ones(filt_length) / filt_length, 'same')
-    maxs = good[argrelextrema(p, np.greater)[0]]
-    mins = good[argrelextrema(p, np.less)[0]]
+    decim = int(filt_length / 5)
+    if decim < 2:
+        decim = 2
+    # why?  because argrelextrema doesn't like repeated values, so smooth
+    # then decimate to get fewer values:
+    p = p[::decim]
+    maxs = argrelextrema(p, np.greater)[0]
+    mins = argrelextrema(p, np.less)[0]
+    mins = good[mins * decim]
+    maxs = good[maxs * decim]
     mins = np.concatenate(([0], mins, good[[-1]]))
     _log.info(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
 
@@ -118,17 +134,20 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_length=7,
     for n, i in enumerate(mins[:-1]):
         # down
         try:
-            print(n)
-            profile[mins[n]:maxs[n]+1] = pronum
-            direction[mins[n]:maxs[n]+1] = +1
-            pronum += 1
-            # up
-            profile[maxs[n]:mins[n+1]+1] = pronum
-            direction[maxs[n]:mins[n+1]+1] = -1
-            pronum += 1
+            print(n, mins[[n, n+1]], maxs[[n, n+1]])
+            if maxs[n] - mins[n] > min_nsamples:
+                profile[mins[n]:maxs[n]+1] = pronum
+                direction[mins[n]:maxs[n]+1] = +1
+                pronum += 1
+            if mins[n+1] - maxs[n] > min_nsamples:
+                # up
+                profile[maxs[n]:mins[n+1]+1] = pronum
+                direction[maxs[n]:mins[n+1]+1] = -1
+                pronum += 1
         except:
-            pass
+            print('Failed?')
 
+    print('Doing this...')
     attrs = collections.OrderedDict([('long_name', 'profile index'),
              ('units', '1'),
              ('comment',
@@ -286,7 +305,7 @@ def fill_metadata(ds, metadata):
     ds.attrs['time_coverage_start'] = '%s' % dt[0]
     ds.attrs['time_coverage_end'] = '%s' % dt[-1]
 
-    ds.attrs['processing_level'] = 'Level 1 (L1) processed data timeseries; no corrections or data screening'
+    ds.attrs['processing_level'] = 'Level 0 (L0) processed data timeseries; no corrections or data screening'
 
     ds.attrs = collections.OrderedDict(sorted(ds.attrs.items()))
 

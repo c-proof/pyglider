@@ -608,6 +608,8 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
                 scisuffix='EBD', glidersuffix='DBD'):
 
+    scisuffix = scisuffix.lower()
+    glidersuffix = glidersuffix.lower()
     with open(deploymentyaml) as fin:
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
@@ -636,6 +638,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
 
     for num in range(1, 500):
         d = indir + f'/{num:04d}*.' + glidersuffix + '.nc'
+        print('Check', d)
         fin = glob.glob(d)
         if fin:
             d = indir + f'/{num:04d}*.' + glidersuffix + '.nc'
@@ -822,10 +825,9 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
 
                     ds = utils.get_glider_depth(ds)
                     ds = utils.get_distance_over_ground(ds)
-                    ds = utils.get_profiles_new(ds,
-                            filt_length=profile_filt_len, min_nsamples=profile_min_nsamples)
+
                     # ds = utils.get_profiles(ds)
-                    ds['profile_index'] = ds.profile_index + prev_profile
+                    # ds['profile_index'] = ds.profile_index + prev_profile
 
                     ind = np.where(np.isfinite(ds.profile_index))[0]
                     prev_profile = ds.profile_index.values[ind][-1]
@@ -837,18 +839,18 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
                     #ds = ds._get_distance_over_ground(ds)
                     ds = utils.fill_metadata(ds, deployment['metadata'])
                     try:
-                        os.mkdir('L1-timeseries')
+                        os.mkdir(outdir)
                     except:
                         pass
-                    outname = ('L1-timeseries/' + ds.attrs['deployment_name'] +
-                                f'-M{mnum:04d}_L1.nc')
+                    outname = (outdir + '/' + ds.attrs['deployment_name'] +
+                                f'-M{mnum:04d}_L0.nc')
                     _log.info('writing %s', outname)
                     ds.to_netcdf(outname, 'w')
                     if id0 is None:
                         id0 = ds.attrs['deployment_name']
 
     # now merge:
-    with xr.open_mfdataset('L1-timeseries/' + id + '*-M*_L1.nc', decode_times=False) as ds:
+    with xr.open_mfdataset(outdir + '/' + id + '*-M*_L0.nc', decode_times=False) as ds:
         print(ds.attrs)
         # put the real start and end times:
         start = ((ds['time'].values[0]).astype('timedelta64[s]') +
@@ -861,10 +863,28 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml,
         ds = utils.get_profiles_new(ds,
                 filt_length=profile_filt_len, min_nsamples=profile_min_nsamples)
 
-        outname = 'L1-timeseries/' + id0 + '_L1.nc'
+        outname = outdir + '/' + id0 + '.nc'
         ds.to_netcdf(outname)
 
     return outname
+
+
+def timeseries_get_profiles(inname, profile_filt_time=100,
+                            profile_min_time=400):
+    """
+    Parameters
+    ----------
+    profile_filt_time : float
+        how long a filter to apply to the pressure data in seconds
+
+    profile_min_time : float
+        how long a profile must last to be considered a proper profile (seconds)
+    """
+    with  xr.open_dataset(inname) as ds:
+        ds = utils.get_profiles_new(ds,
+                filt_time=profile_filt_time, profile_min_time=profile_min_time)
+    ds.to_netcdf(inname, mode='a')
+    return inname
 
 
 def _dbd2ebd(dbd, ds, val):
