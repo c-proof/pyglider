@@ -638,7 +638,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
 
     for num in range(1, 500):
         d = indir + f'/{num:04d}*.' + glidersuffix + '.nc'
-        print('Check', d)
+        _log.info('Check %s', d)
         fin = glob.glob(d)
         if fin:
             d = indir + f'/{num:04d}*.' + glidersuffix + '.nc'
@@ -774,7 +774,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
     Returns
     -------
     outname : string
-        name of the new merged netcdf file.  
+        name of the new merged netcdf file.
     """
 
     with open(deploymentyaml) as fin:
@@ -846,8 +846,8 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
                     # ds = utils.get_profiles(ds)
                     # ds['profile_index'] = ds.profile_index + prev_profile
 
-                    ind = np.where(np.isfinite(ds.profile_index))[0]
-                    prev_profile = ds.profile_index.values[ind][-1]
+                    #ind = np.where(np.isfinite(ds.profile_index))[0]
+                    #prev_profile = ds.profile_index.values[ind][-1]
                     ds = utils.get_derived_eos_raw(ds)
                     ds = ds.assign_coords(longitude=ds.longitude)
                     ds = ds.assign_coords(latitude=ds.latitude)

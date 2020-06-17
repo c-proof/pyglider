@@ -42,7 +42,7 @@ def index_deployments(dir, templatedir='./.templates/'):
     for d in subdirs:
         if os.path.isdir(d):
             if 1:
-                print(d)
+                _log.info(d)
                 nc = glob.glob(d+'/L0-timeseries/*.nc')
                 if len(nc) < 1:
                     nc = glob.glob(d+'/L1-timeseries/*.nc')
@@ -60,21 +60,24 @@ def index_deployments(dir, templatedir='./.templates/'):
             fout.write(output)
 
     # now make the individual deployment index pages...
-    template = env.get_template('deploymentsInfo.html')
+    templateOld = env.get_template('deploymentsInfo.html')
+    templateNew = env.get_template('deploymentsInfoNew.html')
     subdirs = glob.glob(dir + '/*')
     atts = []
     for d in subdirs:
-        print(d)
         if os.path.isdir(d):
-            print(d)
+            _log.info(d)
             if 1:
                 figs = glob.glob(d + '/figs/*.png')
                 for n, fig in enumerate(figs):
                     figs[n] = './figs/' + os.path.split(fig)[1]
                 nc = glob.glob(d+'/L0-timeseries/*.nc')
+                template = templateNew
+
                 if len(nc) < 1:
                     # try old style
                     nc = glob.glob(d+'/L1-timeseries/*.nc')
+                    template = templateOld
                     if len(nc) < 1:
                         continue
                 with xr.open_dataset(nc[0]) as ds:

@@ -109,12 +109,13 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
     pronum = 1
     lastpronum = 0
 
-    filt_length = int(filt_time * float(np.median(np.diff(ds.time.values[:200000])))/1e9)
-    print('Filt Len', filt_length)
-    min_nsamples = int(profile_min_time *
-                       float(np.median(np.diff(ds.time.values[:200000])))/1e9)
-
     good = np.where(np.isfinite(ds.pressure))[0]
+    dt = float(np.median(np.diff(ds.time.values[good[:200000]])))
+    filt_length = int(filt_time /  dt)
+
+    min_nsamples = int(profile_min_time / dt)
+    _log.info('Filt Len  %d, dt %f, min_n %d', filt_length, dt, min_nsamples)
+
     p = np.convolve(ds.pressure.values[good],
                     np.ones(filt_length) / filt_length, 'same')
     decim = int(filt_length / 5)
