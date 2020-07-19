@@ -265,6 +265,22 @@ profile_variables:
     standard_name:     time
     units:             seconds since 1970-01-01T00:00:00Z
 
+  profile_time_start:
+    comment:           Timestamp corresponding to the start of the profile
+    long_name:         Profile Start Time
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     time
+    units:             seconds since 1970-01-01T00:00:00Z
+
+  profile_time_end:
+    comment:           Timestamp corresponding to the end of the profile
+    long_name:         Profile End Time
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     time
+    units:             seconds since 1970-01-01T00:00:00Z
+
   profile_lat:
     comment:           Value is interpolated to provide an estimate of the latitude at the mid-point of the profile
     long_name:         Profile Center Latitude
