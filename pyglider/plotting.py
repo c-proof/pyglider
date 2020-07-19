@@ -250,13 +250,13 @@ def grid_plots(fname, plottingyaml):
             print(ind)
             print(len(ds.time))
             if len(ind) > 1:
-                time = ds.time[ind[:-1]] - np.diff(ds.time[ind])
-                time = np.hstack((time, time[-1] + np.diff(ds.time[ind])[-1]))
+                time = ds.time[ind[1:]] + np.diff(ds.time[ind]) / 2
+                time = np.hstack((time[0] - (time[1]-time[0]) / 2, time))
                 depth = ds.depth[:-1] - np.diff(ds.depth)
                 depth = np.hstack((depth, depth[-1] + np.diff(ds.depth)[-1]))
                 pc = ax.pcolormesh(time, depth, ds[k][:, ind],
                     rasterized=True, vmin=min, vmax=max, cmap=cmap)
-                ax.contour(time, ds.depth, ds.potential_density[:, ind], colors='0.5',
+                ax.contour(ds.time, ds.depth, ds.potential_density[:, ind], colors='0.5',
                        levels=np.arange(22, 28, 0.5)+1000, linewidths=0.85,)
 
                 print(ds[k])
