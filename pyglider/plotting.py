@@ -238,7 +238,6 @@ def grid_plots(fname, plottingyaml):
             ax.xaxis.set_major_locator(locator)
             ax.xaxis.set_major_formatter(formatter)
 
-
             min, max = _autoclim(ds[k])
             if vmin is not None:
                 min = vmin
@@ -257,7 +256,7 @@ def grid_plots(fname, plottingyaml):
                 pc = ax.pcolormesh(time, depth, ds[k][:, ind],
                     rasterized=True, vmin=min, vmax=max, cmap=cmap)
                 ax.contour(ds.time, ds.depth, ds.potential_density[:, ind], colors='0.5',
-                       levels=np.arange(22, 28, 0.5)+1000, linewidths=0.85,)
+                       levels=np.arange(22, 28, 0.5)+1000, linewidths=0.5, alpha=0.7)
 
                 print(ds[k])
 
@@ -274,7 +273,15 @@ def grid_plots(fname, plottingyaml):
         now = str(datetime.utcnow())[:-10]
         lastdata = str(ds.time[-1].values)[:-13]
         fig.suptitle(f'Processed: {now}, Lastdata: {lastdata} ')
-        fig.savefig(config['figdir'] + '/pcolor_%s.png'%ds.attrs['deployment_name'], dpi=200)
+        fig.savefig((config['figdir'] + '/' +
+                     'pcolor_%s.png'%ds.attrs['deployment_name']), dpi=200)
+        ax.set_ylim([400, 0])
+        fig.savefig((config['figdir'] + '/' +
+                     'pcolor400_%s.png'%ds.attrs['deployment_name']), dpi=200)
+        ax.set_ylim([depmax, 0])
+
+
+
         t1 = ds.time[-1]
         t0 = t1 - np.timedelta64(10, 'D')
         for ax in axs:

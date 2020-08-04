@@ -98,23 +98,21 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
                 _log.info(f'{f} to {fnout}')
                 if not incremental or _needsupdating(f, fnout):
                     _log.info(f'Doing: {f} to {fnout}')
-                    if 1:
-                        out = pd.read_csv(f, header=0, delimiter=';',
+                    out = pd.read_csv(f, header=0, delimiter=';',
                                             parse_dates=True, index_col=0,
                                             dayfirst=True)
-                        out = out.to_xarray()
-                        key = list(out.coords.keys())[0]
-                        out = out.rename({key:'time'})
-                        # dumb time down to seconds since 1970-01-01
-                        out['time'] = out['time'].astype(np.float64)/1e9
-                        out['time'].attrs['units'] = (
-                            'seconds since 1970-01-01T00:00:00Z')
-                        out['fnum'] = ('time',
-                            int(filenum) * np.ones(len(out['time'])))
-                        out.to_netcdf(fnout, 'w')
-                    else:
-                        badfiles += [files[ind]]
-                        _log.warning('Could not do parsing for %s', files[ind])
+                    if 1:
+                        with out.to_xarray() as outx:
+                            del(out)
+                            key = list(outx.coords.keys())[0]
+                            outx = outx.rename({key:'time'})
+                            # dumb time down to seconds since 1970-01-01
+                            outx['time'] = outx['time'].astype(np.float64)/1e9
+                            outx['time'].attrs['units'] = (
+                                'seconds since 1970-01-01T00:00:00Z')
+                            outx['fnum'] = ('time',
+                                int(filenum) * np.ones(len(outx['time'])))
+                            outx.to_netcdf(fnout, 'w')
 
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
@@ -156,45 +154,28 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     outpld = outdir + '/' + id + '-' + kind + 'pld.nc'
 
     _log.info('Opening *.gli.sub.*.nc multi-file dataset from %s', indir)
-    gli = xr.open_mfdataset(indir + '/*.gli.sub.*.nc', decode_times=False)
+    files = sorted(glob.glob(indir+'/*.gli.sub.*.nc'))
+    with xr.open_dataset(files[0], decode_times=False) as gli:
+        for fil in files[1:]:
+            try:
+                with xr.open_dataset(fil, decode_times=False) as gli2:
+                    gli = xr.concat([gli, gli2], dim='time')
+            except:
+                pass
+        gli.to_netcdf(outgli)
+    _log.info(f'Done writing {outgli}')
 
     _log.info('Opening *.pld.sub.*.nc multi-file dataset')
-    pld = xr.open_mfdataset(indir + '/*.pld1.' + kind + '.*.nc', decode_times=False)
-
-    _log.info('Opening existing merged *.ebd.nc')
-
-    # don't write if output files are up to date:
-    # maybe this would be faster w/ a merge?  Not sure.
-    write = False
-    try:
-        with xr.open_dataset(outgli, decode_times=False) as biggli:
-            ind = np.where(gli.time > biggli.time[-1])[0]
-            if len(ind) > 0:
-                _log.info('New data found in raw *.ebd.nc')
-                write = True
-    except FileNotFoundError:
-        _log.info('Merged file not found: %s', outgli )
-        write = True
-    if write:
-        _log.info('Writing ' + outgli)
-        gli.to_netcdf(outgli)
-    else:
-        _log.info('Not overwriting ' + outgli)
-    _log.info('Done writing ')
-    try:
-        with xr.open_dataset(outpld, decode_times=False) as bigpld:
-            ind = np.where(pld.time > bigpld.time[-1])[0]
-            if len(ind) > 0:
-                _log.info('New data found in raw *.dbd.nc')
-                write = True
-    except FileNotFoundError:
-        _log.info('Merged file not found: %s', outpld )
-        write = True
-    if write:
+    files = sorted(glob.glob(indir+'/*.pld1.sub.*.nc'))
+    with xr.open_dataset(files[0], decode_times=False) as pld:
+        for fil in files[1:]:
+            try:
+                with xr.open_dataset(fil, decode_times=False) as pld2:
+                    pld = xr.concat([pld, pld2], dim='time')
+            except:
+                pass
         _log.info('Writing ' + outpld)
         pld.to_netcdf(outpld)
-    else:
-        _log.info('Not overwriting ' + outpld)
 
     _log.info('Done merge_rawnc')
 
