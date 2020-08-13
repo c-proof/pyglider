@@ -142,12 +142,14 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
         # down
         if 1:
             ins = range(mins[n],maxs[n]+1)
+            print(pronum, ins, len(p), mins[n], maxs[n])
             print('Down', ins, p[ins[0]].values,p[ins[-1]].values)
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 profile[ins] = pronum
                 direction[ins] = +1
                 pronum += 1
             ins = range(maxs[n], mins[n+1])
+            print(pronum)
             print('Up', ins, p[ins[0]].values, p[ins[-1]].values)
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 # up
@@ -282,9 +284,15 @@ def fill_required_attrs(attrs):
 
 
 def get_file_id(ds):
-    dt = time_to_datetime64(ds.time.values)
+
+    print(ds.time)
+    if not ds.time.dtype=='datetime64[ns]':
+        dt = time_to_datetime64(ds.time.values[0])
+    else:
+        dt = ds.time.values[0].astype('datetime64[s]')
+    print('dt', dt)
     id = (ds.attrs['glider_name'] + ds.attrs['glider_serial'] + '-' +
-                      dt[0].item().strftime('%Y%m%dT%H%M'))
+                      dt.item().strftime('%Y%m%dT%H%M'))
     return id
 
 
