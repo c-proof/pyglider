@@ -31,7 +31,9 @@ def _outputname(f, outdir):
     return outdir + fnout + 'nc', filenum
 
 
-def _needsupdating(fin, fout):
+def _needsupdating(ftype, fin, fout):
+    if ftype == 'pld1':
+        fout = fout[:-3]+'_arod.nc'
     if not os.path.isfile(fout):
         return True
     return (os.path.getmtime(fin) >= os.path.getmtime(fout))
@@ -96,22 +98,24 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
                 # output name:
                 fnout, filenum = _outputname(f, outdir)
                 _log.info(f'{f} to {fnout}')
-                if not incremental or _needsupdating(f, fnout):
+                if not incremental or _needsupdating(ftype, f, fnout):
                     _log.info(f'Doing: {f} to {fnout}')
                     out = pd.read_csv(f, header=0, delimiter=';',
                                             parse_dates=True, index_col=0,
                                             dayfirst=True)
-                    if 1:
-                        with out.to_xarray() as outx:
-                            del(out)
-                            key = list(outx.coords.keys())[0]
-                            outx = outx.rename({key:'time'})
-                            # dumb time down to seconds since 1970-01-01
-                            outx['time'] = outx['time'].astype(np.float64)/1e9
-                            outx['time'].attrs['units'] = (
-                                'seconds since 1970-01-01T00:00:00Z')
-                            outx['fnum'] = ('time',
-                                int(filenum) * np.ones(len(outx['time'])))
+                    with out.to_xarray() as outx:
+
+                        key = list(outx.coords.keys())[0]
+                        outx = outx.rename({key:'time'})
+                        # dumb time down to seconds since 1970-01-01
+                        outx['time'] = outx['time'].astype(np.float64)/1e9
+                        outx['time'].attrs['units'] = (
+                            'seconds since 1970-01-01T00:00:00Z')
+                        outx['fnum'] = ('time',
+                            int(filenum) * np.ones(len(outx['time'])))
+                        if ftype == 'gli':
+                            outx.to_netcdf(fnout[:-3]+'.nc', 'w')
+                        else:
                             # split into instruments: this is hardcoded for now
                             gpctd = {'GPCTD_CONDUCTIVITY', 'GPCTD_TEMPERATURE',
                                      'GPCTD_PRESSURE', 'GPCTD_DOF'}
@@ -144,10 +148,6 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
                 for fn in badfiles:
                     _log.warning('%s', fn)
             _log.info('All done!')
-
-
-
-
 
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     """
@@ -194,7 +194,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         gli.to_netcdf(outgli)
     _log.info(f'Done writing {outgli}')
 
-    if kind == 'sub':
+    if kind == 'boo':
         _log.info('Opening *.pld.sub.*.nc multi-file dataset')
         files = sorted(glob.glob(indir+'/*.pld1.'+kind+'.*.nc'))
         with xr.open_dataset(files[0], decode_times=False) as pld:
@@ -206,17 +206,17 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
                     pass
             _log.info('Writing ' + outpld)
             pld.to_netcdf(outpld)
-    elif kind=='raw':
+    else:
         _log.info('Working on gpctd')
-        with xr.open_mfdataset('rawnc/*.raw*gpctd.nc', combine='nested',
+        with xr.open_mfdataset(f'{indir}/*.{kind}*gpctd.nc', combine='nested',
                                concat_dim='time', decode_times=False) as pld:
             pld.to_netcdf(outpld[:-5]+'_gpctd.nc')
         _log.info('Working on flbbcd')
-        with xr.open_mfdataset('rawnc/*.raw*flbbcd.nc', combine='nested',
+        with xr.open_mfdataset(f'{indir}/*.{kind}*flbbcd.nc', combine='nested',
                                concat_dim='time', decode_times=False) as pld:
             pld.to_netcdf(outpld[:-5]+'_flbbcd.nc')
         _log.info('Working on AROD')
-        with xr.open_mfdataset('rawnc/*.raw*arod.nc', combine='nested',
+        with xr.open_mfdataset(f'{indir}/*.{kind}*arod.nc', combine='nested',
                        concat_dim='time', decode_times=False) as pld:
             pld = pld.coarsen(time=8, boundary='trim').mean()
             pld.to_netcdf(outpld[:-5]+'_arod.nc')
@@ -300,6 +300,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, kind='raw',
                 #val = utils._zero_screen(val)
         #        val[val==0] = np.NaN
                 val = convert(val)
+                print('gli', gli)
                 val = _interp_gli_to_pld(gli, ds, val, indctd)
 
             # make the attributes:
@@ -422,6 +423,7 @@ def raw_to_L1timeseries_raw(indir, outdir, deploymentyaml, kind='raw',
                 #val = utils._zero_screen(val)
         #        val[val==0] = np.NaN
                 val = convert(val)
+                print('Gli', gli)
                 val = _interp_gli_to_pld(gli, ds, val, indctd)
 
             # make the attributes:

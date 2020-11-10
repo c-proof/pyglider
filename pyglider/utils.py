@@ -149,7 +149,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
                 direction[ins] = +1
                 pronum += 1
             ins = range(maxs[n], mins[n+1])
-            print(pronum)
+            print(pronum, ins, len(p), mins[n], maxs[n])
             print('Up', ins, p[ins[0]].values, p[ins[-1]].values)
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 # up
