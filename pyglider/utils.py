@@ -111,6 +111,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 
     good = np.where(np.isfinite(ds.pressure))[0]
     dt = float(np.median(np.diff(ds.time.values[good[:200000]])))
+    print('dt', dt)
     filt_length = int(filt_time /  dt)
 
     min_nsamples = int(profile_min_time / dt)
@@ -118,7 +119,8 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 
     p = np.convolve(ds.pressure.values[good],
                     np.ones(filt_length) / filt_length, 'same')
-    decim = int(filt_length / 5)
+    print('filt', filt_length)
+    decim = int(filt_length / 3)
     if decim < 2:
         decim = 2
     # why?  because argrelextrema doesn't like repeated values, so smooth
@@ -133,28 +135,39 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
     if mins[-1] < maxs[-1]:
         mins = np.concatenate((mins, good[[-1]]))
 
-
     _log.info(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
 
     pronum = 0
     p = ds.pressure
-    for n, i in enumerate(mins[:-1]):
-        # down
+    nmin = 0
+    nmax=0
+    while (nmin < len(mins)) and (nmax < len(maxs)):
         if 1:
-            ins = range(mins[n],maxs[n]+1)
-            print(pronum, ins, len(p), mins[n], maxs[n])
+            nmax = np.where(maxs>mins[nmin])[0]
+            if len(nmax) >= 1:
+                nmax = nmax[0]
+            else:
+                break
+            print(nmax)
+            ins = range(int(mins[nmin]), int(maxs[nmax]+1))
+            print(pronum, ins, len(p), mins[nmin], maxs[nmax])
             print('Down', ins, p[ins[0]].values,p[ins[-1]].values)
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 profile[ins] = pronum
                 direction[ins] = +1
                 pronum += 1
-            ins = range(maxs[n], mins[n+1])
-            print(pronum, ins, len(p), mins[n], maxs[n])
+            nmin = np.where(mins>maxs[nmax])[0]
+            if len(nmin) >= 1:
+                nmin = nmin[0]
+            else:
+                break
+            ins = range(maxs[nmax], mins[nmin])
+            print(pronum, ins, len(p), mins[nmin], maxs[nmax])
             print('Up', ins, p[ins[0]].values, p[ins[-1]].values)
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 # up
-                profile[maxs[n]:mins[n+1]+1] = pronum
-                direction[maxs[n]:mins[n+1]+1] = -1
+                profile[ins] = pronum
+                direction[ins] = -1
                 pronum += 1
         else:
             print('Failed?')

@@ -103,7 +103,7 @@ def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 
-def make_L2_gridfiles(inname, outdir, deploymentyaml):
+def make_L2_gridfiles(inname, outdir, deploymentyaml, dz=1):
     """
     """
     try:
@@ -129,7 +129,7 @@ def make_L2_gridfiles(inname, outdir, deploymentyaml):
 
     Nprofiles = len(profiles)
     _log.info(f'Nprofiles {Nprofiles}')
-    depth_bins = np.arange(0, 1100.1)
+    depth_bins = np.arange(0, 1100.1, dz)
     depths = depth_bins[:-1] + 0.5
 
     dsout = xr.Dataset(coords={'depth': ('depth', depths),

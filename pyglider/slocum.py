@@ -123,19 +123,20 @@ def binary_to_rawnc(indir, outdir, cacdir,
                     dis = deployment_ind_sci
                     dif = deployment_ind_flight
                     _log.info(f'sciind: {dis}; gliderind: {dif}')
-                    try:
+                    if 1:
                         sdata, smeta = dbd_to_dict(sciname, cacdir, keys=keys)
                         fdata, fmeta = dbd_to_dict(filesMain[ind], cacdir,
                                 keys=keys)
-                        #fdata, sdata = add_times_flight_sci(fdata,
-                        #        sdata)
+                        deployment_ind_sci = int(smeta['the8x3_filename'])*1.0e4
                         ds, deployment_ind_sci = datameta_to_nc(sdata,
                             smeta, outdir=outdir,
                             name=sncname, deployment_ind=deployment_ind_sci)
+                        deployment_ind_flight = (int(smeta['the8x3_filename']) *
+                                                 1.0e4)
                         ds, deployment_ind_flight = datameta_to_nc(fdata, fmeta,
                             outdir=outdir, name=fncname,
                             deployment_ind=deployment_ind_flight)
-                    except:
+                    else:
                         deployment_ind_sci = dis
                         deployment_ind_flight = dif
                         _log.warning('Could not decode %s', filesScience[ind])
@@ -209,8 +210,18 @@ def _get_cached_sensorlist(cachedir, meta):
     """
     Helper to get the sensor list from a file in the cache
     """
-    fname = cachedir + '/' + meta['sensor_list_crc'].upper() + '.CAC'
-    with open(fname, 'rb') as dfh:
+    fname0 = cachedir + '/' + meta['sensor_list_crc'].upper() + '.CAC'
+    dd = glob.glob(cachedir + '/*')
+    found = False
+    for d in dd:
+        if (os.path.split(d)[1].upper() ==
+            os.path.split(fname0)[1].upper()):
+            found = True
+            break
+    if not found:
+        raise FileNotFoundError(f'Could not find {fname0}')
+
+    with open(d, 'rb') as dfh:
         activeSensorList, sensorInfo, outlines, bindatafilepos = \
                 _decode_sensor_info(dfh, meta)
 
@@ -574,7 +585,6 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
 
     index = np.arange(len(time)) + deployment_ind
     # this gets passed to the next file...
-    deployment_ind = index[-1] + 1
     ds['_ind'] = (('_ind'), index)
 
     ds['time'] = (('_ind'), time, {'units': 'seconds since 1970-01-01T00:00:00Z'})
@@ -600,7 +610,13 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
 
     # trim data that has time==0
     ind = np.where(ds.time > 1e4)[0]
+    print(ds, ds.time, len(ind))
     ds = ds.isel(_ind=ind)
+    ds['_ind'] = np.arange(len(ds.time)) + deployment_ind
+    if len(ds['_ind'].values) > 1:
+        deployment_ind = ds['_ind'].values[-1]
+
+    print('Writing!', deployment_ind)
     ds.to_netcdf(outname, format='NETCDF4')
     _log.info('Wrote: %s', outname)
     return ds, deployment_ind
@@ -645,10 +661,11 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
             if glob.glob(d):
                 outnebd = outdir + '/' + id + f'-{num:04d}-rawdbd.nc'
                 _log.info('Opening *.dbd.nc multi-file dataset')
-                with xr.open_mfdataset(d, decode_times=False) as ds:
+                _log.info(outnebd)
+
+                with xr.open_mfdataset(d, decode_times=False, lock=False) as ds:
                     ds = ds.sortby('time')
                     ds['_ind'] = np.arange(len(ds.time))
-                    print(ds)
                     ds.to_netcdf(outnebd, 'w')
 
         d = indir + f'/{num:04d}*.' + scisuffix + '.nc'
@@ -658,7 +675,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
             if glob.glob(d):
                 outndbd = outdir + '/' + id + f'-{num:04d}-rawebd.nc'
                 _log.info('Opening *.ebd.nc multi-file dataset')
-                with xr.open_mfdataset(d, decode_times=False) as ds:
+                with xr.open_mfdataset(d, decode_times=False,  lock=False) as ds:
                     ds = ds.sortby('time')
                     ds['_ind'] = np.arange(len(ds.time))
                     ds.to_netcdf(outndbd, 'w')
@@ -725,7 +742,7 @@ def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
             if num % 10 == 0 or nn == len(scifiles) - 1:
                 ds.to_netcdf(indir+f'TEMP{num:04d}.nc', 'w')
                 ds = None
-        with xr.open_mfdataset(indir+f'TEMP*.nc', decode_times=False) as ds:
+        with xr.open_mfdataset(indir+f'TEMP*.nc', decode_times=False, lock=False) as ds:
             dsnew = ds.sortby(ds.time)
             dsnew.to_netcdf(outnebd, 'w')
             _log.info('Wrote ' + outnebd)
@@ -747,7 +764,7 @@ def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
             if num % 10 == 0 or nn == len(scifiles) - 1:
                 ds.to_netcdf(indir+f'TEMPG{num:04d}.nc', 'w')
                 ds = None
-        with xr.open_mfdataset(indir+f'TEMPG*.nc', decode_times=False) as ds:
+        with xr.open_mfdataset(indir+f'TEMPG*.nc', decode_times=False, lock=False) as ds:
             dsnew = ds.sortby(ds.time)
             dsnew.to_netcdf(outndbd, 'w')
             _log.info('Wrote ' + outndbd)
@@ -797,6 +814,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
                 print('Opening:', ebdn, dbdn)
                 ebd = xr.open_dataset(ebdn, decode_times=False)
                 dbd = xr.open_dataset(dbdn, decode_times=False)
+                print('DBD', dbd, dbd.m_depth)
                 if len(ebd.time) > 2:
                     # build a new data set based on info in `deployment.`
                     # We will use ebd.m_present_time as the interpolant if the
@@ -820,27 +838,31 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
                                 convert = utils._passthrough
                             sensorname = ncvar[name]['source']
                             _log.info('names: %s %s', name, sensorname)
-                            if sensorname in dbd.keys():
-                                _log.debug('sensorname %s', sensorname)
-                                val = convert(dbd[sensorname])
-                                val = _dbd2ebd(dbd, ds, val)
-                                ncvar['method'] = 'linear fill'
-                            else:
+                            if sensorname in ebd.keys():
+                                _log.debug('EBD sensorname %s', sensorname)
                                 val = ebd[sensorname]
                                 val = utils._zero_screen(val)
                         #        val[val==0] = np.NaN
                                 val = convert(val)
+                            else:
+                                _log.debug('DBD sensorname %s', sensorname)
+                                val = convert(dbd[sensorname])
+                                val = _dbd2ebd(dbd, ds, val)
+                                ncvar['method'] = 'linear fill'
                             # make the attributes:
                             ncvar[name].pop('coordinates', None)
                             attrs = ncvar[name]
                             attrs = utils.fill_required_attrs(attrs)
                             ds[name] = (('time'), val, attrs)
 
+                    print('HERE', ds)
+                    print('HERE', ds.pressure[0:100])
                     # some derived variables:
                     # trim bad times...
-                    ds = ds.sel(time=slice(1e8, None))
+                    #ds = ds.sel(time=slice(1e8, None))
 
                     ds = utils.get_glider_depth(ds)
+
                     ds = utils.get_distance_over_ground(ds)
 
                     # ds = utils.get_profiles(ds)
@@ -867,8 +889,9 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
                         id0 = ds.attrs['deployment_name']
 
     # now merge:
-    with xr.open_mfdataset(outdir + '/' + id + '*-M*_L0.nc', decode_times=False) as ds:
+    with xr.open_mfdataset(outdir + '/' + id + '*-M*_L0.nc', decode_times=False, lock=False) as ds:
         print(ds.attrs)
+
         # put the real start and end times:
         start = ((ds['time'].values[0]).astype('timedelta64[s]') +
             np.datetime64('1970-01-01T00:00:00'))
@@ -877,12 +900,16 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
 
         ds.attrs['deployment_start'] = str(start)
         ds.attrs['deployment_end'] = str(end)
+        print(ds.depth.values[:100])
+        print(ds.depth.values[2000:2100])
         ds = utils.get_profiles_new(ds,
                 filt_time=profile_filt_time, profile_min_time=profile_min_time)
+        print(ds.depth.values[:100])
+        print(ds.depth.values[2000:2100])
 
         outname = outdir + '/' + id0 + '.nc'
+        print(outname)
         ds.to_netcdf(outname)
-
     return outname
 
 

@@ -32,7 +32,7 @@ if 1:
     seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
 
         # Make level-1 timeseries netcdf file from th raw files...
-    outname = seaexplorer.raw_to_L1timeseries(rawncdir, l1tsdir, deploymentyaml, kind='sub')
+    outname = seaexplorer.raw_to_L1timeseries_raw(rawncdir, l1tsdir, deploymentyaml, kind='sub')
     ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
     outname2 = ncprocess.make_L2_gridfiles(outname, griddir, deploymentyaml)
 

@@ -16,11 +16,11 @@ metadata:
   deployment_end: '2019-12-30'
   format_version: IOOS_Glider_NetCDF_v2.0.nc
   # id filled automatically...
-  glider_name: dfo-eva
+  glider_name: dfo-eva035
   glider_serial: '035'
   glider_model: SeaExplorer
   glider_instrument_name: seaexplorer
-  glider_wmo: "999999"
+  glider_wmo: '999999'
   institution: C-PROOF
   keywords: "AUVS, Autonomous Underwater Vehicles, Oceans, Ocean Pressure,
              Water Pressure, Oceans, Ocean Temperature, Water Temperature,

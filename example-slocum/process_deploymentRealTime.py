@@ -30,18 +30,19 @@ os.system('rm ' + rawdir + 'dfo* ' + rawdir + 'TEMP*.nc ' + l1tsdir + '* ' + pro
 
 print(scisuffix)
 # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
-slocum.binary_to_rawnc(binarydir, rawdir, cacdir, sensorlist, deploymentyaml,
+if 0:
+    slocum.binary_to_rawnc(binarydir, rawdir, cacdir, sensorlist, deploymentyaml,
         incremental=True, scisuffix=scisuffix, glidersuffix=glidersuffix)
 
 # merge individual neetcdf files into single netcdf files *.ebd.nc and *.dbd.nc
-slocum.merge_rawnc(rawdir, rawdir, deploymentyaml,
+    slocum.merge_rawnc(rawdir, rawdir, deploymentyaml,
         scisuffix=scisuffix, glidersuffix=glidersuffix)
 if 1:
     # Make level-1 timeseries netcdf file from th raw files...
     outname = slocum.raw_to_L1timeseries(rawdir, l1tsdir, deploymentyaml,
               profile_filt_time=100, profile_min_time=300)
     # make profile netcdf files for ioos gdac...
-    ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
+    #ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
 
     # make grid of dataset....
 

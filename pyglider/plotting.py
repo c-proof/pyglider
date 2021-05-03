@@ -255,7 +255,7 @@ def grid_plots(fname, plottingyaml):
                 depth = np.hstack((depth, depth[-1] + np.diff(ds.depth)[-1]))
                 pc = ax.pcolormesh(time, depth, ds[k][:, ind],
                     rasterized=True, vmin=min, vmax=max, cmap=cmap)
-                ax.contour(ds.time, ds.depth, ds.potential_density[:, ind], colors='0.5',
+                ax.contour(ds.time[ind], ds.depth, ds.potential_density[:, ind], colors='0.5',
                        levels=np.arange(22, 28, 0.5)+1000, linewidths=0.5, alpha=0.7)
 
                 print(ds[k])

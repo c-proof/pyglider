@@ -131,17 +131,20 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
                                 outx.GPCTD_TEMPERATURE), drop=True)
                             pldGPCTD = pldGPCTD.drop_vars(flbbcd)
                             pldGPCTD = pldGPCTD.drop_vars(arod)
-                            pldGPCTD.to_netcdf(fnout[:-3] + '_gpctd.nc', 'w')
+                            pldGPCTD.to_netcdf(fnout[:-3] + '_gpctd.nc', 'w',
+                                               unlimited_dims=['time'])
                             pldGPCTD = outx.where(np.isfinite(
                                 outx.FLBBCD_CHL_COUNT), drop=True)
                             pldGPCTD = pldGPCTD.drop_vars(gpctd)
                             pldGPCTD = pldGPCTD.drop_vars(arod)
-                            pldGPCTD.to_netcdf(fnout[:-3] + '_flbbcd.nc', 'w')
+                            pldGPCTD.to_netcdf(fnout[:-3] + '_flbbcd.nc', 'w',
+                                               unlimited_dims=['time'])
                             pldGPCTD = outx.where(np.isfinite(
                                 outx.AROD_FT_DO), drop=True)
                             pldGPCTD = pldGPCTD.drop_vars(gpctd)
                             pldGPCTD = pldGPCTD.drop_vars(flbbcd)
-                            pldGPCTD.to_netcdf(fnout[:-3] + '_arod.nc', 'w')
+                            pldGPCTD.to_netcdf(fnout[:-3] + '_arod.nc', 'w',
+                                               unlimited_dims=['time'])
 
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
@@ -207,19 +210,35 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
             _log.info('Writing ' + outpld)
             pld.to_netcdf(outpld)
     else:
+        from dask.diagnostics import ProgressBar
+
         _log.info('Working on gpctd')
-        with xr.open_mfdataset(f'{indir}/*.{kind}*gpctd.nc', combine='nested',
-                               concat_dim='time', decode_times=False) as pld:
-            pld.to_netcdf(outpld[:-5]+'_gpctd.nc')
+        print(f'{indir}/*.{kind}*gpctd.nc')
+        try:
+            os.remove(outpld[:-5]+'_gpctd.nc')
+        except:
+            pass
+        with xr.open_mfdataset(f'{indir}/*.{kind}.*gpctd.nc',  decode_times=False, parallel=False, lock=False) as pld:
+            print(pld)
+            print('Writing')
+            delayed_obj = pld.to_netcdf(outpld[:-5]+'_gpctd.nc', 'w', unlimited_dims=['time'], compute=False)
+            with ProgressBar():
+                results = delayed_obj.compute()
         _log.info('Working on flbbcd')
-        with xr.open_mfdataset(f'{indir}/*.{kind}*flbbcd.nc', combine='nested',
-                               concat_dim='time', decode_times=False) as pld:
-            pld.to_netcdf(outpld[:-5]+'_flbbcd.nc')
+        try:
+            os.remove(outpld[:-5]+'_flbbcd.nc')
+        except:
+            pass
+        with xr.open_mfdataset(f'{indir}/*.{kind}.*flbbcd.nc', decode_times=False, lock=False) as pld:
+            pld.to_netcdf(outpld[:-5]+'_flbbcd.nc', 'w', unlimited_dims=['time'])
         _log.info('Working on AROD')
-        with xr.open_mfdataset(f'{indir}/*.{kind}*arod.nc', combine='nested',
-                       concat_dim='time', decode_times=False) as pld:
+        try:
+            os.remove(outpld[:-5]+'_arod.nc')
+        except:
+            pass
+        with xr.open_mfdataset(f'{indir}/*.{kind}.*arod.nc', decode_times=False, lock=False) as pld:
             pld = pld.coarsen(time=8, boundary='trim').mean()
-            pld.to_netcdf(outpld[:-5]+'_arod.nc')
+            pld.to_netcdf(outpld[:-5]+'_arod.nc', 'w', unlimited_dims=['time'])
 
     _log.info('Done merge_rawnc')
 
@@ -255,7 +274,7 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, kind='raw',
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
 
-    id = metadata['glider_name'] + metadata['glider_serial']
+    id = metadata['glider_name']
     gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
     pld = xr.open_dataset(indir + '/' + id + '-' + kind+ 'pld.nc',
                           decode_times=False)
