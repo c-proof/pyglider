@@ -1,0 +1,19 @@
+name: Test pyglider
+on: [pull_request, push]
+jobs:
+  test-gliders:
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
+        python-version: ["3.8"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: pyglider
+          environment-file: environment.yml
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        shell: bash -l {0}
+        run: conda info    
