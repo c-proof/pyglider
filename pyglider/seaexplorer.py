@@ -401,3 +401,6 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds.to_netcdf(outname, 'w')
 
     return outname
+
+# alias:
+raw_to_L1timeseries = raw_to_L0timeseries

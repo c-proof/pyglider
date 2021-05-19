@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   - python
-  - conda-forge::matplotlib
+  - matplotlib
   - numpy
   - pip
   - xarray
@@ -17,3 +17,4 @@ dependencies:
   - geojson
   - simplekml
   - webcolors
+  - bitstring

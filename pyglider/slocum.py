@@ -772,7 +772,7 @@ def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
     return
 
 
-def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
+def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                         profile_filt_time=100, profile_min_time=300):
     """
     Parameters
@@ -912,6 +912,8 @@ def raw_to_L1timeseries(indir, outdir, deploymentyaml, *,
         ds.to_netcdf(outname)
     return outname
 
+# alias:
+raw_to_L1timeseries = raw_to_L0timeseries
 
 def timeseries_get_profiles(inname, profile_filt_time=100,
                             profile_min_time=400):

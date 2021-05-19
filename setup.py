@@ -11,7 +11,7 @@ setup(name="pyglider",
       author_email="jklymak@gmail.com",
       url="https://github.com/jklymak/pyglider.git",
       packages=find_packages(exclude=['tests']),
-      python_requires='>=3.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
+      python_requires='>=3.6',
       install_requires=[
           "matplotlib",
           "numpy",
@@ -19,7 +19,9 @@ setup(name="pyglider",
           "dask",
           "bitstring",
           "netcdf4",
-          "geojson"
+          "geojson",
+          "seawater",
+          "scipy",
       ],
       zip_safe=True
       )
