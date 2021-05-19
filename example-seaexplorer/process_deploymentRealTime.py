@@ -10,7 +10,7 @@ sourcedir = '~alseamar/Documents/SEA035/000012/000012/C-Csv/*'
 rawdir  = './realtime_raw/'
 rawncdir     = './realtime_rawnc/'
 deploymentyaml = './deploymentRealtime.yml'
-l1tsdir    = './L1-timeseries/'
+l0tsdir    = './L0-timeseries/'
 profiledir = './L1-profiles/'
 griddir    = './L2-gridfiles/'
 plottingyaml = './plottingconfig.yml'
@@ -21,7 +21,7 @@ if 0:
     os.system('rsync -av ' + sourcedir + ' ' + rawdir)
 
 # clean last processing...
-os.system('rm ' + rawncdir + '* ' + l1tsdir + '* ' + profiledir + '* ' +
+os.system('rm ' + rawncdir + '* ' + l0tsdir + '* ' + profiledir + '* ' +
           griddir + '* ')
 
 
@@ -32,7 +32,7 @@ if 1:
     seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
 
         # Make level-1 timeseries netcdf file from th raw files...
-    outname = seaexplorer.raw_to_L1timeseries_raw(rawncdir, l1tsdir, deploymentyaml, kind='sub')
+    outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
     ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
     outname2 = ncprocess.make_L2_gridfiles(outname, griddir, deploymentyaml)
 
