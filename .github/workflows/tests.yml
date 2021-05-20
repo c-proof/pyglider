@@ -1,5 +1,5 @@
 name: Test pyglider
-on: [push]
+on: [push, pull_request]
 jobs:
   test-gliders:
     name: pyglider (${{ matrix.python-version }}, ${{ matrix.os }})
