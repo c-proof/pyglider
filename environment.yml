@@ -14,3 +14,4 @@ dependencies:
 - geojson
 - simplekml
 - webcolors
+- cartopy
