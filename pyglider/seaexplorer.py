@@ -38,8 +38,10 @@ def _needsupdating(ftype, fin, fout):
         return True
     return (os.path.getmtime(fin) >= os.path.getmtime(fout))
 
+def _sort(ds):
+    return ds.sortby('time')
 
-def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
+def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in_file=5):
     """
     Convert seaexplorer text files to raw netcdf files.
 
@@ -58,6 +60,10 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
     incremental : bool, optional
         If *True* (default), only netcdf files that are older than the
         binary files are re-parsed.
+
+    min_samples_in_file : int
+        Minimum number of samples in a raw file to trigger writing a netcdf file.
+        Defaults to 5
 
     Returns
     -------
@@ -131,20 +137,31 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True):
                                 outx.GPCTD_TEMPERATURE), drop=True)
                             pldGPCTD = pldGPCTD.drop_vars(flbbcd)
                             pldGPCTD = pldGPCTD.drop_vars(arod)
-                            pldGPCTD.to_netcdf(fnout[:-3] + '_gpctd.nc', 'w',
-                                               unlimited_dims=['time'])
+                            if pldGPCTD.indexes["time"].size > min_samples_in_file:
+                                pldGPCTD.to_netcdf(fnout[:-3] + '_gpctd.nc', 'w',
+                                                   unlimited_dims=['time'])
+                            else:
+                                _log.warning('Number of GPCTD data points too small. Skipping nc write')
+                                                                
                             pldGPCTD = outx.where(np.isfinite(
                                 outx.FLBBCD_CHL_COUNT), drop=True)
                             pldGPCTD = pldGPCTD.drop_vars(gpctd)
                             pldGPCTD = pldGPCTD.drop_vars(arod)
-                            pldGPCTD.to_netcdf(fnout[:-3] + '_flbbcd.nc', 'w',
-                                               unlimited_dims=['time'])
+                            if pldGPCTD.indexes["time"].size > min_samples_in_file:
+                                pldGPCTD.to_netcdf(fnout[:-3] + '_flbbcd.nc', 'w',
+                                                   unlimited_dims=['time'])
+                            else:
+                                _log.warning('Number of FLBBCD data points too small. Skipping nc write')
+
                             pldGPCTD = outx.where(np.isfinite(
                                 outx.AROD_FT_DO), drop=True)
                             pldGPCTD = pldGPCTD.drop_vars(gpctd)
                             pldGPCTD = pldGPCTD.drop_vars(flbbcd)
-                            pldGPCTD.to_netcdf(fnout[:-3] + '_arod.nc', 'w',
-                                               unlimited_dims=['time'])
+                            if pldGPCTD.indexes["time"].size > min_samples_in_file:
+                                pldGPCTD.to_netcdf(fnout[:-3] + '_arod.nc', 'w',
+                                                   unlimited_dims=['time'])
+                            else:
+                                _log.warning('Number of AROD data points too small. Skipping nc write')
 
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
@@ -180,7 +197,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     with open(deploymentyaml) as fin:
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
-    id = metadata['glider_name'] # + metadata['glider_serial']
+    id = metadata['glider_name']
     print('id', id)
     outgli = outdir + '/' + id + '-rawgli.nc'
     outpld = outdir + '/' + id + '-' + kind + 'pld.nc'
@@ -218,7 +235,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
             os.remove(outpld[:-5]+'_gpctd.nc')
         except:
             pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*gpctd.nc',  decode_times=False, parallel=False, lock=False) as pld:
+        with xr.open_mfdataset(f'{indir}/*.{kind}.*gpctd.nc',  decode_times=False, parallel=False, lock=False, preprocess=_sort) as pld:
             print(pld)
             print('Writing')
             delayed_obj = pld.to_netcdf(outpld[:-5]+'_gpctd.nc', 'w', unlimited_dims=['time'], compute=False)
@@ -229,14 +246,14 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
             os.remove(outpld[:-5]+'_flbbcd.nc')
         except:
             pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*flbbcd.nc', decode_times=False, lock=False) as pld:
+        with xr.open_mfdataset(f'{indir}/*.{kind}.*flbbcd.nc', decode_times=False, lock=False, preprocess=_sort) as pld:
             pld.to_netcdf(outpld[:-5]+'_flbbcd.nc', 'w', unlimited_dims=['time'])
         _log.info('Working on AROD')
         try:
             os.remove(outpld[:-5]+'_arod.nc')
         except:
             pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*arod.nc', decode_times=False, lock=False) as pld:
+        with xr.open_mfdataset(f'{indir}/*.{kind}.*arod.nc', decode_times=False, lock=False, preprocess=_sort) as pld:
             pld = pld.coarsen(time=8, boundary='trim').mean()
             pld.to_netcdf(outpld[:-5]+'_arod.nc', 'w', unlimited_dims=['time'])
 
@@ -263,116 +280,8 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
         val = val[indctd]
     return val
 
-
-def raw_to_L1timeseries(indir, outdir, deploymentyaml, kind='raw',
+def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
                         profile_filt_time=100, profile_min_time=300):
-    """
-    """
-
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
-    metadata = deployment['metadata']
-    ncvar = deployment['netcdf_variables']
-
-    id = metadata['glider_name']
-    gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
-    pld = xr.open_dataset(indir + '/' + id + '-' + kind+ 'pld.nc',
-                          decode_times=False)
-
-    # build a new data set based on info in `deployment.`
-    # We will use ebd.m_present_time as the interpolant if the
-    # variabel is in dbd.
-
-    ds = xr.Dataset()
-    attr = {}
-    name = 'time'
-    for atts in ncvar[name].keys():
-        if atts != 'coordinates':
-            attr[atts] = ncvar[name][atts]
-
-    # the ctd will be our timebase.  It oversamples the nav data, but
-    # mildly undersamples the optics and oxygen....
-    indctd = np.where(~np.isnan(pld.GPCTD_TEMPERATURE))[0]
-
-    ds[name] = (('time'), pld[name].values[indctd], attr)
-
-    thenames = list(ncvar.keys())
-    print(thenames)
-    thenames.remove('time')
-
-    for name in thenames:
-        _log.info('interpolating ' + name)
-        if not('method' in ncvar[name].keys()):
-            # variables that are in the data set or can be interpolated from it
-            if 'conversion' in ncvar[name].keys():
-                convert = getattr(utils, ncvar[name]['conversion'])
-            else:
-                convert = utils._passthrough
-            sensorname = ncvar[name]['source']
-            if sensorname in pld.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(pld[sensorname])
-                val = _interp_pld_to_pld(pld, ds, val, indctd)
-                ncvar['method'] = 'linear fill'
-            else:
-                val = gli[sensorname]
-                #val = utils._zero_screen(val)
-        #        val[val==0] = np.NaN
-                val = convert(val)
-                print('gli', gli)
-                val = _interp_gli_to_pld(gli, ds, val, indctd)
-
-            # make the attributes:
-            ncvar[name].pop('coordinates', None)
-            attrs = ncvar[name]
-            attrs = utils.fill_required_attrs(attrs)
-            ds[name] = (('time'), val, attrs)
-
-    # fix lon and lat to be linearly interpolated between fixes
-    good = np.where(np.abs(np.diff(ds.longitude)) +
-                    np.abs(np.diff(ds.latitude)) > 0)[0] + 1
-    ds['longitude'].values = np.interp(ds.time,
-        ds.time[good], ds.longitude[good])
-    ds['latitude'].values = np.interp(ds.time,
-        ds.time[good], ds.latitude[good])
-
-    # some derived variables:
-    ds = utils.get_glider_depth(ds)
-    ds = utils.get_distance_over_ground(ds)
-    #ds = utils.get_profiles(ds)
-
-    ds = utils.get_profiles_new(ds,
-            filt_time=profile_filt_time, profile_min_time=profile_min_time)
-    ds = utils.get_derived_eos_raw(ds)
-
-    ds = ds.assign_coords(longitude=ds.longitude)
-    ds = ds.assign_coords(latitude=ds.latitude)
-    ds = ds.assign_coords(depth=ds.depth)
-    #ds = ds._get_distance_over_ground(ds)
-
-    ds = utils.fill_metadata(ds, deployment['metadata'])
-    start = ((ds['time'].values[0]).astype('timedelta64[s]') +
-        np.datetime64('1970-01-01T00:00:00'))
-    end = ((ds['time'].values[-1]).astype('timedelta64[s]')  +
-        np.datetime64('1970-01-01T00:00:00'))
-
-    ds.attrs['deployment_start'] = str(start)
-    ds.attrs['deployment_end'] = str(end)
-
-    try:
-        os.mkdir('L1-timeseries')
-    except:
-        pass
-    id0 = ds.attrs['deployment_name']
-    outname = 'L1-timeseries/' + id0 +  '_L1.nc'
-    _log.info('writing %s', outname)
-    ds.to_netcdf(outname, 'w')
-
-    return outname
-
-
-def raw_to_L1timeseries_raw(indir, outdir, deploymentyaml, kind='raw',
-                            profile_filt_time=100, profile_min_time=300):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -382,7 +291,7 @@ def raw_to_L1timeseries_raw(indir, outdir, deploymentyaml, kind='raw',
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
 
-    id = metadata['glider_name']  # + metadata['glider_serial']
+    id = metadata['glider_name']
     gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
     ctd = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_gpctd.nc',
                           decode_times=False)
@@ -487,12 +396,15 @@ def raw_to_L1timeseries_raw(indir, outdir, deploymentyaml, kind='raw',
     ds.attrs['deployment_end'] = str(end)
 
     try:
-        os.mkdir('L0-timeseries')
+        os.mkdir(outdir)
     except:
         pass
     id0 = ds.attrs['deployment_name']
-    outname = 'L0-timeseries/' + id0 +  '_L0.nc'
+    outname = outdir + id0 +  '_L0.nc'
     _log.info('writing %s', outname)
     ds.to_netcdf(outname, 'w')
 
     return outname
+
+# alias:
+raw_to_L1timeseries = raw_to_L0timeseries

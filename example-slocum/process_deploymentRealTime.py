@@ -11,9 +11,9 @@ rawdir     = './realtime_rawnc/'
 cacdir     = './cac/'
 sensorlist = './dfo-rosie713_sensors.txt'
 deploymentyaml = './deploymentRealtime.yml'
-l1tsdir    = './L1-timeseries/'
-profiledir = './L1-profiles/'
-griddir    = './L2-gridfiles/'
+l1tsdir    = './L0-timeseries/'
+profiledir = './L0-profiles/'
+griddir    = './L0-gridfiles/'
 plottingyaml = './plottingconfig.yml'
 scisuffix    = 'tbd'
 glidersuffix = 'sbd'
@@ -30,7 +30,7 @@ os.system('rm ' + rawdir + 'dfo* ' + rawdir + 'TEMP*.nc ' + l1tsdir + '* ' + pro
 
 print(scisuffix)
 # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
-if 0:
+if 1:
     slocum.binary_to_rawnc(binarydir, rawdir, cacdir, sensorlist, deploymentyaml,
         incremental=True, scisuffix=scisuffix, glidersuffix=glidersuffix)
 
@@ -39,7 +39,7 @@ if 0:
         scisuffix=scisuffix, glidersuffix=glidersuffix)
 if 1:
     # Make level-1 timeseries netcdf file from th raw files...
-    outname = slocum.raw_to_L1timeseries(rawdir, l1tsdir, deploymentyaml,
+    outname = slocum.raw_to_L0timeseries(rawdir, l1tsdir, deploymentyaml,
               profile_filt_time=100, profile_min_time=300)
     # make profile netcdf files for ioos gdac...
     #ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
