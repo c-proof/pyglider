@@ -135,8 +135,12 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                                    'NAV_LATITUDE', 'NAV_DEPTH'}
                             pldGPCTD = outx.where(np.isfinite(
                                 outx.GPCTD_TEMPERATURE), drop=True)
-                            pldGPCTD = pldGPCTD.drop_vars(flbbcd)
-                            pldGPCTD = pldGPCTD.drop_vars(arod)
+                            for vars in [flbbcd, arod]:
+                                try:
+                                    pldGPCTD = pldGPCTD.drop_vars(vars)
+                                except:
+                                    pass
+
                             if pldGPCTD.indexes["time"].size > min_samples_in_file:
                                 pldGPCTD.to_netcdf(fnout[:-3] + '_gpctd.nc', 'w',
                                                    unlimited_dims=['time'])
@@ -145,23 +149,30 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                                                                 
                             pldGPCTD = outx.where(np.isfinite(
                                 outx.FLBBCD_CHL_COUNT), drop=True)
-                            pldGPCTD = pldGPCTD.drop_vars(gpctd)
-                            pldGPCTD = pldGPCTD.drop_vars(arod)
+                            for vars in [gpctd, arod]:
+                                try:
+                                    pldGPCTD = pldGPCTD.drop_vars(vars)
+                                except:
+                                    pass
                             if pldGPCTD.indexes["time"].size > min_samples_in_file:
                                 pldGPCTD.to_netcdf(fnout[:-3] + '_flbbcd.nc', 'w',
                                                    unlimited_dims=['time'])
                             else:
                                 _log.warning('Number of FLBBCD data points too small. Skipping nc write')
 
-                            pldGPCTD = outx.where(np.isfinite(
-                                outx.AROD_FT_DO), drop=True)
-                            pldGPCTD = pldGPCTD.drop_vars(gpctd)
-                            pldGPCTD = pldGPCTD.drop_vars(flbbcd)
-                            if pldGPCTD.indexes["time"].size > min_samples_in_file:
-                                pldGPCTD.to_netcdf(fnout[:-3] + '_arod.nc', 'w',
-                                                   unlimited_dims=['time'])
-                            else:
-                                _log.warning('Number of AROD data points too small. Skipping nc write')
+                            if 'AROD_FT_DO' in outx.keys():
+                                pldGPCTD = outx.where(np.isfinite(
+                                    outx.AROD_FT_DO), drop=True)
+                                for vars in [gpctd, flbbcd]:
+                                    try:
+                                        pldGPCTD = pldGPCTD.drop_vars(vars)
+                                    except:
+                                        pass
+                                if pldGPCTD.indexes["time"].size > min_samples_in_file:
+                                    pldGPCTD.to_netcdf(fnout[:-3] + '_arod.nc', 'w',
+                                                    unlimited_dims=['time'])
+                                else:
+                                    _log.warning('Number of AROD data points too small. Skipping nc write')
 
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
@@ -253,9 +264,13 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
             os.remove(outpld[:-5]+'_arod.nc')
         except:
             pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*arod.nc', decode_times=False, lock=False, preprocess=_sort) as pld:
-            pld = pld.coarsen(time=8, boundary='trim').mean()
-            pld.to_netcdf(outpld[:-5]+'_arod.nc', 'w', unlimited_dims=['time'])
+        try:
+            with xr.open_mfdataset(f'{indir}/*.{kind}.*arod.nc', decode_times=False, lock=False, preprocess=_sort) as pld:
+                pld = pld.coarsen(time=8, boundary='trim').mean()
+                pld.to_netcdf(outpld[:-5]+'_arod.nc', 'w', unlimited_dims=['time'])
+        except OSError:
+            _log.info('No AROD files')
+            pass
 
     _log.info('Done merge_rawnc')
 
@@ -295,8 +310,11 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
     ctd = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_gpctd.nc',
                           decode_times=False)
-    arod = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_arod.nc',
+    try:
+        arod = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_arod.nc',
                       decode_times=False)
+    except:
+        arod = None
     flb = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_flbbcd.nc',
                       decode_times=False)
 
@@ -336,12 +354,12 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
                 val = convert(ctd[sensorname])
                 val = _interp_pld_to_pld(ctd, ds, val, indctd)
                 ncvar['method'] = 'linear fill'
-            elif sensorname in arod.keys():
+            elif arod is not None and sensorname in arod.keys():
                 _log.debug('sensorname %s', sensorname)
                 val = convert(arod[sensorname])
                 val = _interp_pld_to_pld(arod, ds, val, indctd)
                 ncvar['method'] = 'linear fill'
-            elif sensorname in flb.keys():
+            elif flb is not None and sensorname in flb.keys():
                 _log.debug('sensorname %s', sensorname)
                 val = convert(flb[sensorname])
                 val = _interp_pld_to_pld(flb, ds, val, indctd)
