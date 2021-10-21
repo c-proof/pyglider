@@ -358,7 +358,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
             ncvar[name].pop('coordinates', None)
             attrs = ncvar[name]
             attrs = utils.fill_required_attrs(attrs)
-            ds[name] = (('time'), val, attrs)
+            ds[name] = (('time'), val.data, attrs)
 
     # fix lon and lat to be linearly interpolated between fixes
     good = np.where(np.abs(np.diff(ds.longitude)) +
