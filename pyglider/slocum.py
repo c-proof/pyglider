@@ -853,7 +853,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                             ncvar[name].pop('coordinates', None)
                             attrs = ncvar[name]
                             attrs = utils.fill_required_attrs(attrs)
-                            ds[name] = (('time'), val, attrs)
+                            ds[name] = (('time'), val.data, attrs)
 
                     print('HERE', ds)
                     print('HERE', ds.pressure[0:100])
