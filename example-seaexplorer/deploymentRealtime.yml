@@ -341,7 +341,6 @@ profile_variables:
     comment:    pumped CTD
     calibration_date:     "2017-12-24"
     calibration_report:   20171224_Seabird_SlocumCTD_SN9446_calibrations.pdf
-    comment:             pumped CTD
     factory_calibrated:  "yes"
     long_name:           Seabird Glider Payload CTD
     make_model:          Seabird GPCTD
