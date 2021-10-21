@@ -11,8 +11,8 @@ rawdir  = './realtime_raw/'
 rawncdir     = './realtime_rawnc/'
 deploymentyaml = './deploymentRealtime.yml'
 l0tsdir    = './L0-timeseries/'
-profiledir = './L1-profiles/'
-griddir    = './L2-gridfiles/'
+profiledir = './L0-profiles/'
+griddir    = './L0-gridfiles/'
 plottingyaml = './plottingconfig.yml'
 
 ## get the data and clean up derived
@@ -33,8 +33,8 @@ if 1:
 
         # Make level-1 timeseries netcdf file from th raw files...
     outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
-    ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
-    outname2 = ncprocess.make_L2_gridfiles(outname, griddir, deploymentyaml)
+    ncprocess.extract_L0timeseries_profiles(outname, profiledir, deploymentyaml)
+    outname2 = ncprocess.make_L0_gridfiles(outname, griddir, deploymentyaml)
 
 if 1:
     # make profile netcdf files for ioos gdac...

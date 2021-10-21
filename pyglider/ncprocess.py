@@ -12,7 +12,7 @@ import scipy.stats as stats
 
 _log = logging.getLogger(__name__)
 
-def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
+def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
     """
     """
     try:
@@ -103,7 +103,7 @@ def extract_L1timeseries_profiles(inname, outdir, deploymentyaml):
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 
-def make_L2_gridfiles(inname, outdir, deploymentyaml, dz=1):
+def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     """
     """
     try:
