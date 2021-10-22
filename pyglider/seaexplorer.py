@@ -274,17 +274,15 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
-
     id = metadata['glider_name']
     gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
-    ctd = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_gpctd.nc',
-                          decode_times=False)
-    arod = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_arod.nc',
-                      decode_times=False)
-    flb = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_flbbcd.nc',
-                      decode_times=False)
-    nav = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_nav.nc',
-                      decode_times=False)
+
+    # Loop through the sensor netcdfs
+    sensor_ncs = glob.glob(f'{indir}*subp_*.nc')
+    sensors = {}
+    for sensor_path in sensor_ncs:
+        sensor_name = sensor_path.split('_')[-1][:-3]
+        sensors[sensor_name] = xr.open_dataset(sensor_path, decode_times=False)
 
     # build a new data set based on info in `deployment.`
     # We will use ebd.m_present_time as the interpolant if the
@@ -299,7 +297,12 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
 
     # the ctd will be our timebase.  It oversamples the nav data, but
     # mildly undersamples the optics and oxygen....
-    indctd = np.where(~np.isnan(ctd.GPCTD_TEMPERATURE))[0]
+    if 'gpctd' in sensors.keys():
+        ctd = sensors['gpctd']
+        indctd = np.where(~np.isnan(ctd.GPCTD_TEMPERATURE))[0]
+    elif 'legato' in sensors.keys():
+        ctd = sensors['legato']
+        indctd = np.where(~np.isnan(ctd.LEGATO_TEMPERATURE))[0]
 
     print('TIME', ctd['time'])
     ds[name] = (('time'), ctd[name].values[indctd], attr)
@@ -317,27 +320,16 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
             else:
                 convert = utils._passthrough
             sensorname = ncvar[name]['source']
-            if sensorname in ctd.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(ctd[sensorname])
-                val = _interp_pld_to_pld(ctd, ds, val, indctd)
-                ncvar['method'] = 'linear fill'
-            elif sensorname in arod.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(arod[sensorname])
-                val = _interp_pld_to_pld(arod, ds, val, indctd)
-                ncvar['method'] = 'linear fill'
-            elif sensorname in flb.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(flb[sensorname])
-                val = _interp_pld_to_pld(flb, ds, val, indctd)
-                ncvar['method'] = 'linear fill'
-            elif sensorname in nav.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(nav[sensorname])
-                val = _interp_pld_to_pld(nav, ds, val, indctd)
-                ncvar['method'] = 'linear fill'
-            else:
+            sensor_found = False
+            for sensor in sensors.values():
+                if sensorname in sensor.keys():
+                    _log.debug('sensorname %s', sensorname)
+                    val = convert(sensor[sensorname])
+                    val = _interp_pld_to_pld(sensor, ds, val, indctd)
+                    ncvar['method'] = 'linear fill'
+                    sensor_found = True
+            if not sensor_found:
+                #foo = bar
                 val = gli[sensorname]
                 #val = utils._zero_screen(val)
         #        val[val==0] = np.NaN
