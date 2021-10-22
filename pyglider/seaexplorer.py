@@ -215,35 +215,32 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
             pld.to_netcdf(outpld)
     else:
         from dask.diagnostics import ProgressBar
+        # Find unique sensor raw netcdf files
+        sensor_files = glob.glob(f'{indir}*pld*.{kind}.*.nc')
+        sensors = []
+        for path in sensor_files:
+            path.split('_')[-1][:-3]
+            sensors.append(path.split('_')[-1][:-3])
+        sensors = set(sensors)
 
-        _log.info('Working on gpctd')
-        print(f'{indir}/*.{kind}*gpctd.nc')
-        try:
-            os.remove(outpld[:-5]+'_gpctd.nc')
-        except:
-            pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*gpctd.nc',  decode_times=False, parallel=False, lock=False, preprocess=_sort) as pld:
-            print(pld)
-            print('Writing')
-            delayed_obj = pld.to_netcdf(outpld[:-5]+'_gpctd.nc', 'w', unlimited_dims=['time'], compute=False)
-            with ProgressBar():
-                results = delayed_obj.compute()
-        _log.info('Working on flbbcd')
-        try:
-            os.remove(outpld[:-5]+'_flbbcd.nc')
-        except:
-            pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*flbbcd.nc', decode_times=False, lock=False, preprocess=_sort) as pld:
-            pld.to_netcdf(outpld[:-5]+'_flbbcd.nc', 'w', unlimited_dims=['time'])
-        _log.info('Working on AROD')
-        try:
-            os.remove(outpld[:-5]+'_arod.nc')
-        except:
-            pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*arod.nc', decode_times=False, lock=False, preprocess=_sort) as pld:
-            pld = pld.coarsen(time=8, boundary='trim').mean()
-            pld.to_netcdf(outpld[:-5]+'_arod.nc', 'w', unlimited_dims=['time'])
-
+        # Loop through sensors, combining the per-dive netcdfs into one mission-long netcdf
+        for sensor in sensors:
+            _log.info(f'Working on {sensor}')
+            print(f'{indir}*pld*.{kind}*{sensor}.nc')
+            try:
+                os.remove(outpld[:-5] + f'_{sensor}.nc')
+            except:
+                pass
+            with xr.open_mfdataset(f'{indir}*pld*.{kind}.*{sensor}.nc', decode_times=False, parallel=False, lock=False,
+                                   preprocess=_sort) as pld:
+                print(pld)
+                if sensor == 'AROD':
+                    # this is the only one that's altered in the original code
+                    pld = pld.coarsen(time=8, boundary='trim').mean()
+                print('Writing')
+                delayed_obj = pld.to_netcdf(outpld[:-5] + f'_{sensor}.nc', 'w', unlimited_dims=['time'], compute=False)
+                with ProgressBar():
+                    results = delayed_obj.compute()
     _log.info('Done merge_rawnc')
 
     return
@@ -285,6 +282,8 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     arod = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_arod.nc',
                       decode_times=False)
     flb = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_flbbcd.nc',
+                      decode_times=False)
+    nav = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_nav.nc',
                       decode_times=False)
 
     # build a new data set based on info in `deployment.`
@@ -332,6 +331,11 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
                 _log.debug('sensorname %s', sensorname)
                 val = convert(flb[sensorname])
                 val = _interp_pld_to_pld(flb, ds, val, indctd)
+                ncvar['method'] = 'linear fill'
+            elif sensorname in nav.keys():
+                _log.debug('sensorname %s', sensorname)
+                val = convert(nav[sensorname])
+                val = _interp_pld_to_pld(nav, ds, val, indctd)
                 ncvar['method'] = 'linear fill'
             else:
                 val = gli[sensorname]
