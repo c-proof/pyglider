@@ -1,27 +1,26 @@
 metadata:
   # https://github.com/ioos/ioosngdac/wiki/NGDAC-NetCDF-File-Format-Version-2
-  acknowledgement: Funding from Fisheries and Oceans Canada, Canadian Foundation
-                   for Innovation, BC Knowledge Development Fund
-  comment:        "Explorer Seamount cruise on Tully"
-  contributor_name: James Pegg, Jody Klymak, Tetjana Ross
-  contributor_role: Lead Technician, Principal Investigator, Co-PI
-  creator_email: jklymak@uvic.ca
-  creator_name:  Jody Klymak
-  creator_url:   http://cproof.uvic.ca
+  acknowledgement: Funding from Voice of the Ocean
+  comment:        "Test processing"
+  contributor_name: Callum Rollo
+  contributor_role: Data processor
+  creator_email: c.rollo@outlook.com
+  creator_name:  Callum Rollo
+  creator_url:   callumrollo.com
   # date_created etc: added automatically
   # numbers must be eenclosed by strings so YAML keeps as strings
-  deployment_id: '1'
-  deployment_name: 'dfo-eva035-20190718'
-  deployment_start: '2019-07-18'
-  deployment_end: '2019-12-30'
+  deployment_id: '22'
+  deployment_name: 'test_mission'
+  deployment_start: '2021-08-23'
+  deployment_end: '2021-08-25'
   format_version: IOOS_Glider_NetCDF_v2.0.nc
   # id filled automatically...
-  glider_name: dfo-eva035
-  glider_serial: '035'
+  glider_name: voto_glider
+  glider_serial: '063'
   glider_model: SeaExplorer
   glider_instrument_name: seaexplorer
   glider_wmo: '999999'
-  institution: C-PROOF
+  institution: VOTO
   keywords: "AUVS, Autonomous Underwater Vehicles, Oceans, Ocean Pressure,
              Water Pressure, Oceans, Ocean Temperature, Water Temperature,
              Oceans, Salinity/Density, Conductivity, Oceans,
@@ -29,23 +28,22 @@ metadata:
   keywords_vocabulary: GCMD Science Keywords
   license: "This data may be redistributed and used without restriction or
             warranty"
-  metadata_link: "https://cproof.uvic.ca"
+  metadata_link: "callumrollo.com"
   Metadata_Conventions: CF-1.6, Unidata Dataset Discovery v1.0
-  naming_authority: "ca.uvic.cproof"
+  naming_authority: "VOTO"
   platform_type:    "SeaExplorer Glider"
   processing_level: "Data provided as is with no expressed or implied
-                     assurance of quality assurance or quality control."
-  project: ExplorerSeamount19
-  project_url: http://cproof.uvic.ca
-  publisher_email: jklymak@uvic.ca
-  publisher_name:  Jody Klymak
-  publisher_url:   http://cproof.uvic.ca
-  references:     cproof toolbox URL
-  # https://www.nodc.noaa.gov/General/NODC-Archive/seanamelist.txt
-  sea_name:   BC Coastal Waters
+                     assurance of quality assurance or quality control. L0"
+  project: test
+  project_url: test
+  publisher_email: c.rollo@outlook.com
+  publisher_name:  Callum Rollo
+  publisher_url:   https://voiceoftheocean.org
+  references:     "created with pyglider https://github.com/c-proof/pyglider"
+  sea_name:   sea name test
   source:     Observational data from a profiling glider.
   standard_name_vocabulary: CF STandard Name Table v49
-  summary: Short deployment off Tully near Explorer Seamount.
+  summary: mission summary test
   transmission_system: IRRIDIUM
   wmo_id: "999999"
 
@@ -56,23 +54,23 @@ glider_devices:
     model: Pressure
     serial: '104702'
   ctd:
-    make: Seabird
-    model: GPCTD
-    serial: '0278'
-    long_name: Seabird SlocumCTD
-    make_model: Seabird SlocumCTD
+    make: RBR
+    model: legato
+    serial: '206523'
+    long_name: RBR legato CTD
+    make_model:  RBR legato CTD
     factory_calibrated: "Yes"
-    calibration_date: "02/11/2018"
+    calibration_date: "2021-03-01"
     calibration_report: " "
     comment:   " "
   optics:
     make: Wetlabs
-    model: FLBBCDSLC
-    serial: '4741'
+    model: FLNTU
+    serial: '6661'
   oxygen:
     make: AROD_FT
     model: Optode4831
-    serial: '0022'
+    serial: '0044'
 
 # map between glider variables and netcdf variables.  This shouldn't
 # change too much.
@@ -124,26 +122,26 @@ netcdf_variables:
     source:       Heading
     long_name:    glider heading angle
     standard_name: platform_orientation
-    units:        rad
+    units:        degrees
     coordinates:  time depth latitude longitude
 
   pitch:
     source:       Pitch
     long_name:    glider pitch angle
     standard_name: platform_pitch_angle
-    units:        rad
+    units:        degrees
     coordinates:  time depth latitude longitude
 
   roll:
     source:       Roll
     long_name:    glider roll angle
     standard_name: platform_roll_angle
-    units:        rad
+    units:        degrees
     coordinates:  time depth latitude longitude
 
   # data parameters
   conductivity:
-    source:       GPCTD_CONDUCTIVITY
+    source:       LEGATO_CONDUCTIVITY
     long_name:    water conductivity
     standard_name: sea_water_electrical_conductivity
     units:        S m-1
@@ -157,7 +155,7 @@ netcdf_variables:
     resolution:     "0.00002"
 
   temperature:
-    source:       GPCTD_TEMPERATURE
+    source:       LEGATO_TEMPERATURE
     long_name:    water temperature
     standard_name: sea_water_temperature
     units:        Celsius
@@ -171,7 +169,7 @@ netcdf_variables:
     resolution:    "0.0002"
 
   pressure:
-    source:       GPCTD_PRESSURE
+    source:       LEGATO_PRESSURE
     long_name:    water pressure
     standard_name:  sea_water_pressure
     units:        dbar
@@ -187,25 +185,35 @@ netcdf_variables:
     resolution:       "0.02"
     comment:          "ctd pressure sensor"
 
+  salinity:
+    source:       LEGATO_SALINITY
+    long_name:    water salinity
+    standard_name: sea_water_salinity
+    units:        kg m-3
+    coordinates:  time depth latitude longitude
+    instrument:    instrument_ctd
+    valid_min:    "0."
+    valid_max:    "50."
+    observation_type: "calculated"
+    accuracy:      "0.0003"
+    precision:     "0.0001"
+    resolution:     "0.00002"
+
 # optics:
   chlorophyll:
-    source:       FLBBCD_CHL_SCALED
+    source:       FLNTU_CHL_SCALED
     long_name:    chlorophyll
     standard_name: concentration_of_chlorophyll_in_sea_water
     units:        mg m-3
     coordinates:  time depth latitude longitude
 
   cdom:
-    source:  FLBBCD_CDOM_SCALED
-    long_name:    CDOM
-    units:        ppb
+    source:  FLNTU_NTU_SCALED
+    long_name:    flntu variable
+    units:        arbitrary
     coordinates:  time depth latitude longitude
 
-  backscatter_700:
-    source:       FLBBCD_BB_700_SCALED
-    long_name:    700 nm wavelength backscatter
-    units:         "1"
-    coordinates:  time depth latitude longitude
+
 
 # Oxygen
   oxygen_concentration:
@@ -222,7 +230,30 @@ netcdf_variables:
     units:        Celsius
     coordinates:   time depth latitude longitude
 
-# derived water speed:
+
+
+# AD2CP
+  ad2cp_heading:
+    source:       AD2CP_HEADING
+    long_name:    glider heading angle from AD2CP
+    standard_name: platform_orientation_ad2cp
+    units:        degrees
+    coordinates:  time depth latitude longitude
+
+  ad2cp_pitch:
+    source:       AD2CP_PITCH
+    long_name:    glider pitch angle from AD2CP
+    standard_name: platform_pitch_angle_ad2cp
+    units:        degrees
+    coordinates:  time depth latitude longitude
+
+  ad2cp_roll:
+    source:       AD2CP_ROLL
+    long_name:    glider roll angle from AD2CP
+    standard_name: platform_roll_angle_ad2cp
+    units:        degrees
+    coordinates:  time depth latitude longitude
+    # derived water speed:
   # water_velocity_eastward:
   #   source:    m_final_water_vx
   #   long_name:      mean eastward water velocity in segment
@@ -338,12 +369,12 @@ profile_variables:
     observation_type: calculated
 
   instrument_ctd:
-    comment:    pumped CTD
-    calibration_date:     "2017-12-24"
-    calibration_report:   20171224_Seabird_SlocumCTD_SN9446_calibrations.pdf
+    comment:    unpumped RBR legato CTD
+    calibration_date:     "2021-03-01"
+    calibration_report:  " "
     factory_calibrated:  "yes"
-    long_name:           Seabird Glider Payload CTD
-    make_model:          Seabird GPCTD
+    long_name:           RBR legato seaexplorer CTD
+    make_model:          RBR legato
     platform:            platform
-    serial_number:       "9446"
+    serial_number:       "206523"
     type:                platform

@@ -39,3 +39,6 @@ jobs:
       - name: Process slocum
         shell: bash -l {0}
         run: which python; cd example-slocum; make clean-all; python process_deploymentRealTime.py
+      - name: Process seaexplorer-legato-flntu-arod-ad2cp
+        shell: bash -l {0}
+        run: which python; cd example-seaexplorer-legato-flntu-arod-ad2cp; make clean-all; python process_deploymentRealTime.py

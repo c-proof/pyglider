@@ -383,7 +383,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     except:
         pass
     id0 = ds.attrs['deployment_name']
-    outname = outdir + id0 +  '_L0.nc'
+    outname = outdir + id0 +  '.nc'
     _log.info('writing %s', outname)
     ds.to_netcdf(outname, 'w')
 

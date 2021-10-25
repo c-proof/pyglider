@@ -42,12 +42,12 @@ if 1:
     outname = slocum.raw_to_L0timeseries(rawdir, l1tsdir, deploymentyaml,
               profile_filt_time=100, profile_min_time=300)
     # make profile netcdf files for ioos gdac...
-    #ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
+    ncprocess.extract_L0timeseries_profiles(outname, profiledir, deploymentyaml)
 
     # make grid of dataset....
 
 #pgplot.timeseries_plots(outname, plottingyaml)
 
 
-outname = ncprocess.make_L2_gridfiles(outname, griddir, deploymentyaml)
+outname = ncprocess.make_L0_gridfiles(outname, griddir, deploymentyaml)
 pgplot.grid_plots(outname, plottingyaml)
