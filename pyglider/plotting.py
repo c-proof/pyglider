@@ -1,5 +1,6 @@
 import xarray as xr
 import logging
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -164,7 +165,7 @@ def timeseries_plots(fname, plottingyaml):
         t = np.linspace(ds.temperature.min(), ds.temperature.max(), 100)
         S, T = np.meshgrid(s, t)
         pd = seawater.eos80.pden(S, T, 0, 0) - 1000
-        levels = np.arange(20, 30, 0.5)
+        levels = np.arange(2, 30, 0.5)
         c = ax.contour(s, t, pd, colors='0.5', levels=levels)
         ax.clabel(c, levels[::2], fontsize=8, fmt='%1.1f')
         ax.plot(ds['salinity'], ds['temperature'], '.', markersize=1)
@@ -220,7 +221,7 @@ def grid_plots(fname, plottingyaml):
         tmean = ds.temperature.mean(axis=1)
         indmax = np.where(~np.isnan(tmean))[0][-1]
         depmax = ds.depth[indmax]
-        fig, axs = plt.subplots(int(N / 2), 2, figsize=(7.5, 7),
+        fig, axs = plt.subplots(math.ceil(N/2), 2, figsize=(7.5, 7),
                                 sharex=True, sharey=True)
         axs = axs.flat
         for n, k in enumerate(keys):
