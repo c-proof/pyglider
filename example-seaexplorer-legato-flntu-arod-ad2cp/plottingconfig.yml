@@ -16,17 +16,14 @@ pcolor:
       cmap:    'RdBu_r'
     salinity:
       cmap:    'viridis'
-      vmin:     30.5
-      vmax:     34.5
+      #vmin:     6
+      #vmax:     16
     oxygen_concentration:
       cmap:    'RdYlBu'
-      vmin:     -300
-      vmax:     500
+      vmin:     80
+      vmax:     350
     chlorophyll:
       cmap:    'Greens'
       vmin:     0
-      vmax:     8
-    cdom:
-      cmap:    'BuPu'
-      vmin:    1.2
+      vmax:     0.5
 
