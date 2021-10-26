@@ -309,7 +309,7 @@ def get_file_id(ds):
     return id
 
 
-def fill_metadata(ds, metadata):
+def fill_metadata(ds, metadata, sensor_data):
 
     good = ~np.isnan(ds.latitude.values + ds.longitude.values)
     ds.attrs['geospatial_lat_max'] = np.max(ds.latitude.values[good])
@@ -338,6 +338,8 @@ def fill_metadata(ds, metadata):
 
     ds.attrs['processing_level'] = 'Level 0 (L0) processed data timeseries; no corrections or data screening'
 
+    for k, v in sensor_data.items():
+        ds.attrs[k] = str(v)
     ds.attrs = collections.OrderedDict(sorted(ds.attrs.items()))
 
     return ds
