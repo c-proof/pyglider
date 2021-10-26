@@ -278,7 +278,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
 
     # Loop through the sensor netcdfs
-    sensor_ncs = glob.glob(f'{indir}*subp_*.nc')
+    sensor_ncs = glob.glob(f'{indir}*{kind}p_*.nc')
     sensors = {}
     for sensor_path in sensor_ncs:
         sensor_name = sensor_path.split('_')[-1][:-3]
