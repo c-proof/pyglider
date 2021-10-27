@@ -122,47 +122,34 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                         if ftype == 'gli':
                             outx.to_netcdf(fnout[:-3]+'.nc', 'w')
                         else:
-                            # split into instruments: this is hardcoded for now
-                            gpctd = {'GPCTD_CONDUCTIVITY', 'GPCTD_TEMPERATURE',
-                                     'GPCTD_PRESSURE', 'GPCTD_DOF'}
-                            flbbcd = {'FLBBCD_CHL_COUNT', 'FLBBCD_CHL_SCALED',
-                                      'FLBBCD_BB_700_COUNT',
-                                      'FLBBCD_BB_700_SCALED',
-                                      'FLBBCD_CDOM_COUNT',
-                                      'FLBBCD_CDOM_SCALED'}
-                            arod = {'AROD_FT_TEMP', 'AROD_FT_DO'}
-                            nav = {'NAV_RESOURCE', 'NAV_LONGITUDE',
-                                   'NAV_LATITUDE', 'NAV_DEPTH'}
-                            pldGPCTD = outx.where(np.isfinite(
-                                outx.GPCTD_TEMPERATURE), drop=True)
-                            pldGPCTD = pldGPCTD.drop_vars(flbbcd)
-                            pldGPCTD = pldGPCTD.drop_vars(arod)
-                            if pldGPCTD.indexes["time"].size > min_samples_in_file:
-                                pldGPCTD.to_netcdf(fnout[:-3] + '_gpctd.nc', 'w',
+                            # Detect instruments in dataset
+                            var_names = list(outx.variables.keys())
+                            prefixes = []
+                            for name in var_names:
+                                if '_' in name:
+                                    prefixes.append(name.split('_', 1)[0])
+                            sensors = set(prefixes)
+                            # Make lists of variables associated with each sensor:
+                            sensor_variables = {}
+                            for sensor in sensors:
+                                sensor_variables[sensor] = [i for i in var_names if sensor in i]
+                            # Extract each instrument from the dataset
+                            for sensor in sensors:
+                                sensor_vars = sensor_variables[sensor]
+                                pld_var = outx[sensor_vars]
+                                # subset to only non-NaN values using first variable of the sensor
+                                # Hack: some sensors (e.g. Nortek AD2CP0 the first variable is a string. We need
+                                # a numerical datatype to check for NaNs, so check types of all variables:
+                                for var in sensor_vars:
+                                    data_type = type(pld_var[var].values[0])
+                                    if data_type is np.float64 or data_type is np.float32:
+                                        break
+                                pld_sub = pld_var.where(np.isfinite(pld_var[var]))
+                                if pld_sub.indexes["time"].size > min_samples_in_file:
+                                    pld_sub.to_netcdf(f'{fnout[:-3]}_{sensor.lower()}.nc', 'w',
                                                    unlimited_dims=['time'])
-                            else:
-                                _log.warning('Number of GPCTD data points too small. Skipping nc write')
-                                                                
-                            pldGPCTD = outx.where(np.isfinite(
-                                outx.FLBBCD_CHL_COUNT), drop=True)
-                            pldGPCTD = pldGPCTD.drop_vars(gpctd)
-                            pldGPCTD = pldGPCTD.drop_vars(arod)
-                            if pldGPCTD.indexes["time"].size > min_samples_in_file:
-                                pldGPCTD.to_netcdf(fnout[:-3] + '_flbbcd.nc', 'w',
-                                                   unlimited_dims=['time'])
-                            else:
-                                _log.warning('Number of FLBBCD data points too small. Skipping nc write')
-
-                            pldGPCTD = outx.where(np.isfinite(
-                                outx.AROD_FT_DO), drop=True)
-                            pldGPCTD = pldGPCTD.drop_vars(gpctd)
-                            pldGPCTD = pldGPCTD.drop_vars(flbbcd)
-                            if pldGPCTD.indexes["time"].size > min_samples_in_file:
-                                pldGPCTD.to_netcdf(fnout[:-3] + '_arod.nc', 'w',
-                                                   unlimited_dims=['time'])
-                            else:
-                                _log.warning('Number of AROD data points too small. Skipping nc write')
-
+                                else:
+                                    _log.warning(f'Number of {sensor} data points too small. Skipping nc write')
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
                 for fn in badfiles:
@@ -228,35 +215,31 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
             pld.to_netcdf(outpld)
     else:
         from dask.diagnostics import ProgressBar
+        # Find unique sensor raw netcdf files
+        sensor_files = glob.glob(f'{indir}*pld*.{kind}.*.nc')
+        sensors = []
+        for path in sensor_files:
+            path.split('_')[-1][:-3]
+            sensors.append(path.split('_')[-1][:-3])
+        sensors = set(sensors)
 
-        _log.info('Working on gpctd')
-        print(f'{indir}/*.{kind}*gpctd.nc')
-        try:
-            os.remove(outpld[:-5]+'_gpctd.nc')
-        except:
-            pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*gpctd.nc',  decode_times=False, parallel=False, lock=False, preprocess=_sort) as pld:
-            print(pld)
-            print('Writing')
-            delayed_obj = pld.to_netcdf(outpld[:-5]+'_gpctd.nc', 'w', unlimited_dims=['time'], compute=False)
-            with ProgressBar():
-                results = delayed_obj.compute()
-        _log.info('Working on flbbcd')
-        try:
-            os.remove(outpld[:-5]+'_flbbcd.nc')
-        except:
-            pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*flbbcd.nc', decode_times=False, lock=False, preprocess=_sort) as pld:
-            pld.to_netcdf(outpld[:-5]+'_flbbcd.nc', 'w', unlimited_dims=['time'])
-        _log.info('Working on AROD')
-        try:
-            os.remove(outpld[:-5]+'_arod.nc')
-        except:
-            pass
-        with xr.open_mfdataset(f'{indir}/*.{kind}.*arod.nc', decode_times=False, lock=False, preprocess=_sort) as pld:
-            pld = pld.coarsen(time=8, boundary='trim').mean()
-            pld.to_netcdf(outpld[:-5]+'_arod.nc', 'w', unlimited_dims=['time'])
-
+        # Loop through sensors, combining the per-dive netcdfs into one mission-long netcdf
+        for sensor in sensors:
+            _log.info(f'Working on {sensor}')
+            print(f'{indir}*pld*.{kind}*{sensor}.nc')
+            try:
+                os.remove(outpld[:-5] + f'_{sensor}.nc')
+            except:
+                pass
+            with xr.open_mfdataset(f'{indir}*pld*.{kind}.*{sensor}.nc', decode_times=False, parallel=False, lock=False,
+                                   preprocess=_sort) as pld:
+                _log.info(f'Writing {sensor}')
+                if sensor == 'arod':
+                    # this is the only one that's altered in the original code
+                    pld = pld.coarsen(time=8, boundary='trim').mean()
+                delayed_obj = pld.to_netcdf(outpld[:-5] + f'_{sensor}.nc', 'w', unlimited_dims=['time'], compute=False)
+                with ProgressBar():
+                    results = delayed_obj.compute()
     _log.info('Done merge_rawnc')
 
     return
@@ -290,15 +273,15 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
-
     id = metadata['glider_name']
     gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
-    ctd = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_gpctd.nc',
-                          decode_times=False)
-    arod = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_arod.nc',
-                      decode_times=False)
-    flb = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_flbbcd.nc',
-                      decode_times=False)
+
+    # Loop through the sensor netcdfs
+    sensor_ncs = glob.glob(f'{indir}*{kind}p_*.nc')
+    sensors = {}
+    for sensor_path in sensor_ncs:
+        sensor_name = sensor_path.split('_')[-1][:-3]
+        sensors[sensor_name] = xr.open_dataset(sensor_path, decode_times=False)
 
     # build a new data set based on info in `deployment.`
     # We will use ebd.m_present_time as the interpolant if the
@@ -313,7 +296,12 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
 
     # the ctd will be our timebase.  It oversamples the nav data, but
     # mildly undersamples the optics and oxygen....
-    indctd = np.where(~np.isnan(ctd.GPCTD_TEMPERATURE))[0]
+    if 'gpctd' in sensors.keys():
+        ctd = sensors['gpctd']
+        indctd = np.where(~np.isnan(ctd.GPCTD_TEMPERATURE))[0]
+    elif 'legato' in sensors.keys():
+        ctd = sensors['legato']
+        indctd = np.where(~np.isnan(ctd.LEGATO_TEMPERATURE))[0]
 
     print('TIME', ctd['time'])
     ds[name] = (('time'), ctd[name].values[indctd], attr)
@@ -331,22 +319,16 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
             else:
                 convert = utils._passthrough
             sensorname = ncvar[name]['source']
-            if sensorname in ctd.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(ctd[sensorname])
-                val = _interp_pld_to_pld(ctd, ds, val, indctd)
-                ncvar['method'] = 'linear fill'
-            elif sensorname in arod.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(arod[sensorname])
-                val = _interp_pld_to_pld(arod, ds, val, indctd)
-                ncvar['method'] = 'linear fill'
-            elif sensorname in flb.keys():
-                _log.debug('sensorname %s', sensorname)
-                val = convert(flb[sensorname])
-                val = _interp_pld_to_pld(flb, ds, val, indctd)
-                ncvar['method'] = 'linear fill'
-            else:
+            sensor_found = False
+            for sensor in sensors.values():
+                if sensorname in sensor.keys():
+                    _log.debug('sensorname %s', sensorname)
+                    val = convert(sensor[sensorname])
+                    val = _interp_pld_to_pld(sensor, ds, val, indctd)
+                    ncvar['method'] = 'linear fill'
+                    sensor_found = True
+            if not sensor_found:
+                #foo = bar
                 val = gli[sensorname]
                 #val = utils._zero_screen(val)
         #        val[val==0] = np.NaN
@@ -408,3 +390,45 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
 
 # alias:
 raw_to_L1timeseries = raw_to_L0timeseries
+
+
+def _parse_sensor_config(filename):
+    """
+    Reads the sensor config file of a SeaExplorer and extracts the active sensors and their calibration data.
+    Parameters
+    ----------
+    filename: path to seapayload.cfg file
+
+    Returns
+    -------
+    Dictionary of devices and their metadata as dictionaries of key_value pairs
+    """
+    #filename = "/home/callum/Documents/data-flow/data-in/SEA063_M22/2_PLD/configs/seapayload.cfg"
+    file = open(filename, 'r').read().split('\n')
+    devices = []
+    device_id = 'dummy_value'
+    device_dicts = {}
+    dict_for_device = {}
+    for line in file:
+        # Strip trailing whitespace
+        line = line.strip(" ")
+        # Look for key:value pairs
+        if '=' in line and ">" not in line:
+            # Split only on first = or AD2CP will break the parser
+            key, value = line.split("=", 1)
+            # Look for non-empty device declarations
+            if key == "device" and value != "":
+                devices.append(value)
+            else:
+                dict_for_device[key] = value
+        # Look for pattern [devicename]
+        elif line[1:-1] in devices:
+            # add previous device to the device dict
+            device_dicts[device_id] = dict_for_device
+            device_id = line[1:-1]
+            dict_for_device = {}
+    # Append the final device to the dict
+    device_dicts[device_id] = dict_for_device
+
+    active_device_dicts = {k: device_dicts[k] for k in device_dicts.keys() & {*devices}}
+    return active_device_dicts
