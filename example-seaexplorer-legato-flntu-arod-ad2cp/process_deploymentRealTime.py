@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     # turn seaexplorer zipped csvs into nc files.
     seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
-    # merge individual neetcdf files into single netcdf files *.ebd.nc and *.dbd.nc
+    # merge individual netcdf files into single netcdf files *.gli*.nc and *.pld1*.nc
     seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
     # Make level-0 timeseries netcdf file from the raw files...
     outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
