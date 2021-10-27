@@ -19,11 +19,11 @@ if __name__ == '__main__':
     os.system('rm ' + rawncdir + '* ' + l0tsdir + '* ' + profiledir + '* ' +
               griddir + '* ')
 
-    # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
+    # turn seaexplorer zipped csvs into nc files.
     seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
     # merge individual neetcdf files into single netcdf files *.ebd.nc and *.dbd.nc
     seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
-    # Make level-1 timeseries netcdf file from th raw files...
+    # Make level-0 timeseries netcdf file from the raw files...
     outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
     ncprocess.extract_L0timeseries_profiles(outname, profiledir, deploymentyaml)
     outname2 = ncprocess.make_L0_gridfiles(outname, griddir, deploymentyaml)
