@@ -1,6 +1,4 @@
 import xarray as xr
-import urllib.request
-import shutil
 from pathlib import Path
 import sys
 
@@ -20,15 +18,9 @@ def test_example_seaexplorer():
     seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
     outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
     output = xr.open_dataset(outname)
-    url = 'https://github.com/callumrollo/pyglider-test-data/blob/main/example-seaexplorer/L0-timeseries/dfo-eva035' \
-          '-20190718.nc?raw=true'
-    file_name = l0tsdir + 'test_data.nc'
-    # Download the  test data from github
-    with urllib.request.urlopen(url) as response, open(file_name, 'wb') as out_file:
-        shutil.copyfileobj(response, out_file)
-    test_data = xr.open_dataset(file_name)
+    # Open test data file
+    test_data = xr.open_dataset(library_dir / 'tests/results/example-seaexplorer/L0-timeseries/dfo-eva035-20190718.nc')
     # Test that variables and coordinates match
-
     assert output.equals(test_data)
     # Test that attributes match. Have to remove creation and issue dates first
     output.attrs.pop('date_created')
@@ -57,13 +49,8 @@ def test_example_slocum():
     outname = slocum.raw_to_L0timeseries(rawdir, l1tsdir, deploymentyaml,
                                          profile_filt_time=100, profile_min_time=300)
     output = xr.open_dataset(outname)
-    url = 'https://github.com/callumrollo/pyglider-test-data/blob/main/example-slocum/L0-timeseries/dfo-rosie713' \
-          '-20190615.nc?raw=true'
-    file_name = l1tsdir + 'test_data.nc'
-    # Download the  test data from github
-    with urllib.request.urlopen(url) as response, open(file_name, 'wb') as out_file:
-        shutil.copyfileobj(response, out_file)
-    test_data = xr.open_dataset(file_name)
+    # Open test data file
+    test_data = xr.open_dataset(library_dir / 'tests/results/example-slocum/L0-timeseries/dfo-rosie713-20190615.nc')
     # Test that variables and coordinates match
     assert output.equals(test_data)
     # Test that attributes match. Have to remove creation and issue dates first
