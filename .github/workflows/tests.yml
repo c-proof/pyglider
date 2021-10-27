@@ -39,3 +39,6 @@ jobs:
       - name: Process slocum
         shell: bash -l {0}
         run: which python; cd example-slocum; make clean-all; python process_deploymentRealTime.py
+      - name: Run tests
+        shell: bash -l {0}
+        run: which python; pytest tests/test_pyglider.py
