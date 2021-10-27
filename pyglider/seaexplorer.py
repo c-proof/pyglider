@@ -233,11 +233,10 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
                 pass
             with xr.open_mfdataset(f'{indir}*pld*.{kind}.*{sensor}.nc', decode_times=False, parallel=False, lock=False,
                                    preprocess=_sort) as pld:
-                print(pld)
+                _log.info(f'Writing {sensor}')
                 if sensor == 'AROD':
                     # this is the only one that's altered in the original code
                     pld = pld.coarsen(time=8, boundary='trim').mean()
-                print('Writing')
                 delayed_obj = pld.to_netcdf(outpld[:-5] + f'_{sensor}.nc', 'w', unlimited_dims=['time'], compute=False)
                 with ProgressBar():
                     results = delayed_obj.compute()
