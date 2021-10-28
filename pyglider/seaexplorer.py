@@ -262,6 +262,11 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
             if sensorname in list(sensor.variables):
                 _log.debug('sensorname %s', sensorname)
                 val = convert(sensor[sensorname])
+                if 'AROD' in sensorname:
+                    # smooth oxygen data as originally perscribed
+                    sensor_sub = sensor.coarsen(time=8, boundary='trim').mean()
+                    val2 = sensor_sub[sensorname]
+                    val = _interp_gli_to_pld(sensor_sub, sensor, val2, indctd)
                 ncvar['method'] = 'linear fill'
             else:
                 val = gli[sensorname]
