@@ -21,7 +21,6 @@ def _outputname(f, outdir):
     fnout = os.path.basename(f)
     fns = fnout.split('.')
     fns = fns[:5]
-    print(fns)
     fns[4] = '%04d' % int(fns[4])
     fns[1] = '%04d' % int(fns[1])
     fnout = ''
@@ -76,10 +75,15 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
     This process can be slow for many files.
 
     """
+    # Create out directory for netcdfs if it does not exist
+    try:
+        os.mkdir(outdir)
+    except FileExistsError:
+        pass
 
-    print(outdir)
     for ftype in ['gli', 'pld1']:
         for rawsub in ['raw', 'sub']:
+            _log.info(f'Reading in raw files matching *{ftype}.{rawsub}*')
             d = indir + f'*.{ftype}.{rawsub}.*'
             files = glob.glob(d)
             fnum = np.zeros(len(files))
@@ -89,15 +93,11 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                 fnum[n] = p[4]
             inds = np.argsort(fnum)
             files = [files[ind] for ind in inds]
-            print(files)
+            _log.info(f'found {files}')
 
-            if len(files) < 0:
-                raise FileNotFoundError('No raw files found in %s' % indir)
-
-            try:
-                os.mkdir(outdir)
-            except FileExistsError:
-                pass
+            if len(files) == 0:
+                # If no files of this type found, try the next type
+                continue
 
             badfiles = []
             for ind, f in enumerate(files):
@@ -122,39 +122,16 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                         if ftype == 'gli':
                             outx.to_netcdf(fnout[:-3]+'.nc', 'w')
                         else:
-                            # Detect instruments in dataset
-                            var_names = list(outx.variables.keys())
-                            prefixes = []
-                            for name in var_names:
-                                if '_' in name:
-                                    prefixes.append(name.split('_', 1)[0])
-                            sensors = set(prefixes)
-                            # Make lists of variables associated with each sensor:
-                            sensor_variables = {}
-                            for sensor in sensors:
-                                sensor_variables[sensor] = [i for i in var_names if sensor in i]
-                            # Extract each instrument from the dataset
-                            for sensor in sensors:
-                                sensor_vars = sensor_variables[sensor]
-                                pld_var = outx[sensor_vars]
-                                # subset to only non-NaN values using first variable of the sensor
-                                # Hack: some sensors (e.g. Nortek AD2CP0 the first variable is a string. We need
-                                # a numerical datatype to check for NaNs, so check types of all variables:
-                                for var in sensor_vars:
-                                    data_type = type(pld_var[var].values[0])
-                                    if data_type is np.float64 or data_type is np.float32:
-                                        break
-                                pld_sub = pld_var.where(np.isfinite(pld_var[var]))
-                                if pld_sub.indexes["time"].size > min_samples_in_file:
-                                    pld_sub.to_netcdf(f'{fnout[:-3]}_{sensor.lower()}.nc', 'w',
-                                                   unlimited_dims=['time'])
-                                else:
-                                    _log.warning(f'Number of {sensor} data points too small. Skipping nc write')
+                            if outx.indexes["time"].size > min_samples_in_file:
+                                outx.to_netcdf(f'{fnout[:-3]}.nc', 'w',
+                                               unlimited_dims=['time'])
+                            else:
+                                _log.warning(f'Number of sensor data points too small. Skipping nc write')
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
                 for fn in badfiles:
                     _log.warning('%s', fn)
-            _log.info('All done!')
+    _log.info('All raw files converted to nc')
 
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     """
