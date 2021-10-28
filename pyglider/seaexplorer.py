@@ -162,7 +162,6 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
     id = metadata['glider_name']
-    print('id', id)
     outgli = outdir + '/' + id + '-rawgli.nc'
     outpld = outdir + '/' + id + '-' + kind + 'pld.nc'
 
@@ -178,47 +177,18 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         gli.to_netcdf(outgli)
     _log.info(f'Done writing {outgli}')
 
-    if kind == 'boo':
-        _log.info('Opening *.pld.sub.*.nc multi-file dataset')
-        files = sorted(glob.glob(indir+'/*.pld1.'+kind+'.*.nc'))
-        with xr.open_dataset(files[0], decode_times=False) as pld:
-            for fil in files[1:]:
-                try:
-                    with xr.open_dataset(fil, decode_times=False) as pld2:
-                        pld = xr.concat([pld, pld2], dim='time')
-                except:
-                    pass
-            _log.info('Writing ' + outpld)
-            pld.to_netcdf(outpld)
-    else:
-        from dask.diagnostics import ProgressBar
-        # Find unique sensor raw netcdf files
-        sensor_files = glob.glob(f'{indir}*pld*.{kind}.*.nc')
-        sensors = []
-        for path in sensor_files:
-            path.split('_')[-1][:-3]
-            sensors.append(path.split('_')[-1][:-3])
-        sensors = set(sensors)
-
-        # Loop through sensors, combining the per-dive netcdfs into one mission-long netcdf
-        for sensor in sensors:
-            _log.info(f'Working on {sensor}')
-            print(f'{indir}*pld*.{kind}*{sensor}.nc')
+    _log.info('Opening *.pld.sub.*.nc multi-file dataset')
+    files = sorted(glob.glob(indir+'/*.pld1.'+kind+'.*.nc'))
+    with xr.open_dataset(files[0], decode_times=False) as pld:
+        for fil in files[1:]:
             try:
-                os.remove(outpld[:-5] + f'_{sensor}.nc')
+                with xr.open_dataset(fil, decode_times=False) as pld2:
+                    pld = xr.concat([pld, pld2], dim='time')
             except:
                 pass
-            with xr.open_mfdataset(f'{indir}*pld*.{kind}.*{sensor}.nc', decode_times=False, parallel=False, lock=False,
-                                   preprocess=_sort) as pld:
-                _log.info(f'Writing {sensor}')
-                if sensor == 'arod':
-                    # this is the only one that's altered in the original code
-                    pld = pld.coarsen(time=8, boundary='trim').mean()
-                delayed_obj = pld.to_netcdf(outpld[:-5] + f'_{sensor}.nc', 'w', unlimited_dims=['time'], compute=False)
-                with ProgressBar():
-                    results = delayed_obj.compute()
+        pld.to_netcdf(outpld)
+    _log.info(f'Done writing {outpld}')
     _log.info('Done merge_rawnc')
-
     return
 
 
