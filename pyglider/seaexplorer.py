@@ -110,6 +110,9 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                     out = pd.read_csv(f, header=0, delimiter=';',
                                             parse_dates=True, index_col=0,
                                             dayfirst=True)
+                    # If AD2CP data present, convert the timestamps to datetime type
+                    if 'AD2CP_TIME' in out.columns:
+                        out['AD2CP_TIME'] = pd.to_datetime(out.AD2CP_TIME)
                     with out.to_xarray() as outx:
 
                         key = list(outx.coords.keys())[0]
