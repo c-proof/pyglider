@@ -249,7 +249,6 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     else:
         _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time base')
         indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
-
     ds['time'] = (('time'), sensor['time'].values[indctd], attr)
     thenames = list(ncvar.keys())
     thenames.remove('time')
@@ -270,6 +269,8 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
                     sensor_sub = sensor.coarsen(time=8, boundary='trim').mean()
                     val2 = sensor_sub[sensorname]
                     val = _interp_gli_to_pld(sensor_sub, sensor, val2, indctd)
+                val = val[indctd]
+
                 ncvar['method'] = 'linear fill'
             else:
                 val = gli[sensorname]
