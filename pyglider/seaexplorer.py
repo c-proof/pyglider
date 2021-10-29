@@ -3,6 +3,7 @@ import datetime
 import glob
 import itertools
 import logging
+import sys
 from math import floor, fmod
 import numpy as np
 import os
@@ -21,7 +22,6 @@ def _outputname(f, outdir):
     fnout = os.path.basename(f)
     fns = fnout.split('.')
     fns = fns[:5]
-    print(fns)
     fns[4] = '%04d' % int(fns[4])
     fns[1] = '%04d' % int(fns[1])
     fnout = ''
@@ -76,10 +76,15 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
     This process can be slow for many files.
 
     """
+    # Create out directory for netcdfs if it does not exist
+    try:
+        os.mkdir(outdir)
+    except FileExistsError:
+        pass
 
-    print(outdir)
     for ftype in ['gli', 'pld1']:
         for rawsub in ['raw', 'sub']:
+            _log.info(f'Reading in raw files matching *{ftype}.{rawsub}*')
             d = indir + f'*.{ftype}.{rawsub}.*'
             files = glob.glob(d)
             fnum = np.zeros(len(files))
@@ -89,15 +94,11 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                 fnum[n] = p[4]
             inds = np.argsort(fnum)
             files = [files[ind] for ind in inds]
-            print(files)
+            _log.info(f'found {files}')
 
-            if len(files) < 0:
-                raise FileNotFoundError('No raw files found in %s' % indir)
-
-            try:
-                os.mkdir(outdir)
-            except FileExistsError:
-                pass
+            if len(files) == 0:
+                # If no files of this type found, try the next type
+                continue
 
             badfiles = []
             for ind, f in enumerate(files):
@@ -109,6 +110,9 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                     out = pd.read_csv(f, header=0, delimiter=';',
                                             parse_dates=True, index_col=0,
                                             dayfirst=True)
+                    # If AD2CP data present, convert the timestamps to datetime type
+                    if 'AD2CP_TIME' in out.columns:
+                        out['AD2CP_TIME'] = pd.to_datetime(out.AD2CP_TIME)
                     with out.to_xarray() as outx:
 
                         key = list(outx.coords.keys())[0]
@@ -122,39 +126,16 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                         if ftype == 'gli':
                             outx.to_netcdf(fnout[:-3]+'.nc', 'w')
                         else:
-                            # Detect instruments in dataset
-                            var_names = list(outx.variables.keys())
-                            prefixes = []
-                            for name in var_names:
-                                if '_' in name:
-                                    prefixes.append(name.split('_', 1)[0])
-                            sensors = set(prefixes)
-                            # Make lists of variables associated with each sensor:
-                            sensor_variables = {}
-                            for sensor in sensors:
-                                sensor_variables[sensor] = [i for i in var_names if sensor in i]
-                            # Extract each instrument from the dataset
-                            for sensor in sensors:
-                                sensor_vars = sensor_variables[sensor]
-                                pld_var = outx[sensor_vars]
-                                # subset to only non-NaN values using first variable of the sensor
-                                # Hack: some sensors (e.g. Nortek AD2CP0 the first variable is a string. We need
-                                # a numerical datatype to check for NaNs, so check types of all variables:
-                                for var in sensor_vars:
-                                    data_type = type(pld_var[var].values[0])
-                                    if data_type is np.float64 or data_type is np.float32:
-                                        break
-                                pld_sub = pld_var.where(np.isfinite(pld_var[var]))
-                                if pld_sub.indexes["time"].size > min_samples_in_file:
-                                    pld_sub.to_netcdf(f'{fnout[:-3]}_{sensor.lower()}.nc', 'w',
-                                                   unlimited_dims=['time'])
-                                else:
-                                    _log.warning(f'Number of {sensor} data points too small. Skipping nc write')
+                            if outx.indexes["time"].size > min_samples_in_file:
+                                outx.to_netcdf(f'{fnout[:-3]}.nc', 'w',
+                                               unlimited_dims=['time'])
+                            else:
+                                _log.warning(f'Number of sensor data points too small. Skipping nc write')
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
                 for fn in badfiles:
                     _log.warning('%s', fn)
-            _log.info('All done!')
+    _log.info('All raw files converted to nc')
 
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     """
@@ -185,7 +166,6 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
     id = metadata['glider_name']
-    print('id', id)
     outgli = outdir + '/' + id + '-rawgli.nc'
     outpld = outdir + '/' + id + '-' + kind + 'pld.nc'
 
@@ -201,47 +181,18 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         gli.to_netcdf(outgli)
     _log.info(f'Done writing {outgli}')
 
-    if kind == 'boo':
-        _log.info('Opening *.pld.sub.*.nc multi-file dataset')
-        files = sorted(glob.glob(indir+'/*.pld1.'+kind+'.*.nc'))
-        with xr.open_dataset(files[0], decode_times=False) as pld:
-            for fil in files[1:]:
-                try:
-                    with xr.open_dataset(fil, decode_times=False) as pld2:
-                        pld = xr.concat([pld, pld2], dim='time')
-                except:
-                    pass
-            _log.info('Writing ' + outpld)
-            pld.to_netcdf(outpld)
-    else:
-        from dask.diagnostics import ProgressBar
-        # Find unique sensor raw netcdf files
-        sensor_files = glob.glob(f'{indir}*pld*.{kind}.*.nc')
-        sensors = []
-        for path in sensor_files:
-            path.split('_')[-1][:-3]
-            sensors.append(path.split('_')[-1][:-3])
-        sensors = set(sensors)
-
-        # Loop through sensors, combining the per-dive netcdfs into one mission-long netcdf
-        for sensor in sensors:
-            _log.info(f'Working on {sensor}')
-            print(f'{indir}*pld*.{kind}*{sensor}.nc')
+    _log.info('Opening *.pld.sub.*.nc multi-file dataset')
+    files = sorted(glob.glob(indir+'/*.pld1.'+kind+'.*.nc'))
+    with xr.open_dataset(files[0], decode_times=False) as pld:
+        for fil in files[1:]:
             try:
-                os.remove(outpld[:-5] + f'_{sensor}.nc')
+                with xr.open_dataset(fil, decode_times=False) as pld2:
+                    pld = xr.concat([pld, pld2], dim='time')
             except:
                 pass
-            with xr.open_mfdataset(f'{indir}*pld*.{kind}.*{sensor}.nc', decode_times=False, parallel=False, lock=False,
-                                   preprocess=_sort) as pld:
-                _log.info(f'Writing {sensor}')
-                if sensor == 'arod':
-                    # this is the only one that's altered in the original code
-                    pld = pld.coarsen(time=8, boundary='trim').mean()
-                delayed_obj = pld.to_netcdf(outpld[:-5] + f'_{sensor}.nc', 'w', unlimited_dims=['time'], compute=False)
-                with ProgressBar():
-                    results = delayed_obj.compute()
+        pld.to_netcdf(outpld)
+    _log.info(f'Done writing {outpld}')
     _log.info('Done merge_rawnc')
-
     return
 
 
@@ -263,6 +214,7 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
         val = val[indctd]
     return val
 
+
 def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
                         profile_filt_time=100, profile_min_time=300):
     """
@@ -274,19 +226,13 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
     id = metadata['glider_name']
-    gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
+    _log.info(f'Opening combined nav file {indir}/{id}-rawgli.nc')
+    gli = xr.open_dataset(f'{indir}/{id}-rawgli.nc', decode_times=False)
+    _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.nc')
+    sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc', decode_times=False)
 
-    # Loop through the sensor netcdfs
-    sensor_ncs = glob.glob(f'{indir}*{kind}p_*.nc')
-    sensors = {}
-    for sensor_path in sensor_ncs:
-        sensor_name = sensor_path.split('_')[-1][:-3]
-        sensors[sensor_name] = xr.open_dataset(sensor_path, decode_times=False)
-
-    # build a new data set based on info in `deployment.`
-    # We will use ebd.m_present_time as the interpolant if the
-    # variabel is in dbd.
-
+    # build a new data set based on info in `deploymentyaml.`
+    # We will use ctd as the interpolant
     ds = xr.Dataset()
     attr = {}
     name = 'time'
@@ -296,20 +242,16 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
 
     # the ctd will be our timebase.  It oversamples the nav data, but
     # mildly undersamples the optics and oxygen....
-    if 'gpctd' in sensors.keys():
-        ctd = sensors['gpctd']
-        indctd = np.where(~np.isnan(ctd.GPCTD_TEMPERATURE))[0]
-    elif 'legato' in sensors.keys():
-        ctd = sensors['legato']
-        indctd = np.where(~np.isnan(ctd.LEGATO_TEMPERATURE))[0]
-
-    print('TIME', ctd['time'])
-    ds[name] = (('time'), ctd[name].values[indctd], attr)
-    print(ds['time'])
+    if 'GPCTD_TEMPERATURE' in list(sensor.variables):
+        indctd = np.where(~np.isnan(sensor.GPCTD_TEMPERATURE))[0]
+    elif 'LEGATO_TEMPERATURE' in list(sensor.variables):
+        indctd = np.where(~np.isnan(sensor.LEGATO_TEMPERATURE))[0]
+    else:
+        _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time base')
+        indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
+    ds['time'] = (('time'), sensor['time'].values[indctd], attr)
     thenames = list(ncvar.keys())
-    print(thenames)
     thenames.remove('time')
-
     for name in thenames:
         _log.info('interpolating ' + name)
         if not('method' in ncvar[name].keys()):
@@ -319,21 +261,22 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
             else:
                 convert = utils._passthrough
             sensorname = ncvar[name]['source']
-            sensor_found = False
-            for sensor in sensors.values():
-                if sensorname in sensor.keys():
-                    _log.debug('sensorname %s', sensorname)
-                    val = convert(sensor[sensorname])
-                    val = _interp_pld_to_pld(sensor, ds, val, indctd)
-                    ncvar['method'] = 'linear fill'
-                    sensor_found = True
-            if not sensor_found:
-                #foo = bar
+            if sensorname in list(sensor.variables):
+                _log.debug('sensorname %s', sensorname)
+                val = convert(sensor[sensorname])
+                if 'AROD' in sensorname:
+                    # smooth oxygen data as originally perscribed
+                    sensor_sub = sensor.coarsen(time=8, boundary='trim').mean()
+                    val2 = sensor_sub[sensorname]
+                    val = _interp_gli_to_pld(sensor_sub, sensor, val2, indctd)
+                val = val[indctd]
+
+                ncvar['method'] = 'linear fill'
+            else:
                 val = gli[sensorname]
-                #val = utils._zero_screen(val)
-        #        val[val==0] = np.NaN
                 val = convert(val)
                 print('Gli', gli)
+                # Values from the glider netcdf must be interpolated to match the sensor netcdf
                 val = _interp_gli_to_pld(gli, ds, val, indctd)
 
             # make the attributes:
@@ -356,7 +299,6 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     #    ds = utils.get_profiles(ds)
     ds = utils.get_profiles_new(ds,
             filt_time=profile_filt_time, profile_min_time=profile_min_time)
-
     ds = utils.get_derived_eos_raw(ds)
 
     ds = ds.assign_coords(longitude=ds.longitude)
@@ -382,7 +324,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     except:
         pass
     id0 = ds.attrs['deployment_name']
-    outname = outdir + id0 +  '.nc'
+    outname = outdir + id0 + '.nc'
     _log.info('writing %s', outname)
     ds.to_netcdf(outname, 'w')
 
