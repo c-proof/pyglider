@@ -75,6 +75,8 @@ glider_devices:
 # map between glider variables and netcdf variables.  This shouldn't
 # change too much.
 netcdf_variables:
+  timebase:
+    source: LEGATO_TEMPERATURE
   # Time and Place:
   time:
     source:        time
