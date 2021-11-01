@@ -101,6 +101,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                 continue
 
             badfiles = []
+            goodfiles = []
             for ind, f in enumerate(files):
                 # output name:
                 fnout, filenum = _outputname(f, outdir)
@@ -125,17 +126,24 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                             int(filenum) * np.ones(len(outx['time'])))
                         if ftype == 'gli':
                             outx.to_netcdf(fnout[:-3]+'.nc', 'w')
+                            goodfiles.append(f)
                         else:
                             if outx.indexes["time"].size > min_samples_in_file:
                                 outx.to_netcdf(f'{fnout[:-3]}.nc', 'w',
                                                unlimited_dims=['time'])
+                                goodfiles.append(f)
                             else:
                                 _log.warning(f'Number of sensor data points too small. Skipping nc write')
+                                badfiles.append(f)
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
                 for fn in badfiles:
                     _log.warning('%s', fn)
+            if not goodfiles:
+                _log.warning(f'No valid unprocessed seaexplorer files found in {indir}')
+                return False
     _log.info('All raw files converted to nc')
+    return True
 
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     """
@@ -171,6 +179,9 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
 
     _log.info('Opening *.gli.sub.*.nc multi-file dataset from %s', indir)
     files = sorted(glob.glob(indir+'/*.gli.sub.*.nc'))
+    if not files:
+        _log.warning(f'No *gli*.nc files found in {indir}')
+        return False
     with xr.open_dataset(files[0], decode_times=False) as gli:
         for fil in files[1:]:
             try:
@@ -183,6 +194,9 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
 
     _log.info('Opening *.pld.sub.*.nc multi-file dataset')
     files = sorted(glob.glob(indir+'/*.pld1.'+kind+'.*.nc'))
+    if not files:
+        _log.warning(f'No *{kind}*.nc files found in {indir}')
+        return False
     with xr.open_dataset(files[0], decode_times=False) as pld:
         for fil in files[1:]:
             try:
@@ -193,7 +207,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         pld.to_netcdf(outpld)
     _log.info(f'Done writing {outpld}')
     _log.info('Done merge_rawnc')
-    return
+    return True
 
 
 def _interp_gli_to_pld(gli, ds, val, indctd):
