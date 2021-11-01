@@ -16,14 +16,6 @@ def test__outputname():
     assert filenum == 36
    
    
-def test__needsupdating():
-    ftype = 'pld1'
-    fin = 'tests/data/realtime_raw/sea035.12.pld1.sub.36'
-    fout = 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.nc'
-    result_badpath = seaexplorer._needsupdating(ftype, fin, 'baz')
-    result_goodpath = seaexplorer._needsupdating(ftype, fin, fout)
-    assert result_badpath is True
-    assert result_goodpath is False
 
 
 def test_raw_to_rawnc():
@@ -50,6 +42,16 @@ def test_raw_to_rawnc():
     assert result_reprocess is True
     assert result_no_new_files is False
     assert result_strict is False
+
+
+def test__needsupdating():
+    ftype = 'pld1'
+    fin = 'tests/data/realtime_raw/sea035.12.pld1.sub.36'
+    fout = 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.nc'
+    result_badpath = seaexplorer._needsupdating(ftype, fin, 'baz')
+    result_goodpath = seaexplorer._needsupdating(ftype, fin, fout)
+    assert result_badpath is True
+    assert result_goodpath is False
 
 
 def test_merge_rawnc():

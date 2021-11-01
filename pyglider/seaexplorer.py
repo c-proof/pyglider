@@ -32,8 +32,6 @@ def _outputname(f, outdir):
 
 
 def _needsupdating(ftype, fin, fout):
-    if ftype == 'pld1':
-        fout = fout[:-3]+'_arod.nc'
     if not os.path.isfile(fout):
         return True
     return (os.path.getmtime(fin) >= os.path.getmtime(fout))
