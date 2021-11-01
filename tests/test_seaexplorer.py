@@ -1,8 +1,8 @@
 import xarray as xr
+import pytest
 from pathlib import Path
 import sys
 import os
-print(os.getcwd())
 os.system('rm tests/data/realtime_rawnc/*')
 library_dir = Path(__file__).parent.parent.absolute()
 sys.path.append(str(library_dir))
@@ -76,11 +76,18 @@ def test__interp_gli_to_pld():
     assert len(pitch_interp) == len(ds.time)
 
 
-def test__interp_pld_to_pld():
-    pass
-
-
 def test_raw_to_L0timeseries():
-    pass
+    # Test default, will fail as we have sub data, not raw data
+    with pytest.raises(FileNotFoundError) as missing_file_exc:
+        result_default = seaexplorer.raw_to_L0timeseries('tests/data/realtime_rawnc/',
+                                                        'tests/data/l0-profiles/',
+                                                        'example-seaexplorer/deploymentRealtime.yml',
+                                                        )
+    result_sub = seaexplorer.raw_to_L0timeseries('tests/data/realtime_rawnc/',
+                                                    'tests/data/l0-profiles/',
+                                                    'example-seaexplorer/deploymentRealtime.yml',
+                                                    kind='sub')
+    assert 'No such file or directory' in str(missing_file_exc)
+    assert result_sub == 'tests/data/l0-profiles/dfo-eva035-20190718.nc'
     
     

@@ -287,7 +287,6 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
             else:
                 val = gli[sensorname]
                 val = convert(val)
-                print('Gli', gli)
                 # Values from the glider netcdf must be interpolated to match the sensor netcdf
                 val = _interp_gli_to_pld(gli, ds, val, indctd)
 
