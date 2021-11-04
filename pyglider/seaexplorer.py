@@ -266,7 +266,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
         indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
     ds['time'] = (('time'), sensor['time'].values[indctd], attr)
     thenames = list(ncvar.keys())
-    for i in ['time', 'timebase']:
+    for i in ['time', 'timebase', 'keep_variables']:
         if i in thenames:
             thenames.remove(i)
     for name in thenames:
@@ -310,6 +310,15 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds['latitude'].values = np.interp(ds.time,
         ds.time[good], ds.latitude[good])
 
+    # keep only timestamps with data from one of a set of variables
+    if 'keep_variables' in ncvar:
+        keeps = np.empty(len(ds.longitude))
+        keeps[:] = np.nan
+        keeper_vars = ncvar['keep_variables']
+        for keep_var in keeper_vars:
+            keeps[~np.isnan(ds[keep_var].values)] = 1
+        ds = ds.where(~np.isnan(keeps))
+        ds = ds.dropna(dim='time', how='all')
     # some derived variables:
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
