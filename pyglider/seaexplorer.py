@@ -156,7 +156,6 @@ def _raw_to_rawnc_worker(files, outdir, incremental=True, min_samples_in_file=5)
             ftype = 'gli'
         # output name:
         fnout, filenum = _outputname(f, outdir)
-        _log.info(f'{f} to {fnout}')
         if not incremental or _needsupdating(ftype, f, fnout):
             _log.info(f'Doing: {f} to {fnout}')
             out = pd.read_csv(f, header=0, delimiter=';',

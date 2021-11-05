@@ -14,8 +14,13 @@ def test__outputname():
                             'tests/data/realtime_rawnc/')
     assert fnout == 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.nc'
     assert filenum == 36
-   
-   
+
+
+def test__get_raw_filenames():
+    filenames = seaexplorer._get_raw_filenames('tests/data/realtime_raw/')
+    filenames.sort()
+    assert filenames == ['tests/data/realtime_raw/sea035.12.gli.sub.36',
+                         'tests/data/realtime_raw/sea035.12.pld1.sub.36']
 
 
 def test_raw_to_rawnc():
@@ -44,6 +49,18 @@ def test_raw_to_rawnc():
     assert result_strict is False
 
 
+def test__raw_to_rawnc_worker():
+    filenames = seaexplorer._get_raw_filenames('tests/data/realtime_raw/')
+    seaexplorer._raw_to_rawnc_worker(filenames, 'tests/data/realtime_rawnc/', incremental=False)
+    assert os.path.isfile('tests/data/realtime_raw/sea035.12.pld1.sub.36')
+
+
+def test_merge_rawnc_multiproc():
+    result = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
+                             'tests/data/realtime_rawnc/',
+                             None, cores=2, incremental=False)
+    assert result is True
+
 def test__needsupdating():
     ftype = 'pld1'
     fin = 'tests/data/realtime_raw/sea035.12.pld1.sub.36'
@@ -65,6 +82,8 @@ def test_merge_rawnc():
                                              kind='sub')
     assert result_default is False
     assert result_sub is True
+
+
 
 
 def test__interp_gli_to_pld():
