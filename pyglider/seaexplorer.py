@@ -13,7 +13,10 @@ import xarray as xr
 import yaml
 import pyglider.utils as utils
 import pandas as pd
-
+import random
+import math
+import multiprocessing as mp
+import time
 
 _log = logging.getLogger(__name__)
 
@@ -39,15 +42,37 @@ def _needsupdating(ftype, fin, fout):
 def _sort(ds):
     return ds.sortby('time')
 
-def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in_file=5):
+def _get_raw_filenames(indir):
+    """
+    Finds all seaexplorer files in a directory and returns randomized list of paths to these files
+    Parameters
+    ----------
+    indir
+
+    Returns
+    -------
+    list of all seaexplorer files in directory
+    """
+    filenames = []
+    for ftype in ['gli', 'pld1']:
+        for rawsub in ['raw', 'sub']:
+            _log.info(f'Reading in raw files matching *{ftype}.{rawsub}*')
+            d = indir + f'*.{ftype}.{rawsub}.*'
+            filenames.append(glob.glob(d))
+    filenames_flat = [item for sublist in filenames for item in sublist]
+    # randomize this list so that each core in multiprocessing will get a mix of gli and pld files.
+    random.shuffle(filenames_flat)
+    return filenames_flat
+
+
+def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in_file=5, cores=None):
     """
     Convert seaexplorer text files to raw netcdf files.
 
     Parameters
     ----------
-    indir : str
-        Directory with the raw files are kept.  Recommend naming this
-        direectory "raw"
+    files : list
+        list of raw files for proccesing
 
     outdir : str
         Directory to write the matching ``*.nc`` files. Recommend ``rawnc``.
@@ -63,6 +88,9 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
         Minimum number of samples in a raw file to trigger writing a netcdf file.
         Defaults to 5
 
+    cores: int, optional
+        Number of cores to use for multiprocessing. If left as None, will use 80 % of cores on machine.
+
     Returns
     -------
     status : bool
@@ -71,77 +99,97 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
     Notes
     -----
 
-    This process can be slow for many files.
+    This process can be slow for many files. Try using as many cores as you can spare.
 
     """
+    start = time.time()
     # Create out directory for netcdfs if it does not exist
     try:
         os.mkdir(outdir)
     except FileExistsError:
         pass
+    input_files = _get_raw_filenames(indir)
+    # Set up for multiprocessing. If number of cores not specified, use 80% of them, rounded down
+    if not cores:
+        total_cores = mp.cpu_count()
+        cores = int(math.floor(0.8 * total_cores))
+    chunk_size = int(math.ceil(len(input_files)/cores))
+    chunked_list = [input_files[i:i + chunk_size] for i in range(0, len(input_files), chunk_size)]
+    processes = []
 
-    for ftype in ['gli', 'pld1']:
-        for rawsub in ['raw', 'sub']:
-            _log.info(f'Reading in raw files matching *{ftype}.{rawsub}*')
-            d = indir + f'*.{ftype}.{rawsub}.*'
-            files = glob.glob(d)
-            fnum = np.zeros(len(files))
-            # these files don't sort properly, but we can sort them here.
-            for n, f in enumerate(files):
-                p = os.path.basename(f).split('.')
-                fnum[n] = p[4]
-            inds = np.argsort(fnum)
-            files = [files[ind] for ind in inds]
-            _log.info(f'found {files}')
+    for i, chunk in enumerate(chunked_list):
+        p = mp.Process(target=_raw_to_rawnc_worker, args=(chunk, outdir),
+                       kwargs={'incremental':incremental, 'min_samples_in_file':min_samples_in_file})
+        processes.append(p)
+        p.start()
 
-            if len(files) == 0:
-                # If no files of this type found, try the next type
-                continue
+    for p in processes:
+        p.join()
 
-            badfiles = []
-            goodfiles = []
-            for ind, f in enumerate(files):
-                # output name:
-                fnout, filenum = _outputname(f, outdir)
-                _log.info(f'{f} to {fnout}')
-                if not incremental or _needsupdating(ftype, f, fnout):
-                    _log.info(f'Doing: {f} to {fnout}')
-                    out = pd.read_csv(f, header=0, delimiter=';',
-                                            parse_dates=True, index_col=0,
-                                            dayfirst=True)
-                    # If AD2CP data present, convert the timestamps to datetime type
-                    if 'AD2CP_TIME' in out.columns:
-                        out['AD2CP_TIME'] = pd.to_datetime(out.AD2CP_TIME)
-                    with out.to_xarray() as outx:
+    outfiles = glob.glob(f'{outdir}*pld1*')
+    if outfiles:
+        outfile_times = []
+        for fout in outfiles:
+            outfile_times.append(os.path.getmtime(fout))
+        for fout_time in outfile_times:
+            if fout_time > start:
+                _log.info('All raw files converted to nc')
+                return True
+    _log.warning('No valid, unprocessed raw files found')
+    return False
 
-                        key = list(outx.coords.keys())[0]
-                        outx = outx.rename({key:'time'})
-                        # dumb time down to seconds since 1970-01-01
-                        outx['time'] = outx['time'].astype(np.float64)/1e9
-                        outx['time'].attrs['units'] = (
-                            'seconds since 1970-01-01T00:00:00Z')
-                        outx['fnum'] = ('time',
-                            int(filenum) * np.ones(len(outx['time'])))
-                        if ftype == 'gli':
-                            outx.to_netcdf(fnout[:-3]+'.nc', 'w')
-                            goodfiles.append(f)
-                        else:
-                            if outx.indexes["time"].size > min_samples_in_file:
-                                outx.to_netcdf(f'{fnout[:-3]}.nc', 'w',
-                                               unlimited_dims=['time'])
-                                goodfiles.append(f)
-                            else:
-                                _log.warning(f'Number of sensor data points too small. Skipping nc write')
-                                badfiles.append(f)
-            if len(badfiles) > 0:
-                _log.warning('Some files could not be parsed:')
-                for fn in badfiles:
-                    _log.warning('%s', fn)
-            if not goodfiles:
-                _log.warning(f'No valid unprocessed seaexplorer files found in {indir}')
-                return False
-    _log.info('All raw files converted to nc')
+
+def _raw_to_rawnc_worker(files, outdir, incremental=True, min_samples_in_file=5):
+    fnum = np.zeros(len(files))
+    # these files don't sort properly, but we can sort them here.
+    for n, f in enumerate(files):
+        p = os.path.basename(f).split('.')
+        fnum[n] = p[4]
+    inds = np.argsort(fnum)
+    files = [files[ind] for ind in inds]
+    _log.info(f'found {files}')
+    badfiles = []
+    for ind, f in enumerate(files):
+        if 'pld1' in f:
+            ftype = 'pld1'
+        else:
+            ftype = 'gli'
+        # output name:
+        fnout, filenum = _outputname(f, outdir)
+        _log.info(f'{f} to {fnout}')
+        if not incremental or _needsupdating(ftype, f, fnout):
+            _log.info(f'Doing: {f} to {fnout}')
+            out = pd.read_csv(f, header=0, delimiter=';',
+                                    parse_dates=True, index_col=0,
+                                    dayfirst=True)
+            # If AD2CP data present, convert the timestamps to datetime type
+            if 'AD2CP_TIME' in out.columns:
+                out['AD2CP_TIME'] = pd.to_datetime(out.AD2CP_TIME)
+            with out.to_xarray() as outx:
+
+                key = list(outx.coords.keys())[0]
+                outx = outx.rename({key:'time'})
+                # dumb time down to seconds since 1970-01-01
+                outx['time'] = outx['time'].astype(np.float64)/1e9
+                outx['time'].attrs['units'] = (
+                    'seconds since 1970-01-01T00:00:00Z')
+                outx['fnum'] = ('time',
+                    int(filenum) * np.ones(len(outx['time'])))
+                if ftype == 'gli':
+                    outx.to_netcdf(fnout[:-3]+'.nc', 'w')
+                else:
+                    if outx.indexes["time"].size > min_samples_in_file:
+                        outx.to_netcdf(f'{fnout[:-3]}.nc', 'w',
+                                       unlimited_dims=['time'])
+                    else:
+                        _log.warning(f'Number of sensor data points too small. Skipping nc write')
+                        badfiles.append(f)
+    if len(badfiles) > 0:
+        _log.warning('Some files could not be parsed:')
+        for fn in badfiles:
+            _log.warning('%s', fn)
     return True
+
 
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     """
