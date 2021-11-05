@@ -190,7 +190,51 @@ def _raw_to_rawnc_worker(files, outdir, incremental=True, min_samples_in_file=5)
     return True
 
 
-def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
+def _merge_rawnc_mulitiproc(input_files, outname, cores=None):
+    # Use multiprocessing to combine the many netcdfs into a few datasets
+    # Set up for multiprocessing. If number of cores not specified, use 80% of them, rounded down
+    if not cores:
+        total_cores = mp.cpu_count()
+        cores = int(math.floor(0.8 * total_cores))
+    chunk_size = int(math.ceil(len(input_files) / cores))
+    chunked_list = [input_files[i:i + chunk_size] for i in range(0, len(input_files), chunk_size)]
+
+    q = mp.Queue()
+    processes = []
+    ds_list = []
+    for chunk in chunked_list:
+        p = mp.Process(target=_merge_raw_nc_worker, args=(q, chunk))
+        processes.append(p)
+        p.start()
+    for p in processes:
+        ret = q.get()
+        ds_list.append(ret)
+    for p in processes:
+        p.join()
+
+    # Combine these datasets into one
+    pld = ds_list[0]
+    for ds in ds_list[1:]:
+        pld = xr.concat([pld, ds], dim='time')
+    # Sort dataset by time, as multiprocessing has most likely jumbled the order
+    pld = pld.sortby('time')
+    pld.to_netcdf(outname)
+
+
+def _merge_raw_nc_worker(queue, files):
+    _log.info('Worker opening *.pld.sub.*.nc multi-file dataset')
+    with xr.open_dataset(files[0], decode_times=False) as pld:
+        for fil in files[1:]:
+            try:
+                with xr.open_dataset(fil, decode_times=False) as pld2:
+                    pld = xr.concat([pld, pld2], dim='time')
+            except:
+                pass
+    _log.info('Worker processed files')
+    queue.put(pld)
+
+
+def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw', cores=None):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
     the raw flight and science files from the slocum.
@@ -214,7 +258,6 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     incremental : bool
         Only add new files....
     """
-
     with open(deploymentyaml) as fin:
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
@@ -223,33 +266,21 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     outpld = outdir + '/' + id + '-' + kind + 'pld.nc'
 
     _log.info('Opening *.gli.sub.*.nc multi-file dataset from %s', indir)
-    files = sorted(glob.glob(indir+'/*.gli.sub.*.nc'))
+    files = sorted(glob.glob(indir + '/*.gli.sub.*.nc'))
     if not files:
         _log.warning(f'No *gli*.nc files found in {indir}')
         return False
-    with xr.open_dataset(files[0], decode_times=False) as gli:
-        for fil in files[1:]:
-            try:
-                with xr.open_dataset(fil, decode_times=False) as gli2:
-                    gli = xr.concat([gli, gli2], dim='time')
-            except:
-                pass
-        gli.to_netcdf(outgli)
+    _merge_rawnc_mulitiproc(files, outgli, cores=cores)
+
     _log.info(f'Done writing {outgli}')
 
     _log.info('Opening *.pld.sub.*.nc multi-file dataset')
-    files = sorted(glob.glob(indir+'/*.pld1.'+kind+'.*.nc'))
+    files = sorted(glob.glob(indir + '/*.pld1.' + kind + '.*.nc'))
     if not files:
         _log.warning(f'No *{kind}*.nc files found in {indir}')
         return False
-    with xr.open_dataset(files[0], decode_times=False) as pld:
-        for fil in files[1:]:
-            try:
-                with xr.open_dataset(fil, decode_times=False) as pld2:
-                    pld = xr.concat([pld, pld2], dim='time')
-            except:
-                pass
-        pld.to_netcdf(outpld)
+    _merge_rawnc_mulitiproc(files, outpld, cores=cores)
+
     _log.info(f'Done writing {outpld}')
     _log.info('Done merge_rawnc')
     return True
