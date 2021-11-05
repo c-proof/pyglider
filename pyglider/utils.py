@@ -199,10 +199,8 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 def get_derived_eos_raw(ds):
     # GPCTD and slocum ctd require a scale factor of 10 for conductivity. Legato does not
     if 'GPCTD' in ds.conductivity.source or 'sci_water_cond' in ds.conductivity.source:
-        r = 10 * ds.conductivity / seawater.constants.c3515
         ds['conductivity'] = ds['conductivity'] * 10
-    else:
-        r = ds.conductivity / seawater.constants.c3515
+    r = ds.conductivity / seawater.constants.c3515
     ds['salinity'] = (('time'),
                       seawater.eos80.salt(r, ds.temperature, ds.pressure))
     attrs = collections.OrderedDict([('long_name', 'water salinity'),
