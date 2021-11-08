@@ -18,3 +18,4 @@ dependencies:
   - simplekml
   - webcolors
   - bitstring
+  - pytest
