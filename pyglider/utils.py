@@ -203,7 +203,8 @@ def get_derived_eos_raw(ds):
     elif 'mS cm' in ds.conductivity.units:
         r = ds.conductivity / seawater.constants.c3515
     else:
-        _log.error("Could not parse conductivity units in yaml. Expected 'S m-1' or 'mS cm-1'")
+        raise ValueError("Could not parse conductivity units in yaml. Expected 'S m-1' or 'mS cm-1'.\n"
+                         "Check yaml entry netcdf_variables: conductivity: units")
     ds['salinity'] = (('time'),
                       seawater.eos80.salt(r, ds.temperature, ds.pressure))
     attrs = collections.OrderedDict([('long_name', 'water salinity'),
