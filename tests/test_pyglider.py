@@ -19,7 +19,14 @@ outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kin
 output = xr.open_dataset(outname)
 # Open test data file
 test_data = xr.open_dataset(library_dir / 'tests/results/example-seaexplorer/L0-timeseries/dfo-eva035-20190718.nc')
-variables = list(test_data.variables)
+variables = list(output.variables)
+
+
+def test_variables_seaexplorer():
+    test_variables = list(test_data.variables)
+    variables.sort()
+    test_variables.sort()
+    assert variables == test_variables
 
 
 @pytest.mark.parametrize("var", variables)
@@ -59,6 +66,12 @@ output_slocum = xr.open_dataset(outname_slocum)
 test_data_slocum = xr.open_dataset(library_dir / 'tests/results/example-slocum/L0-timeseries/dfo-rosie713-20190615.nc')
 variables_slocum = list(output_slocum.variables)
 
+
+def test_variables_slocum():
+    test_variables = list(test_data_slocum.variables)
+    test_variables.sort()
+    variables_slocum.sort()
+    assert variables_slocum == test_variables
 
 @pytest.mark.parametrize("var", variables_slocum)
 def test_example_slocum(var):
