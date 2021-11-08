@@ -258,8 +258,10 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     if 'timebase' in ncvar:
         indctd = np.where(~np.isnan(sensor[ncvar['timebase']['source']]))[0]
     elif 'GPCTD_TEMPERATURE' in list(sensor.variables):
+        _log.warning('No timebase specified. Using GPCTD_TEMPERATURE as time base')
         indctd = np.where(~np.isnan(sensor.GPCTD_TEMPERATURE))[0]
     elif 'LEGATO_TEMPERATURE' in list(sensor.variables):
+        _log.warning('No timebase specified. Using LEGATO_TEMPERATURE as time base')
         indctd = np.where(~np.isnan(sensor.LEGATO_TEMPERATURE))[0]
     else:
         _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time base')
