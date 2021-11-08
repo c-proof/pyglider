@@ -144,7 +144,7 @@ netcdf_variables:
     source:       LEGATO_CONDUCTIVITY
     long_name:    water conductivity
     standard_name: sea_water_electrical_conductivity
-    units:        S m-1
+    units:        mS cm-1
     coordinates:  time depth latitude longitude
     instrument:    instrument_ctd
     valid_min:    "0."
