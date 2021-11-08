@@ -252,18 +252,25 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
         if atts != 'coordinates':
             attr[atts] = ncvar[name][atts]
 
-    # the ctd will be our timebase.  It oversamples the nav data, but
+    # If present, use the timebase specified in ncva: timebase in the deployment yaml
+    # Otherwise, the ctd will be our timebase.  It oversamples the nav data, but
     # mildly undersamples the optics and oxygen....
-    if 'GPCTD_TEMPERATURE' in list(sensor.variables):
+    if 'timebase' in ncvar:
+        indctd = np.where(~np.isnan(sensor[ncvar['timebase']['source']]))[0]
+    elif 'GPCTD_TEMPERATURE' in list(sensor.variables):
+        _log.warning('No timebase specified. Using GPCTD_TEMPERATURE as time base')
         indctd = np.where(~np.isnan(sensor.GPCTD_TEMPERATURE))[0]
     elif 'LEGATO_TEMPERATURE' in list(sensor.variables):
+        _log.warning('No timebase specified. Using LEGATO_TEMPERATURE as time base')
         indctd = np.where(~np.isnan(sensor.LEGATO_TEMPERATURE))[0]
     else:
         _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time base')
         indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
     ds['time'] = (('time'), sensor['time'].values[indctd], attr)
     thenames = list(ncvar.keys())
-    thenames.remove('time')
+    for i in ['time', 'timebase', 'keep_variables']:
+        if i in thenames:
+            thenames.remove(i)
     for name in thenames:
         _log.info('interpolating ' + name)
         if not('method' in ncvar[name].keys()):
@@ -276,9 +283,10 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
             if sensorname in list(sensor.variables):
                 _log.debug('sensorname %s', sensorname)
                 val = convert(sensor[sensorname])
-                if 'AROD' in sensorname:
+                if 'coarsen' in ncvar[name]:
                     # smooth oxygen data as originally perscribed
-                    sensor_sub = sensor.coarsen(time=8, boundary='trim').mean()
+                    coarsen_time = ncvar[name]['coarsen']
+                    sensor_sub = sensor.coarsen(time=coarsen_time, boundary='trim').mean()
                     val2 = sensor_sub[sensorname]
                     val = _interp_gli_to_pld(sensor_sub, sensor, val2, indctd)
                 val = val[indctd]
@@ -304,6 +312,15 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds['latitude'].values = np.interp(ds.time,
         ds.time[good], ds.latitude[good])
 
+    # keep only timestamps with data from one of a set of variables
+    if 'keep_variables' in ncvar:
+        keeps = np.empty(len(ds.longitude))
+        keeps[:] = np.nan
+        keeper_vars = ncvar['keep_variables']
+        for keep_var in keeper_vars:
+            keeps[~np.isnan(ds[keep_var].values)] = 1
+        ds = ds.where(~np.isnan(keeps))
+        ds = ds.dropna(dim='time', how='all')
     # some derived variables:
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
