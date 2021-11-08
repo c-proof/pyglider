@@ -237,6 +237,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
+    device_data = deployment['glider_devices']
     id = metadata['glider_name']
     _log.info(f'Opening combined nav file {indir}/{id}-rawgli.nc')
     gli = xr.open_dataset(f'{indir}/{id}-rawgli.nc', decode_times=False)
@@ -334,7 +335,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds = ds.assign_coords(depth=ds.depth)
     #ds = ds._get_distance_over_ground(ds)
 
-    ds = utils.fill_metadata(ds, deployment['metadata'])
+    ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
 
     # somehow this comes out unsorted:
     ds = ds.sortby(ds.time)

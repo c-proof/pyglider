@@ -798,6 +798,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
         deployment = yaml.safe_load(fin)
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
+    device_data = deployment['glider_devices']
     thenames = list(ncvar.keys())
     thenames.remove('time')
 
@@ -876,7 +877,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                     ds = ds.assign_coords(depth=ds.depth)
 
                     #ds = ds._get_distance_over_ground(ds)
-                    ds = utils.fill_metadata(ds, deployment['metadata'])
+                    ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
                     try:
                         os.mkdir(outdir)
                     except:
