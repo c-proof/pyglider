@@ -190,7 +190,7 @@ def _raw_to_rawnc_worker(files, outdir, incremental=True, min_samples_in_file=5)
     return True
 
 
-def _merge_rawnc_mulitiproc(input_files, outname, cores=None):
+def _merge_rawnc_mulitiproc(input_files, outname, cores=None, deploymentyaml=None):
     # Use multiprocessing to combine the many netcdfs into a few datasets
     # Set up for multiprocessing. If number of cores not specified, use 80% of them, rounded down
     if not cores:
@@ -202,8 +202,8 @@ def _merge_rawnc_mulitiproc(input_files, outname, cores=None):
     q = mp.Queue()
     processes = []
     ds_list = []
-    for chunk in chunked_list:
-        p = mp.Process(target=_merge_raw_nc_worker, args=(q, chunk))
+    for i, chunk in enumerate(chunked_list):
+        p = mp.Process(target=_merge_raw_nc_worker, args=(q, chunk, i+1, len(chunked_list), deploymentyaml))
         processes.append(p)
         p.start()
     for p in processes:
@@ -221,8 +221,50 @@ def _merge_rawnc_mulitiproc(input_files, outname, cores=None):
     pld.to_netcdf(outname)
 
 
-def _merge_raw_nc_worker(queue, files):
-    _log.info('Worker opening *.pld.sub.*.nc multi-file dataset')
+def _subset_on_merge(sensor, deploymentyaml):
+    """
+    Reduces dataset to timepoints matching variables supplied in datasetyaml
+    Parameters
+    ----------
+    sensor: dataset of data loaded from one or more SeaExplorer pld1 file
+    deploymentyaml: yaml specifying timebase and keep_variables to retain on timestep
+
+    Returns
+    -------
+    dataset subsampled to only points of interest
+
+    """
+    before_subset = len(sensor.time)
+    with open(deploymentyaml) as fin:
+        deployment = yaml.safe_load(fin)
+    ncvar = deployment['netcdf_variables']
+    if 'timebase' in ncvar:
+        indctd = np.where(~np.isnan(sensor[ncvar['timebase']['source']]))[0]
+    elif 'GPCTD_TEMPERATURE' in list(sensor.variables):
+        _log.warning('No timebase specified. Using GPCTD_TEMPERATURE as time base')
+        indctd = np.where(~np.isnan(sensor.GPCTD_TEMPERATURE))[0]
+    elif 'LEGATO_TEMPERATURE' in list(sensor.variables):
+        _log.warning('No timebase specified. Using LEGATO_TEMPERATURE as time base')
+        indctd = np.where(~np.isnan(sensor.LEGATO_TEMPERATURE))[0]
+    else:
+        _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time base')
+        indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
+    sensor = sensor[dict(time=indctd)]
+    if 'keep_variables' in ncvar:
+        keeps = np.empty(len(sensor.NAV_LONGITUDE))
+        keeps[:] = np.nan
+        keeper_vars = ncvar['keep_variables']
+        for keep_var in keeper_vars:
+            keep_source = ncvar[keep_var]['source']
+            keeps[~np.isnan(sensor[keep_source].values)] = 1
+        sensor = sensor.where(~np.isnan(keeps))
+        sensor = sensor.dropna(dim='time', how='all')
+    _log.info(f'Input data reduced to {int(100 * len(sensor.time)/before_subset)} %')
+    return sensor
+
+
+def _merge_raw_nc_worker(queue, files, i, cores, deploymentyaml):
+    _log.info(f'Worker {i}/{cores} opening *.pld.sub.*.nc multi-file dataset')
     with xr.open_dataset(files[0], decode_times=False) as pld:
         for fil in files[1:]:
             try:
@@ -230,7 +272,9 @@ def _merge_raw_nc_worker(queue, files):
                     pld = xr.concat([pld, pld2], dim='time')
             except:
                 pass
-    _log.info('Worker processed files')
+    if deploymentyaml:
+        pld = _subset_on_merge(pld, deploymentyaml)
+    _log.info(f'Worker {i}/{cores} processed files')
     queue.put(pld)
 
 
@@ -279,7 +323,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw', co
     if not files:
         _log.warning(f'No *{kind}*.nc files found in {indir}')
         return False
-    _merge_rawnc_mulitiproc(files, outpld, cores=cores)
+    _merge_rawnc_mulitiproc(files, outpld, deploymentyaml = deploymentyaml, cores=cores)
 
     _log.info(f'Done writing {outpld}')
     _log.info('Done merge_rawnc')
@@ -391,15 +435,6 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds['latitude'].values = np.interp(ds.time,
         ds.time[good], ds.latitude[good])
 
-    # keep only timestamps with data from one of a set of variables
-    if 'keep_variables' in ncvar:
-        keeps = np.empty(len(ds.longitude))
-        keeps[:] = np.nan
-        keeper_vars = ncvar['keep_variables']
-        for keep_var in keeper_vars:
-            keeps[~np.isnan(ds[keep_var].values)] = 1
-        ds = ds.where(~np.isnan(keeps))
-        ds = ds.dropna(dim='time', how='all')
     # some derived variables:
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
