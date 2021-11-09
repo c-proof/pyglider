@@ -77,6 +77,8 @@ glider_devices:
 # map between glider variables and netcdf variables.  This shouldn't
 # change too much.
 netcdf_variables:
+  timebase:
+    source:       GPCTD_TEMPERATURE
   # Time and Place:
   time:
     source:        time
@@ -214,6 +216,7 @@ netcdf_variables:
     standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
     units:        umol l-1
     coordinates:   time depth latitude longitude
+    coarsen:      8
 
   temperature_oxygen:
     source:  AROD_FT_TEMP
@@ -221,6 +224,7 @@ netcdf_variables:
     standard_name: temperature_of_sensor_for_oxygen_in_sea_water
     units:        Celsius
     coordinates:   time depth latitude longitude
+    coarsen:      8
 
 # derived water speed:
   # water_velocity_eastward:

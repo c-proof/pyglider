@@ -197,11 +197,14 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 
 
 def get_derived_eos_raw(ds):
-    # GPCTD requires a scale factor of 10 for conductivity. Legato does not
-    if 'LEGATO' in ds.conductivity.source:
+    # GPCTD and slocum ctd require a scale factor of 10 for conductivity. Legato does not
+    if 'S m' in ds.conductivity.units:
+        r = 10 * ds.conductivity / seawater.constants.c3515
+    elif 'mS cm' in ds.conductivity.units:
         r = ds.conductivity / seawater.constants.c3515
     else:
-        r = 10 * ds.conductivity / seawater.constants.c3515
+        raise ValueError("Could not parse conductivity units in yaml. Expected 'S m-1' or 'mS cm-1'. "
+                         "Check yaml entry netcdf_variables: conductivity: units")
     ds['salinity'] = (('time'),
                       seawater.eos80.salt(r, ds.temperature, ds.pressure))
     attrs = collections.OrderedDict([('long_name', 'water salinity'),
@@ -313,7 +316,7 @@ def get_file_id(ds):
     return id
 
 
-def fill_metadata(ds, metadata):
+def fill_metadata(ds, metadata, sensor_data):
 
     good = ~np.isnan(ds.latitude.values + ds.longitude.values)
     ds.attrs['geospatial_lat_max'] = np.max(ds.latitude.values[good])
@@ -342,6 +345,8 @@ def fill_metadata(ds, metadata):
 
     ds.attrs['processing_level'] = 'Level 0 (L0) processed data timeseries; no corrections or data screening'
 
+    for k, v in sensor_data.items():
+        ds.attrs[k] = str(v)
     ds.attrs = collections.OrderedDict(sorted(ds.attrs.items()))
 
     return ds
