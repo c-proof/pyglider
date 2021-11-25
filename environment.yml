@@ -1,21 +1,14 @@
 name: pyglider
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - python
   - matplotlib
   - numpy
-  - pip
   - xarray
   - dask
   - netcdf4
   - pyyaml
   - seawater
   - scipy
-  - jinja2
-  - geojson
-  - simplekml
-  - webcolors
-  - bitstring
   - pytest
