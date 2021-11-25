@@ -1,23 +1,36 @@
 import logging
 import os
+import sys
+import shutil
+from pathlib import Path
+library_dir = Path(__file__).parent.parent.absolute()
+script_dir = Path(__file__).parent.absolute()
+sys.path.append(str(library_dir))
+os.chdir(script_dir)
 import pyglider.seaexplorer as seaexplorer
 import pyglider.ncprocess as ncprocess
 import pyglider.plotting as pgplot
 
 logging.basicConfig(level='INFO')
 
-rawdir = './realtime_raw/'
-rawncdir = './realtime_rawnc/'
-deploymentyaml = './deploymentRealtime.yml'
-l0tsdir = './L0-timeseries/'
-profiledir = './L0-profiles/'
-griddir = './L0-gridfiles/'
-plottingyaml = './plottingconfig.yml'
+rawdir = 'realtime_raw/'
+rawncdir = 'realtime_rawnc/'
+deploymentyaml = 'deploymentRealtime.yml'
+l0tsdir = 'L0-timeseries/'
+profiledir = 'L0-profiles/'
+griddir = 'L0-gridfiles/'
+plottingyaml = 'plottingconfig.yml'
+
+
+def safe_delete(directories):
+    for directory in directories:
+        if Path.exists(Path.absolute(script_dir / directory)):
+            shutil.rmtree(directory)
+
 
 if __name__ == '__main__':
     # clean last processing...
-    os.system('rm ' + rawncdir + '* ' + l0tsdir + '* ' + profiledir + '* ' +
-              griddir + '* ')
+    safe_delete([rawncdir, l0tsdir, profiledir, griddir ])
 
     # turn seaexplorer zipped csvs into nc files.
     seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
