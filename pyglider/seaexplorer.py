@@ -322,6 +322,14 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
             keeps[~np.isnan(ds[keep_var].values)] = 1
         ds = ds.where(~np.isnan(keeps))
         ds = ds.dropna(dim='time', how='all')
+
+    # Correct oxygen if present:
+    if 'oxygen_concentration' in ncvar.keys():
+        if 'correct_oxygen' in ncvar['oxygen_concentration'].keys():
+            ds = utils.oxygen_concentration_correction(ds, ncvar)
+        else:
+            _log.warning("correct_oxygen not found in oxygen yaml. No correction applied")
+
     # some derived variables:
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
