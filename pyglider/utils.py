@@ -364,7 +364,6 @@ def nmea2deg(nmea):
 
 
 def oxygen_concentration_correction(data, ncvar):
-    print(np.nanmean(data.oxygen_concentration.values))
     oxy_yaml = ncvar['oxygen_concentration']
     if 'reference_salinity' not in oxy_yaml.keys():
         _log.warning('No reference_salinity found in oxygen deployment yaml. Assuming reference salinity of 0 psu')
@@ -376,7 +375,6 @@ def oxygen_concentration_correction(data, ncvar):
     o2_sol = gsw.O2sol(sa, ct, data['pressure'], data['longitude'], data['latitude'])
     o2_sat = data['oxygen_concentration'] / gsw.O2sol(sa*0 + ref_sal, data['temperature'], data['pressure']*0, data['longitude'], data['latitude'])
     data['oxygen_concentration'].values = o2_sat * o2_sol
-    print(np.nanmean(data.oxygen_concentration.values))
     return data
 
 def bar2dbar(val):
