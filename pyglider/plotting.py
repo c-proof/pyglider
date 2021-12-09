@@ -7,7 +7,7 @@ import os
 import yaml
 import matplotlib.dates as mdates
 import matplotlib.units as munits
-import seawater
+import gsw
 from datetime import datetime
 
 _log = logging.getLogger(__name__)
@@ -164,7 +164,9 @@ def timeseries_plots(fname, plottingyaml):
         s = np.linspace(ds.salinity.min(), ds.salinity.max(), 100)
         t = np.linspace(ds.temperature.min(), ds.temperature.max(), 100)
         S, T = np.meshgrid(s, t)
-        pd = seawater.eos80.pden(S, T, 0, 0) - 1000
+        sa = gsw.SA_from_SP(S, T*0, ds['longitude'].mean().values, ds['latitude'].mean().values)
+        ct = gsw.CT_from_t(sa, T, T*0)
+        pd = gsw.density.sigma0(sa, ct)
         levels = np.arange(2, 30, 0.5)
         c = ax.contour(s, t, pd, colors='0.5', levels=levels)
         ax.clabel(c, levels[::2], fontsize=8, fmt='%1.1f')

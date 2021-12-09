@@ -11,7 +11,7 @@ dependencies:
   - dask
   - netcdf4
   - pyyaml
-  - seawater
+  - gsw
   - scipy
   - jinja2
   - geojson
