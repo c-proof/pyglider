@@ -11,7 +11,7 @@ _log = logging.getLogger(__name__)
 
 def get_distance_over_ground(ds):
     good = ~np.isnan(ds.latitude + ds.longitude)
-    dist = gsw.distance(ds.latitude[good].values, ds.longitude[good].values)/1000
+    dist = gsw.distance(ds.longitude[good].values, ds.latitude[good].values)/1000
     dist = np.roll(np.append(dist, 0), 1)
     dist = np.cumsum(dist)
     attr = {'long_name': 'distance over ground flown since mission start',
