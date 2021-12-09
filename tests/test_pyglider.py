@@ -32,9 +32,7 @@ def test_variables_seaexplorer():
 @pytest.mark.parametrize("var", variables)
 def test_example_seaexplorer(var):
     # Test that each variable and its coordinates match
-    output_var = output[var].drop('depth')
-    test_var = test_data[var].drop('depth')
-    assert output_var.equals(test_var)
+    assert output[var].equals(test_data[var])
 
 
 def test_example_seaexplorer_metadata():
@@ -78,9 +76,7 @@ def test_variables_slocum():
 @pytest.mark.parametrize("var", variables_slocum)
 def test_example_slocum(var):
     # Test that variables and coordinates match
-    output_var = output_slocum[var].drop('depth')
-    test_var = test_data_slocum[var].drop('depth')
-    assert output_var.equals(test_var)
+    assert output_slocum[var].equals(test_data_slocum[var])
 
 
 def test_example_slocum_metadata():
