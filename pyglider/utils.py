@@ -1,8 +1,8 @@
 import collections
-import seawater
 import xarray as xr
 import numpy as np
 from scipy.signal import argrelextrema
+import gsw
 # import webcolors
 import logging
 
@@ -11,7 +11,7 @@ _log = logging.getLogger(__name__)
 
 def get_distance_over_ground(ds):
     good = ~np.isnan(ds.latitude + ds.longitude)
-    dist, cog = seawater.dist(ds.latitude[good], ds.longitude[good])
+    dist = gsw.distance(ds.latitude[good].values, ds.longitude[good].values)
     dist = np.roll(np.append(dist, 0), 1)
     dist = np.cumsum(dist)
     attr = {'long_name': 'distance over ground flown since mission start',
@@ -25,8 +25,8 @@ def get_glider_depth(ds):
 
     good = np.where(~np.isnan(ds.pressure))[0]
     ds['depth'] = ds.pressure * 0.
-    ds['depth'].values = seawater.eos80.dpth(ds.pressure.values,
-            ds.latitude.mean().values)
+    ds['depth'].values = -gsw.z_from_p(ds.pressure.values,
+            ds.latitude.values)
     # now we really want to know where it is, so interpolate:
     if len(good) > 0:
         ds['depth'].values = np.interp(np.arange(len(ds.depth)),
@@ -199,14 +199,14 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 def get_derived_eos_raw(ds):
     # GPCTD and slocum ctd require a scale factor of 10 for conductivity. Legato does not
     if 'S m' in ds.conductivity.units:
-        r = 10 * ds.conductivity / seawater.constants.c3515
+        r = 10 * ds.conductivity
     elif 'mS cm' in ds.conductivity.units:
-        r = ds.conductivity / seawater.constants.c3515
+        r = ds.conductivity
     else:
         raise ValueError("Could not parse conductivity units in yaml. Expected 'S m-1' or 'mS cm-1'. "
                          "Check yaml entry netcdf_variables: conductivity: units")
     ds['salinity'] = (('time'),
-                      seawater.eos80.salt(r, ds.temperature, ds.pressure))
+                      gsw.conversions.SP_from_C(r, ds.temperature, ds.pressure).values)
     attrs = collections.OrderedDict([('long_name', 'water salinity'),
              ('standard_name', 'sea_water_practical_salinity'),
              ('units', '1e-3'),
@@ -223,9 +223,9 @@ def get_derived_eos_raw(ds):
              ])
     attrs = fill_required_attrs(attrs)
     ds['salinity'].attrs = attrs
-
-    ds['potential_density'] = (('time'), seawater.eos80.pden(
-            ds.salinity, ds.temperature, ds.pressure, pr=0))
+    sa = gsw.SA_from_SP(ds['salinity'], ds['pressure'], ds['longitude'], ds['latitude'])
+    ct = gsw.CT_from_t(sa, ds['temperature'], ds['pressure'])
+    ds['potential_density'] = (('time'), gsw.density.sigma0(sa, ct).values)
     attrs = collections.OrderedDict([('long_name', 'water potential density'),
              ('standard_name', 'sea_water_potential_density'),
              ('units', 'kg m-3'),
@@ -241,8 +241,8 @@ def get_derived_eos_raw(ds):
     attrs = fill_required_attrs(attrs)
     ds['potential_density'].attrs = attrs
 
-    ds['density'] = (('time'), seawater.eos80.dens(
-            ds.salinity, ds.temperature, ds.pressure))
+    ds['density'] = (('time'), gsw.density.rho(
+            ds.salinity, ds.temperature, ds.pressure).values)
     attrs = collections.OrderedDict([('long_name', 'Density'),
              ('standard_name', 'sea_water_density'),
              ('units', 'kg m-3'),
@@ -259,9 +259,8 @@ def get_derived_eos_raw(ds):
              ])
     attrs = fill_required_attrs(attrs)
     ds['density'].attrs = attrs
-
-    ds['potential_temperature'] = (('time'), seawater.eos80.ptmp(
-            ds.salinity, ds.temperature, ds.pressure, pr=0))
+    ds['potential_temperature'] = (('time'), gsw.conversions.pt0_from_t(
+            ds.salinity, ds.temperature, ds.pressure).values)
     attrs = collections.OrderedDict([('long_name', 'water potential temperature'),
              ('standard_name', 'sea_water_potential_temperature'),
              ('units', 'Celsius'),
