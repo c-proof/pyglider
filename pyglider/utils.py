@@ -11,7 +11,7 @@ _log = logging.getLogger(__name__)
 
 def get_distance_over_ground(ds):
     good = ~np.isnan(ds.latitude + ds.longitude)
-    dist = gsw.distance(ds.latitude[good].values, ds.longitude[good].values)
+    dist = gsw.distance(ds.latitude[good].values, ds.longitude[good].values)/1000
     dist = np.roll(np.append(dist, 0), 1)
     dist = np.cumsum(dist)
     attr = {'long_name': 'distance over ground flown since mission start',
@@ -225,7 +225,7 @@ def get_derived_eos_raw(ds):
     ds['salinity'].attrs = attrs
     sa = gsw.SA_from_SP(ds['salinity'], ds['pressure'], ds['longitude'], ds['latitude'])
     ct = gsw.CT_from_t(sa, ds['temperature'], ds['pressure'])
-    ds['potential_density'] = (('time'), gsw.density.sigma0(sa, ct).values)
+    ds['potential_density'] = (('time'), 1000 + gsw.density.sigma0(sa, ct).values)
     attrs = collections.OrderedDict([('long_name', 'water potential density'),
              ('standard_name', 'sea_water_potential_density'),
              ('units', 'kg m-3'),
