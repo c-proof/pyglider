@@ -1,7 +1,6 @@
 import collections
 import datetime
 import logging
-import seawater
 import xarray as xr
 import numpy as np
 import pyglider.utils as utils
