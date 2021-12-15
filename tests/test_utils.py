@@ -31,4 +31,4 @@ def test_oxygen_concentration_correction_variables_unchanged(var):
 def test_oxygen_concentration_correction():
     oxygen_difference = np.nanmean(ds_out['oxygen_concentration'].values) \
                         - np.nanmean(ds_unchanged['oxygen_concentration'].values)
-    assert np.abs(oxygen_difference + 34.67028138042005) < 1e-2
+    assert np.abs(oxygen_difference + 32.373) < 1e-2

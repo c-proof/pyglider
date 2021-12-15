@@ -368,10 +368,8 @@ def oxygen_concentration_correction(data, ncvar):
         ref_sal = 0
     else:
         ref_sal = float(oxy_yaml['reference_salinity'])
-    sa = gsw.SA_from_SP(data['salinity'], data['pressure'], data['longitude'], data['latitude'])
-    ct = gsw.CT_from_t(sa, data['temperature'], data['pressure'])
-    o2_sol = gsw.O2sol(sa, ct, data['pressure'], data['longitude'], data['latitude'])
-    o2_sat = data['oxygen_concentration'] / gsw.O2sol(sa*0 + ref_sal, data['temperature'], data['pressure']*0, data['longitude'], data['latitude'])
+    o2_sol = gsw.O2sol_SP_pt(data['salinity'], data['potential_temperature'])
+    o2_sat = data['oxygen_concentration'] / gsw.O2sol_SP_pt(data['salinity']*0 + ref_sal, data['potential_temperature'])
     data['oxygen_concentration'].values = o2_sat * o2_sol
     data['oxygen_concentration'].attrs['comment'] = f'oxygen concentration corrected for salinity using gsw.02sol and ' \
                                                     f'salinity data from dataset salinity. Original oxygen ' \
