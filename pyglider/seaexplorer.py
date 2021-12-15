@@ -111,6 +111,8 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                                             dayfirst=True)
                     # If AD2CP data present, convert the timestamps to datetime type
                     if 'AD2CP_TIME' in out.columns:
+                        # Set datestamps with date 00000 to None to prevent datetime error
+                        out.loc[out.AD2CP_TIME.str[:6]=='000000','AD2CP_TIME'] = None
                         out['AD2CP_TIME'] = pd.to_datetime(out.AD2CP_TIME)
                     with out.to_xarray() as outx:
 
