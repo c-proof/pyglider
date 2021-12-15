@@ -222,6 +222,8 @@ netcdf_variables:
     source:       AROD_FT_DO
     long_name:    oxygen concentration
     standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
+    correct_oxygen: "True"
+    reference_salinity: "0"
     units:        umol l-1
     coordinates:   time depth latitude longitude
 

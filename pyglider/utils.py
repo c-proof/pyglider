@@ -360,6 +360,23 @@ def nmea2deg(nmea):
            np.sign(nmea) * np.remainder(np.abs(nmea), 100) / 60)
     return deg
 
+
+def oxygen_concentration_correction(data, ncvar):
+    oxy_yaml = ncvar['oxygen_concentration']
+    if 'reference_salinity' not in oxy_yaml.keys():
+        _log.warning('No reference_salinity found in oxygen deployment yaml. Assuming reference salinity of 0 psu')
+        ref_sal = 0
+    else:
+        ref_sal = float(oxy_yaml['reference_salinity'])
+    _log.info(f'Correcting oxygen using reference salinity {ref_sal} PSU')
+    o2_sol = gsw.O2sol_SP_pt(data['salinity'], data['potential_temperature'])
+    o2_sat = data['oxygen_concentration'] / gsw.O2sol_SP_pt(data['salinity']*0 + ref_sal, data['potential_temperature'])
+    data['oxygen_concentration'].values = o2_sat * o2_sol
+    data['oxygen_concentration'].attrs['oxygen_concentration_QC:RTQC_methodology'] =\
+        f'oxygen concentration corrected for salinity using gsw.O2sol_SP_pt with salinity and potential temperature ' \
+        f'from dataset. Original oxygen concentration assumed to have been calculated using salinity = {ref_sal} PSU'
+    return data
+
 def bar2dbar(val):
     return val * 10.0
 
