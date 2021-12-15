@@ -371,10 +371,9 @@ def oxygen_concentration_correction(data, ncvar):
     o2_sol = gsw.O2sol_SP_pt(data['salinity'], data['potential_temperature'])
     o2_sat = data['oxygen_concentration'] / gsw.O2sol_SP_pt(data['salinity']*0 + ref_sal, data['potential_temperature'])
     data['oxygen_concentration'].values = o2_sat * o2_sol
-    data['oxygen_concentration'].attrs['comment'] = f'oxygen concentration corrected for salinity using gsw.02sol and ' \
-                                                    f'salinity data from dataset salinity. Original oxygen ' \
-                                                    f'concentration assumed to have been calculated using salinity = ' \
-                                                    f'{ref_sal} PSU '
+    data['oxygen_concentration'].attrs['oxygen_concentration_QC:RTQC_methodology'] =\
+        f'oxygen concentration corrected for salinity using gsw.O2sol_SP_pt with and salinity  and potential temperature data from dataset. Original ' \
+        f'oxygen concentration assumed to have been calculated using salinity = {ref_sal} PSU '
     return data
 
 def bar2dbar(val):
