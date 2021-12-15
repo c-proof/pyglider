@@ -111,7 +111,7 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
     kml = simplekml.Kml()
 
     np.random.seed(20190101)
-    _log.debug('subdirs', subdirs)
+    _log.debug(f'subdirs, {subdirs}')
     colornum = 0;
     for d in subdirs:
         _log.info(d)

@@ -32,7 +32,7 @@ def _autoclim(vals):
     d = m85 - m15
     m15 = m15 - d / 10
     m85 = m85 + d / 10
-    _log.info('m15, m85', m15, m85, np.max((min, m15)))
+    _log.info(f'm15, m85 {m15}, {m85}, {np.max((min, m15))}')
     return np.max((min, m15)), np.min((max, m85))
 
 def timeseries_plots(fname, plottingyaml):
@@ -43,7 +43,7 @@ def timeseries_plots(fname, plottingyaml):
             starttime = np.datetime64(config['starttime'])
         else:
             starttime = None
-        _log.info('starttime:', starttime)
+        _log.info(f'starttime: {starttime}')
 
     try:
         os.mkdir(config['figdir'])
@@ -78,7 +78,7 @@ def timeseries_plots(fname, plottingyaml):
                                     sharex=True, sharey=False)
             axs = axs.flat
             for n, k in enumerate(keys):
-                _log.debug('key', k)
+                _log.debug(f'key {k}')
                 if config['timeseries'][k] == 'True':
                     ax = axs[n]
                     good = np.where(~np.isnan(ds[k]))[0]
@@ -98,7 +98,7 @@ def timeseries_plots(fname, plottingyaml):
             _log.info('Plotting colorline data')
 
             for n, k in enumerate(keys):
-                _log.debug('key', k)
+                _log.debug(f'key, {k}')
                 ax = axs[n]
                 locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
                 formatter = mdates.ConciseDateFormatter(locator)
@@ -200,7 +200,7 @@ def add_suptitle(fig, ds):
 
 
 def grid_plots(fname, plottingyaml):
-    _log.info('Gird plots!')
+    _log.info('Grid plots!')
     with open(plottingyaml) as fin:
         config = yaml.safe_load(fin)
         if 'starttime' in config.keys():
@@ -215,7 +215,7 @@ def grid_plots(fname, plottingyaml):
 
     with xr.open_dataset(fname, decode_times=True) as ds0:
         ds = ds0.sel(time=slice(starttime, None))
-        _log.debug(ds)
+        _log.debug(str(ds))
 
         keys = config['pcolor']['vars'].keys()
         N = len(keys)
@@ -227,7 +227,7 @@ def grid_plots(fname, plottingyaml):
                                 sharex=True, sharey=True)
         axs = axs.flat
         for n, k in enumerate(keys):
-            _log.debug('key', k)
+            _log.debug(f'key {k}')
 
             pconf = config['pcolor']['vars'][k]
             _log.debug(pconf)

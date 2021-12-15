@@ -111,7 +111,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 
     good = np.where(np.isfinite(ds.pressure))[0]
     dt = float(np.median(np.diff(ds.time.values[good[:200000]])))
-    _log.info('dt', dt)
+    _log.info(f'dt, {dt}')
     filt_length = int(filt_time /  dt)
 
     min_nsamples = int(profile_min_time / dt)
@@ -119,7 +119,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 
     p = np.convolve(ds.pressure.values[good],
                     np.ones(filt_length) / filt_length, 'same')
-    _log.info('filt', filt_length)
+    _log.info('ffilt, {filt_length}')
     decim = int(filt_length / 3)
     if decim < 2:
         decim = 2
@@ -135,7 +135,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
     if mins[-1] < maxs[-1]:
         mins = np.concatenate((mins, good[[-1]]))
 
-    _log.info(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
+    _log.debug(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
 
     pronum = 0
     p = ds.pressure
@@ -150,8 +150,8 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
                 break
             _log.debug(nmax)
             ins = range(int(mins[nmin]), int(maxs[nmax]+1))
-            _log.debug(pronum, ins, len(p), mins[nmin], maxs[nmax])
-            _log.debug('Down', ins, p[ins[0]].values,p[ins[-1]].values)
+            _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
+            _log.debug(f'Down, {ins}, {p[ins[0]].values},{p[ins[-1]].values}')
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 profile[ins] = pronum
                 direction[ins] = +1
@@ -162,8 +162,8 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
             else:
                 break
             ins = range(maxs[nmax], mins[nmin])
-            _log.debug(pronum, ins, len(p), mins[nmin], maxs[nmax])
-            _log.debug('Up', ins, p[ins[0]].values, p[ins[-1]].values)
+            _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
+            _log.debug(f'Up, {ins}, {p[ins[0]].values}, {p[ins[-1]].values}')
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 # up
                 profile[ins] = pronum
@@ -309,7 +309,7 @@ def get_file_id(ds):
         dt = time_to_datetime64(ds.time.values[0])
     else:
         dt = ds.time.values[0].astype('datetime64[s]')
-    _log.debug('dt', dt)
+    _log.debug(f'dt, {dt}')
     id = (ds.attrs['glider_name'] + ds.attrs['glider_serial'] + '-' +
                       dt.item().strftime('%Y%m%dT%H%M'))
     return id

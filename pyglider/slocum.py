@@ -610,15 +610,15 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
 
     # trim data that has time==0
     ind = np.where(ds.time > 1e4)[0]
-    _log.debug(ds, ds.time, len(ind))
+    _log.debug(f'{ds}, {ds.time}, {len(ind)}')
     ds = ds.isel(_ind=ind)
     ds['_ind'] = np.arange(len(ds.time)) + deployment_ind
     if len(ds['_ind'].values) > 1:
         deployment_ind = ds['_ind'].values[-1]
 
-    _log.info('Writing!', deployment_ind)
+    _log.info(f'Writing! {deployment_ind}')
     ds.to_netcdf(outname, format='NETCDF4')
-    _log.info('Wrote: %s', outname)
+    _log.info(f'Wrote:, {outname}')
     return ds, deployment_ind
 
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
@@ -810,12 +810,12 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
         if 1:
             ebdn = indir + '/' + id + f'-{mnum:04d}-rawebd.nc'
             dbdn = indir + '/' + id + f'-{mnum:04d}-rawdbd.nc'
-            _log.debug(ebdn, dbdn)
+            _log.debug(f'{ebdn}, {dbdn}')
             if os.path.exists(ebdn) and os.path.exists(dbdn):
                 _log.info('Opening:', ebdn, dbdn)
                 ebd = xr.open_dataset(ebdn, decode_times=False)
                 dbd = xr.open_dataset(dbdn, decode_times=False)
-                _log.debug('DBD', dbd, dbd.m_depth)
+                _log.debug(f'DBD, {dbd}, {dbd.m_depth}')
                 if len(ebd.time) > 2:
                     # build a new data set based on info in `deployment.`
                     # We will use ebd.m_present_time as the interpolant if the
@@ -856,8 +856,8 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                             attrs = utils.fill_required_attrs(attrs)
                             ds[name] = (('time'), val.data, attrs)
 
-                    _log.debug('HERE', ds)
-                    _log.debug('HERE', ds.pressure[0:100])
+                    _log.debug(f'HERE, {ds}')
+                    _log.debug(f'HERE, {ds.pressure[0:100]}')
                     # some derived variables:
                     # trim bad times...
                     #ds = ds.sel(time=slice(1e8, None))
@@ -942,7 +942,7 @@ def _dbd2ebd(dbd, ds, val):
     vout = ds.time * 0.0
     goodt = np.where(np.isfinite(ds.time))[0]
     if (len(goodt) > 1) and (len(good) > 1):
-        _log.debug('GOOOD', goodt, good)
+        _log.debug(f'GOOD, {goodt}, {good}')
         vout[goodt] = np.interp(ds.time[goodt].values,
             dbd.m_present_time.values[good], val[good].values)
     return vout
