@@ -82,11 +82,11 @@ def index_deployments(dir, templatedir='./.templates/'):
                         continue
                 with xr.open_dataset(nc[0]) as ds:
                     att = ds.attrs
-                    print(type(ds.keys()))
+                    _log.debug(type(ds.keys()))
                     keys = []
                     units = []
                     for key in ds.keys():
-                        print(ds[key].attrs)
+                        _log.debug(ds[key].attrs)
                         try:
                             unit = ds[key].attrs['units']
                         except KeyError:
@@ -111,7 +111,7 @@ def geojson_deployments(dir, outfile='cproof-deployments.geojson'):
     kml = simplekml.Kml()
 
     np.random.seed(20190101)
-    print('subdirs', subdirs)
+    _log.debug(f'subdirs, {subdirs}')
     colornum = 0;
     for d in subdirs:
         _log.info(d)

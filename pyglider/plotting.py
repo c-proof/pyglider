@@ -32,7 +32,7 @@ def _autoclim(vals):
     d = m85 - m15
     m15 = m15 - d / 10
     m85 = m85 + d / 10
-    print('m15, m85', m15, m85, np.max((min, m15)))
+    _log.info(f'm15, m85 {m15}, {m85}, {np.max((min, m15))}')
     return np.max((min, m15)), np.min((max, m85))
 
 def timeseries_plots(fname, plottingyaml):
@@ -43,7 +43,7 @@ def timeseries_plots(fname, plottingyaml):
             starttime = np.datetime64(config['starttime'])
         else:
             starttime = None
-        print('starttime:', starttime)
+        _log.info(f'starttime: {starttime}')
 
     try:
         os.mkdir(config['figdir'])
@@ -78,7 +78,7 @@ def timeseries_plots(fname, plottingyaml):
                                     sharex=True, sharey=False)
             axs = axs.flat
             for n, k in enumerate(keys):
-                print('key', k)
+                _log.debug(f'key {k}')
                 if config['timeseries'][k] == 'True':
                     ax = axs[n]
                     good = np.where(~np.isnan(ds[k]))[0]
@@ -98,7 +98,7 @@ def timeseries_plots(fname, plottingyaml):
             _log.info('Plotting colorline data')
 
             for n, k in enumerate(keys):
-                print('key', k)
+                _log.debug(f'key, {k}')
                 ax = axs[n]
                 locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
                 formatter = mdates.ConciseDateFormatter(locator)
@@ -200,7 +200,7 @@ def add_suptitle(fig, ds):
 
 
 def grid_plots(fname, plottingyaml):
-    print('Gird plots!')
+    _log.info('Grid plots!')
     with open(plottingyaml) as fin:
         config = yaml.safe_load(fin)
         if 'starttime' in config.keys():
@@ -215,7 +215,7 @@ def grid_plots(fname, plottingyaml):
 
     with xr.open_dataset(fname, decode_times=True) as ds0:
         ds = ds0.sel(time=slice(starttime, None))
-        print(ds)
+        _log.debug(str(ds))
 
         keys = config['pcolor']['vars'].keys()
         N = len(keys)
@@ -227,10 +227,10 @@ def grid_plots(fname, plottingyaml):
                                 sharex=True, sharey=True)
         axs = axs.flat
         for n, k in enumerate(keys):
-            print('key', k)
+            _log.debug(f'key {k}')
 
             pconf = config['pcolor']['vars'][k]
-            print(pconf)
+            _log.debug(pconf)
             cmap = pconf.get('cmap', 'viridis')
             vmin = pconf.get('vmin', None)
             vmax = pconf.get('vmax', None)
@@ -249,8 +249,8 @@ def grid_plots(fname, plottingyaml):
             # make time windows:
             # get good profiles.  i.e. those w data
             ind = np.where(np.sum(np.isfinite(ds[k].values), axis=0)>10)[0]
-            print(ind)
-            print(len(ds.time))
+            _log.debug(ind)
+            _log.debug(len(ds.time))
             if len(ind) > 1:
                 time = ds.time[ind[1:]] + np.diff(ds.time[ind]) / 2
                 time = np.hstack((time[0] - (time[1]-time[0]) / 2, time))
@@ -261,7 +261,7 @@ def grid_plots(fname, plottingyaml):
                 ax.contour(ds.time[ind], ds.depth, ds.potential_density[:, ind], colors='0.5',
                        levels=np.arange(22, 28, 0.5)+1000, linewidths=0.5, alpha=0.7)
 
-                print(ds[k])
+                _log.debug(ds[k])
 
                 fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
             ax.set_title(ds[k].attrs['long_name'] + ' [' +

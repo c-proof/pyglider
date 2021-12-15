@@ -115,10 +115,10 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     profile_meta = deployment['profile_variables']
 
     ds = xr.open_dataset(inname, decode_times=False)
-    print('Working on:')
-    print(ds)
-    print(ds.time[0])
-    print(ds.time[-1])
+    _log.info(f'Working on: {inname}')
+    _log.debug(str(ds))
+    _log.debug(str(ds.time[0]))
+    _log.debug(str(ds.time[-1]))
 
 
     profiles = np.unique(ds.profile_index)
@@ -181,7 +181,7 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
                         values=ds[k].values[good], statistic='mean',
                         bins=[profile_bins, depth_bins])
 
-            print('dat', np.shape(dat))
+            _log.debug(f'dat{np.shape(dat)}')
             dsout[k] = (('depth', 'time'), dat.T, ds[k].attrs)
 
             # fill gaps in data:
@@ -190,7 +190,7 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     # fix u and v, because they should really not be gridded...
     if (('water_velocity_eastward' in dsout.keys()) and
             ('u' in profile_meta.keys())):
-        print(ds.water_velocity_eastward)
+        _log.debug(str(ds.water_velocity_eastward))
         dsout['u'] = dsout.water_velocity_eastward.mean(axis=0)
         dsout['u'].attrs = profile_meta['u']
         dsout['v'] = dsout.water_velocity_northward.mean(axis=0)

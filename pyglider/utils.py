@@ -64,7 +64,7 @@ def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
         inds = np.arange(good[inflect[n]], good[inflect[n+1]]+1) + 1
         dp = np.diff(ds.pressure[inds[[-1, 0]]])
         if ((nprofile >= min_nsamples) and (np.abs(dp) > 10)):
-            print('Good')
+            _log.debug('Good')
             direction[inds] = np.sign(dp)
             profile[inds] = pronum
             lastpronum = pronum
@@ -111,7 +111,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 
     good = np.where(np.isfinite(ds.pressure))[0]
     dt = float(np.median(np.diff(ds.time.values[good[:200000]])))
-    print('dt', dt)
+    _log.info(f'dt, {dt}')
     filt_length = int(filt_time /  dt)
 
     min_nsamples = int(profile_min_time / dt)
@@ -119,7 +119,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 
     p = np.convolve(ds.pressure.values[good],
                     np.ones(filt_length) / filt_length, 'same')
-    print('filt', filt_length)
+    _log.info('ffilt, {filt_length}')
     decim = int(filt_length / 3)
     if decim < 2:
         decim = 2
@@ -135,7 +135,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
     if mins[-1] < maxs[-1]:
         mins = np.concatenate((mins, good[[-1]]))
 
-    _log.info(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
+    _log.debug(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
 
     pronum = 0
     p = ds.pressure
@@ -148,10 +148,10 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
                 nmax = nmax[0]
             else:
                 break
-            print(nmax)
+            _log.debug(nmax)
             ins = range(int(mins[nmin]), int(maxs[nmax]+1))
-            print(pronum, ins, len(p), mins[nmin], maxs[nmax])
-            print('Down', ins, p[ins[0]].values,p[ins[-1]].values)
+            _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
+            _log.debug(f'Down, {ins}, {p[ins[0]].values},{p[ins[-1]].values}')
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 profile[ins] = pronum
                 direction[ins] = +1
@@ -162,17 +162,17 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
             else:
                 break
             ins = range(maxs[nmax], mins[nmin])
-            print(pronum, ins, len(p), mins[nmin], maxs[nmax])
-            print('Up', ins, p[ins[0]].values, p[ins[-1]].values)
+            _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
+            _log.debug(f'Up, {ins}, {p[ins[0]].values}, {p[ins[-1]].values}')
             if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
                 # up
                 profile[ins] = pronum
                 direction[ins] = -1
                 pronum += 1
         else:
-            print('Failed?')
+            _log.debug('Failed?')
 
-    print('Doing this...')
+    _log.debug('Doing this...')
     attrs = collections.OrderedDict([('long_name', 'profile index'),
              ('units', '1'),
              ('comment',
@@ -304,12 +304,12 @@ def fill_required_attrs(attrs):
 
 def get_file_id(ds):
 
-    print(ds.time)
+    _log.debug(ds.time)
     if not ds.time.dtype=='datetime64[ns]':
         dt = time_to_datetime64(ds.time.values[0])
     else:
         dt = ds.time.values[0].astype('datetime64[s]')
-    print('dt', dt)
+    _log.debug(f'dt, {dt}')
     id = (ds.attrs['glider_name'] + ds.attrs['glider_serial'] + '-' +
                       dt.item().strftime('%Y%m%dT%H%M'))
     return id
@@ -447,7 +447,7 @@ def parse_gliderxml_surfacedatetime(fname):
         y=BeautifulSoup(fin, features="xml")
         time = None
         for a in y.find_all('report'):
-            print(a)
+            _log.debug(a)
             if a.text is not None:
                 try:
                     time = np.append(time, np.datetime64(a.text))
