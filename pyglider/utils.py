@@ -111,7 +111,7 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
 
     good = np.where(np.isfinite(ds.pressure))[0]
     #dt = float(np.median(np.diff(ds.time.values[good[:200000]])))
-    dt = float(np.median(np.diff(ds.time.values[good[:200000]]).astype(int)) * 1e-9)
+    dt = float(np.median(np.diff(ds.time.values[good[:200000]]).astype(np.float64)) * 1e-9)
     _log.info(f'dt, {dt}')
     filt_length = int(filt_time /  dt)
 
