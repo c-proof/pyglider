@@ -50,7 +50,7 @@ def timeseries_plots(fname, plottingyaml):
     except:
         pass
 
-    with xr.open_dataset(fname, decode_times=True) as ds0:
+    with xr.open_dataset(fname) as ds0:
         ds = ds0.sel(time=slice(starttime, None))
         # map!
         fig, axs = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]})
@@ -213,7 +213,7 @@ def grid_plots(fname, plottingyaml):
     except:
         pass
 
-    with xr.open_dataset(fname, decode_times=True) as ds0:
+    with xr.open_dataset(fname) as ds0:
         ds = ds0.sel(time=slice(starttime, None))
         _log.debug(str(ds))
 
