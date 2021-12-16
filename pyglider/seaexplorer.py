@@ -118,10 +118,6 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
 
                         key = list(outx.coords.keys())[0]
                         outx = outx.rename({key:'time'})
-                        # dumb time down to seconds since 1970-01-01
-                        outx['time'] = outx['time'].astype(np.float64)/1e9
-                        outx['time'].attrs['units'] = (
-                            'seconds since 1970-01-01T00:00:00Z')
                         outx['fnum'] = ('time',
                             int(filenum) * np.ones(len(outx['time'])))
                         if ftype == 'gli':
@@ -244,7 +240,8 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     _log.info(f'Opening combined nav file {indir}/{id}-rawgli.nc')
     gli = xr.open_dataset(f'{indir}/{id}-rawgli.nc', decode_times=False)
     _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.nc')
-    sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc', decode_times=False)
+    #sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc', decode_times=False)
+    sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc')
 
     # build a new data set based on info in `deploymentyaml.`
     # We will use ctd as the interpolant
@@ -350,10 +347,8 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     # somehow this comes out unsorted:
     ds = ds.sortby(ds.time)
 
-    start = ((ds['time'].values[0]).astype('timedelta64[s]') +
-        np.datetime64('1970-01-01T00:00:00'))
-    end = ((ds['time'].values[-1]).astype('timedelta64[s]')  +
-        np.datetime64('1970-01-01T00:00:00'))
+    start = ds['time'].values[0]
+    end = ds['time'].values[-1]
 
     ds.attrs['deployment_start'] = str(start)
     ds.attrs['deployment_end'] = str(end)
@@ -365,8 +360,12 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     id0 = ds.attrs['deployment_name']
     outname = outdir + id0 + '.nc'
     _log.info('writing %s', outname)
+    ds.time.attrs = {'source': 'time', 'long_name': 'Time', 'standard_name': 'time', 'axis': 'T',
+                           'observation_type': 'measured'}
+    if 'ad2cp_time' in list(ds):
+        ds.ad2cp_time.attrs = {'source': 'time', 'long_name': 'Time', 'standard_name': 'time', 'axis': 'T',
+                            'observation_type': 'measured'}
     ds.to_netcdf(outname, 'w')
-
     return outname
 
 # alias:
