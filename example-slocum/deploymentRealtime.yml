@@ -263,7 +263,6 @@ profile_variables:
     observation_type:  calculated
     platform:          platform
     standard_name:     time
-    units:             seconds since 1970-01-01T00:00:00Z
 
   profile_time_start:
     comment:           Timestamp corresponding to the start of the profile
@@ -271,7 +270,6 @@ profile_variables:
     observation_type:  calculated
     platform:          platform
     standard_name:     time
-    units:             seconds since 1970-01-01T00:00:00Z
 
   profile_time_end:
     comment:           Timestamp corresponding to the end of the profile
@@ -279,7 +277,6 @@ profile_variables:
     observation_type:  calculated
     platform:          platform
     standard_name:     time
-    units:             seconds since 1970-01-01T00:00:00Z
 
   profile_lat:
     comment:           Value is interpolated to provide an estimate of the latitude at the mid-point of the profile
@@ -353,7 +350,6 @@ profile_variables:
     comment:    pumped CTD
     calibration_date:     "2017-12-24"
     calibration_report:   20171224_Seabird_SlocumCTD_SN9446_calibrations.pdf
-    comment:             pumped CTD
     factory_calibrated:  "yes"
     long_name:           Seabird Glider Payload CTD
     make_model:          Seabird GPCTD
