@@ -23,7 +23,7 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
         deployment = yaml.safe_load(fin)
     meta = deployment['metadata']
 
-    with xr.open_dataset(inname, decode_times=False) as ds:
+    with xr.open_dataset(inname) as ds:
         _log.info('Extracting profiles: opening %s', inname)
         profiles = np.unique(ds.profile_index)
         profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
@@ -114,7 +114,7 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
         deployment = yaml.safe_load(fin)
     profile_meta = deployment['profile_variables']
 
-    ds = xr.open_dataset(inname, decode_times=False)
+    ds = xr.open_dataset(inname)
     _log.info(f'Working on: {inname}')
     _log.debug(str(ds))
     _log.debug(str(ds.time[0]))
@@ -134,7 +134,9 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     dsout = xr.Dataset(coords={'depth': ('depth', depths),
                                'profile': ('time', profiles)},
                       )
-    for td in ('time', 'longitude', 'latitude'):
+    ds['time_1970'] = ds.temperature.copy()
+    ds['time_1970'].values = ds.time.values.astype(np.float64)/1e9
+    for td in ('time_1970', 'longitude', 'latitude'):
         good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
         dat, xedges, binnumber = stats.binned_statistic(
                 ds['profile_index'].values[good],
