@@ -173,7 +173,7 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
             profile_meta['profile_time_end'])
 
     for k in ds.keys():
-        if k not in ['time', 'longitude', 'latitude', 'depth']:
+        if k not in ['time', 'longitude', 'latitude', 'depth'] and 'time' not in k:
             _log.info('Gridding %s', k)
 
             good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
