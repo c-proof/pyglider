@@ -178,10 +178,10 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     if not files:
         _log.warning(f'No *gli*.nc files found in {indir}')
         return False
-    with xr.open_dataset(files[0], decode_times=False) as gli:
+    with xr.open_dataset(files[0]) as gli:
         for fil in files[1:]:
             try:
-                with xr.open_dataset(fil, decode_times=False) as gli2:
+                with xr.open_dataset(fil) as gli2:
                     gli = xr.concat([gli, gli2], dim='time')
             except:
                 pass
@@ -193,10 +193,10 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     if not files:
         _log.warning(f'No *{kind}*.nc files found in {indir}')
         return False
-    with xr.open_dataset(files[0], decode_times=False) as pld:
+    with xr.open_dataset(files[0]) as pld:
         for fil in files[1:]:
             try:
-                with xr.open_dataset(fil, decode_times=False) as pld2:
+                with xr.open_dataset(fil) as pld2:
                     pld = xr.concat([pld, pld2], dim='time')
             except:
                 pass
@@ -238,7 +238,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     device_data = deployment['glider_devices']
     id = metadata['glider_name']
     _log.info(f'Opening combined nav file {indir}/{id}-rawgli.nc')
-    gli = xr.open_dataset(f'{indir}/{id}-rawgli.nc', decode_times=False)
+    gli = xr.open_dataset(f'{indir}/{id}-rawgli.nc')
     _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.nc')
     #sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc', decode_times=False)
     sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc')
