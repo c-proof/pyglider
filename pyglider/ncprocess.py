@@ -144,12 +144,12 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
                 ds[td].values[good], statistic='mean',
                 bins=[profile_bins])
 
-        #for n, p in enumerate(profiles):
-        #    ind = np.where(ds.profile_index == p)
-        #    dat[n] = ds[td][ind].values.mean()
+        if td == 'time_1970':
+            td = 'time'
+            dat = dat.astype('timedelta64[s]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs )
-
+    ds.drop('time_1970')
     #datmax = np.zeros(len(profiles))
     #datmin = np.zeros(len(profiles))
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
