@@ -257,6 +257,13 @@ netcdf_variables:
     standard_name: platform_roll_angle_ad2cp
     units:        degrees
     coordinates:  time depth latitude longitude
+
+  ad2cp_time:
+    source:       AD2CP_TIME
+    long_name:    AD2CP recorded time
+    standard_name: ad2cp_recorded_time
+    units:        datetime64
+    coordinates:  time depth latitude longitude
     # derived water speed:
   # water_velocity_eastward:
   #   source:    m_final_water_vx
