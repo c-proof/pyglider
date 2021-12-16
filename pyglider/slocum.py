@@ -877,6 +877,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                     ds = ds.assign_coords(depth=ds.depth)
 
                     #ds = ds._get_distance_over_ground(ds)
+                    ds['time'] = ds.time.values.astype('timedelta64[s]') + np.datetime64('1970-01-01T00:00:00')
                     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
                     try:
                         os.mkdir(outdir)
@@ -890,14 +891,12 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                         id0 = ds.attrs['deployment_name']
 
     # now merge:
-    with xr.open_mfdataset(outdir + '/' + id + '*-M*_L0.nc', decode_times=False, lock=False) as ds:
+    with xr.open_mfdataset(outdir + '/' + id + '*-M*_L0.nc', lock=False) as ds:
         _log.debug(ds.attrs)
 
         # put the real start and end times:
-        start = ((ds['time'].values[0]).astype('timedelta64[s]') +
-            np.datetime64('1970-01-01T00:00:00'))
-        end = ((ds['time'].values[-1]).astype('timedelta64[s]')  +
-            np.datetime64('1970-01-01T00:00:00'))
+        start = ds['time'].values[0]
+        end = ds['time'].values[-1]
 
         ds.attrs['deployment_start'] = str(start)
         ds.attrs['deployment_end'] = str(end)

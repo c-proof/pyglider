@@ -95,6 +95,7 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
 
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
+                dss.profile_time.attrs = {}
                 dss.to_netcdf(outname)
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
