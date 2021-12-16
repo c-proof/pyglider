@@ -84,8 +84,6 @@ netcdf_variables:
     source:        time
     long_name:     Time
     standard_name: time
-    calendar:      gregorian
-    units:         seconds since 1970-01-01T00:00:00Z
     axis:          T
     observation_type: "measured"
     coordinates:   time depth latitude longitude

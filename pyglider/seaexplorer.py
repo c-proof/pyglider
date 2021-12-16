@@ -240,7 +240,6 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     _log.info(f'Opening combined nav file {indir}/{id}-rawgli.nc')
     gli = xr.open_dataset(f'{indir}/{id}-rawgli.nc')
     _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.nc')
-    #sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc', decode_times=False)
     sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc')
 
     # build a new data set based on info in `deploymentyaml.`
@@ -360,11 +359,11 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     id0 = ds.attrs['deployment_name']
     outname = outdir + id0 + '.nc'
     _log.info('writing %s', outname)
-    ds.time.attrs = {'source': 'time', 'long_name': 'Time', 'standard_name': 'time', 'axis': 'T',
-                           'observation_type': 'measured'}
+    if 'units' in ds.time.attrs.keys():
+        ds.time.attrs.pop('units')
     if 'ad2cp_time' in list(ds):
-        ds.ad2cp_time.attrs = {'source': 'time', 'long_name': 'Time', 'standard_name': 'time', 'axis': 'T',
-                            'observation_type': 'measured'}
+        if 'units' in ds.ad2cp_time.attrs.keys():
+            ds.ad2cp_time.attrs.pop('units')
     ds.to_netcdf(outname, 'w')
     return outname
 
