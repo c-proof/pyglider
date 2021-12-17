@@ -43,58 +43,6 @@ def get_glider_depth(ds):
     return ds
 
 
-def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
-                 min_nsamples=14):
-    """
-    make two variables: profile_direction and profile_index; this veersion
-    is good for lots of data.  Less good for sparse data
-    """
-    profile = ds.pressure.values * 0
-    direction = ds.pressure.values * 0
-    pronum = 1
-    lastpronum = 0
-
-    good = np.where(~np.isnan(ds.pressure))[0]
-    p = np.convolve(ds.pressure.values[good],
-                    np.ones(filt_length) / filt_length, 'same')
-    dpall = np.diff(p)
-    inflect = np.where(dpall[:-1] * dpall[1:] < 0)[0]
-    for n, i in enumerate(inflect[:-1]):
-        nprofile = inflect[n+1] - inflect[n]
-        inds = np.arange(good[inflect[n]], good[inflect[n+1]]+1) + 1
-        dp = np.diff(ds.pressure[inds[[-1, 0]]])
-        if ((nprofile >= min_nsamples) and (np.abs(dp) > 10)):
-            _log.debug('Good')
-            direction[inds] = np.sign(dp)
-            profile[inds] = pronum
-            lastpronum = pronum
-            pronum += 1
-        else:
-            profile[good[inflect[n]]:good[inflect[n+1]]] = lastpronum + 0.5
-
-    attrs = collections.OrderedDict([('long_name', 'profile index'),
-             ('units', '1'),
-             ('comment',
-              'N = inside profile N, N + 0.5 = between profiles N and N + 1'),
-             ('sources', 'time pressure'),
-             ('method', 'get_profiles'),
-             ('min_dp', min_dp),
-             ('inversion', inversion),
-             ('filt_length', filt_length),
-             ('min_nsamples', min_nsamples)])
-    ds['profile_index'] = (('time'), profile, attrs)
-
-
-    attrs = collections.OrderedDict([('long_name', 'glider vertical speed direction'),
-             ('units', '1'),
-             ('comment',
-              '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
-             ('sources', 'time pressure'),
-             ('method', 'get_profiles')])
-    ds['profile_direction'] = (('time'), direction, attrs)
-    return ds
-
-
 def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
                  profile_min_time=300):
     """
@@ -136,47 +84,43 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
         mins = np.concatenate((mins, good[[-1]]))
 
     _log.debug(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
-
-    pronum = 0
+    pronum = 1
     p = ds.pressure
     nmin = 0
     nmax=0
     while (nmin < len(mins)) and (nmax < len(maxs)):
-        if 1:
-            nmax = np.where(maxs>mins[nmin])[0]
-            if len(nmax) >= 1:
-                nmax = nmax[0]
-            else:
-                break
-            _log.debug(nmax)
-            ins = range(int(mins[nmin]), int(maxs[nmax]+1))
-            _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
-            _log.debug(f'Down, {ins}, {p[ins[0]].values},{p[ins[-1]].values}')
-            if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
-                profile[ins] = pronum
-                direction[ins] = +1
-                pronum += 1
-            nmin = np.where(mins>maxs[nmax])[0]
-            if len(nmin) >= 1:
-                nmin = nmin[0]
-            else:
-                break
-            ins = range(maxs[nmax], mins[nmin])
-            _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
-            _log.debug(f'Up, {ins}, {p[ins[0]].values}, {p[ins[-1]].values}')
-            if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
-                # up
-                profile[ins] = pronum
-                direction[ins] = -1
-                pronum += 1
+        nmax = np.where(maxs>mins[nmin])[0]
+        if len(nmax) >= 1:
+            nmax = nmax[0]
         else:
-            _log.debug('Failed?')
+            break
+        _log.debug(nmax)
+        ins = range(int(mins[nmin]), int(maxs[nmax]+1))
+        _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
+        _log.debug(f'Down, {ins}, {p[ins[0]].values},{p[ins[-1]].values}')
+        if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
+            profile[ins] = pronum
+            direction[ins] = +1
+            pronum += 1
+        nmin = np.where(mins>maxs[nmax])[0]
+        if len(nmin) >= 1:
+            nmin = nmin[0]
+        else:
+            break
+        ins = range(maxs[nmax], mins[nmin])
+        _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
+        _log.debug(f'Up, {ins}, {p[ins[0]].values}, {p[ins[-1]].values}')
+        if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
+            # up
+            profile[ins] = pronum
+            direction[ins] = -1
+            pronum += 1
 
     _log.debug('Doing this...')
     attrs = collections.OrderedDict([('long_name', 'profile index'),
              ('units', '1'),
              ('comment',
-              'N = inside profile N, N + 0.5 = between profiles N and N + 1'),
+              'Number inside profiles starting from 1. 0 when inflecting'),
              ('sources', 'time pressure'),
              ('method', 'get_profiles'),
              ('min_dp', min_dp),
