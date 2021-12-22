@@ -118,10 +118,6 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
 
                         key = list(outx.coords.keys())[0]
                         outx = outx.rename({key:'time'})
-                        # dumb time down to seconds since 1970-01-01
-                        outx['time'] = outx['time'].astype(np.float64)/1e9
-                        outx['time'].attrs['units'] = (
-                            'seconds since 1970-01-01T00:00:00Z')
                         outx['fnum'] = ('time',
                             int(filenum) * np.ones(len(outx['time'])))
                         if ftype == 'gli':
@@ -182,10 +178,10 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     if not files:
         _log.warning(f'No *gli*.nc files found in {indir}')
         return False
-    with xr.open_dataset(files[0], decode_times=False) as gli:
+    with xr.open_dataset(files[0]) as gli:
         for fil in files[1:]:
             try:
-                with xr.open_dataset(fil, decode_times=False) as gli2:
+                with xr.open_dataset(fil) as gli2:
                     gli = xr.concat([gli, gli2], dim='time')
             except:
                 pass
@@ -197,10 +193,10 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     if not files:
         _log.warning(f'No *{kind}*.nc files found in {indir}')
         return False
-    with xr.open_dataset(files[0], decode_times=False) as pld:
+    with xr.open_dataset(files[0]) as pld:
         for fil in files[1:]:
             try:
-                with xr.open_dataset(fil, decode_times=False) as pld2:
+                with xr.open_dataset(fil) as pld2:
                     pld = xr.concat([pld, pld2], dim='time')
             except:
                 pass
@@ -242,9 +238,9 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     device_data = deployment['glider_devices']
     id = metadata['glider_name']
     _log.info(f'Opening combined nav file {indir}/{id}-rawgli.nc')
-    gli = xr.open_dataset(f'{indir}/{id}-rawgli.nc', decode_times=False)
+    gli = xr.open_dataset(f'{indir}/{id}-rawgli.nc')
     _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.nc')
-    sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc', decode_times=False)
+    sensor = xr.open_dataset(f'{indir}/{id}-{kind}pld.nc')
 
     # build a new data set based on info in `deploymentyaml.`
     # We will use ctd as the interpolant
@@ -350,10 +346,8 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     # somehow this comes out unsorted:
     ds = ds.sortby(ds.time)
 
-    start = ((ds['time'].values[0]).astype('timedelta64[s]') +
-        np.datetime64('1970-01-01T00:00:00'))
-    end = ((ds['time'].values[-1]).astype('timedelta64[s]')  +
-        np.datetime64('1970-01-01T00:00:00'))
+    start = ds['time'].values[0]
+    end = ds['time'].values[-1]
 
     ds.attrs['deployment_start'] = str(start)
     ds.attrs['deployment_end'] = str(end)
@@ -365,8 +359,12 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     id0 = ds.attrs['deployment_name']
     outname = outdir + id0 + '.nc'
     _log.info('writing %s', outname)
-    ds.to_netcdf(outname, 'w')
-
+    if 'units' in ds.time.attrs.keys():
+        ds.time.attrs.pop('units')
+    if 'ad2cp_time' in list(ds):
+        if 'units' in ds.ad2cp_time.attrs.keys():
+            ds.ad2cp_time.attrs.pop('units')
+    ds.to_netcdf(outname, 'w', encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
     return outname
 
 # alias:

@@ -23,7 +23,7 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
         deployment = yaml.safe_load(fin)
     meta = deployment['metadata']
 
-    with xr.open_dataset(inname, decode_times=False) as ds:
+    with xr.open_dataset(inname) as ds:
         _log.info('Extracting profiles: opening %s', inname)
         profiles = np.unique(ds.profile_index)
         profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
@@ -95,7 +95,9 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
 
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
-                dss.to_netcdf(outname)
+                if 'units' in dss.profile_time.attrs:
+                    dss.profile_time.attrs.pop('units')
+                dss.to_netcdf(outname, encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
@@ -114,7 +116,7 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
         deployment = yaml.safe_load(fin)
     profile_meta = deployment['profile_variables']
 
-    ds = xr.open_dataset(inname, decode_times=False)
+    ds = xr.open_dataset(inname)
     _log.info(f'Working on: {inname}')
     _log.debug(str(ds))
     _log.debug(str(ds.time[0]))
@@ -134,19 +136,21 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     dsout = xr.Dataset(coords={'depth': ('depth', depths),
                                'profile': ('time', profiles)},
                       )
-    for td in ('time', 'longitude', 'latitude'):
+    ds['time_1970'] = ds.temperature.copy()
+    ds['time_1970'].values = ds.time.values.astype(np.float64)/1e9
+    for td in ('time_1970', 'longitude', 'latitude'):
         good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
         dat, xedges, binnumber = stats.binned_statistic(
                 ds['profile_index'].values[good],
                 ds[td].values[good], statistic='mean',
                 bins=[profile_bins])
 
-        #for n, p in enumerate(profiles):
-        #    ind = np.where(ds.profile_index == p)
-        #    dat[n] = ds[td][ind].values.mean()
+        if td == 'time_1970':
+            td = 'time'
+            dat = dat.astype('timedelta64[s]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs )
-
+    ds.drop('time_1970')
     #datmax = np.zeros(len(profiles))
     #datmin = np.zeros(len(profiles))
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
@@ -170,7 +174,7 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
             profile_meta['profile_time_end'])
 
     for k in ds.keys():
-        if k not in ['time', 'longitude', 'latitude', 'depth']:
+        if k not in ['time', 'longitude', 'latitude', 'depth'] and 'time' not in k:
             _log.info('Gridding %s', k)
 
             good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
@@ -201,7 +205,7 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
 
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid.nc'
     _log.info('Writing %s', outname)
-    dsout.to_netcdf(outname)
+    dsout.to_netcdf(outname, encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
     _log.info('Done gridding')
 
     return outname
