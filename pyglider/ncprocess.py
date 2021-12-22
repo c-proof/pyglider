@@ -97,7 +97,7 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
                 _log.info('Writing %s', outname)
                 if 'units' in dss.profile_time.attrs:
                     dss.profile_time.attrs.pop('units')
-                dss.to_netcdf(outname)
+                dss.to_netcdf(outname, encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
@@ -205,7 +205,7 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
 
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid.nc'
     _log.info('Writing %s', outname)
-    dsout.to_netcdf(outname)
+    dsout.to_netcdf(outname, encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
     _log.info('Done gridding')
 
     return outname

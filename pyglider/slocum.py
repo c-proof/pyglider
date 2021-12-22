@@ -886,7 +886,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                     outname = (outdir + '/' + ds.attrs['deployment_name'] +
                                 f'-M{mnum:04d}_L0.nc')
                     _log.info('writing %s', outname)
-                    ds.to_netcdf(outname, 'w')
+                    ds.to_netcdf(outname, 'w', encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
                     if id0 is None:
                         id0 = ds.attrs['deployment_name']
 

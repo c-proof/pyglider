@@ -364,7 +364,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     if 'ad2cp_time' in list(ds):
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
-    ds.to_netcdf(outname, 'w')
+    ds.to_netcdf(outname, 'w', encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
     return outname
 
 # alias:
