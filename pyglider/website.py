@@ -12,8 +12,58 @@ import pyglider.utils as pygu
 import logging
 
 """
-Utilities to make smart directories for the websites.  Dumb persons erdapp
-server...
+Utilities to make smart directories for the websites.
+
+A driving script may look like
+
+```
+import pyglider.website as pyweb
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+# uses the templat in `.templates/deploymentsIndex.html` to render
+# index.html in each of the subdirectories:
+
+pyweb.geojson_deployments('./')
+
+if 1:
+    pyweb.index_deployments('./dfo-walle652/')
+    pyweb.index_deployments('./dfo-bb046/')
+```
+
+where `dfo-walle652` will contain subdirectories, each with a deployment:
+
+```
+./dfo-walle652/dfo-walle652-20210903
+./dfo-walle652/dfo-walle652-20220101
+...
+```
+
+Output are index files in each subdirectory and a geojson of all
+the deployments (if that is desired)
+
+```
+./deployments.geojson   # from the first script....
+./dfo-walle652/index.html
+./dfo-walle652/dfo-walle652-20210903/index.html
+...
+
+Requires an html template.  The ones used for cproof are in
+../example_html_templates of this repo and you need
+to supply
+
+`deploymentsIndex.html`
+`deploymentsInfoNew.html`
+and maybe `deploymentsInfo.html`
+
+These are example templates, and written in jinga templating language.  In
+particular, see the strings near the bottom with double braces: eg:
+"{{ att['deployment_name'] }}"  These are what get filled by calling
+`pyweb.index_deployments`.
+
+Note there are some hardcoded things in this tool, so please read the source
+code!
+
 """
 
 _log = logging.getLogger(__name__)
