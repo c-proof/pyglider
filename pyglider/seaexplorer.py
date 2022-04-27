@@ -411,3 +411,135 @@ def _parse_sensor_config(filename):
 
     active_device_dicts = {k: device_dicts[k] for k in device_dicts.keys() & {*devices}}
     return active_device_dicts
+
+#adding function 'raw_to_L1timeseries_raw' jpnote
+
+def raw_to_L1timeseries_raw(indir, outdir, deploymentyaml, kind='raw',
+                            profile_filt_time=100, profile_min_time=300):
+    """
+    A little different than above, for the 4-file version of the data set.
+    """
+
+    with open(deploymentyaml) as fin:
+        deployment = yaml.safe_load(fin)
+    metadata = deployment['metadata']
+    ncvar = deployment['netcdf_variables']
+
+    id = metadata['glider_name']  # + metadata['glider_serial']
+    gli = xr.open_dataset(indir + '/' + id + '-rawgli.nc', decode_times=False)
+    ctd = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_gpctd.nc',
+                          decode_times=False)
+    arod = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_arod.nc',
+                      decode_times=False)
+    flb = xr.open_dataset(indir + '/' + id + '-' + kind+ 'p_flbbcd.nc',
+                      decode_times=False)
+
+    # build a new data set based on info in `deployment.`
+    # We will use ebd.m_present_time as the interpolant if the
+    # variabel is in dbd.
+
+    ds = xr.Dataset()
+    attr = {}
+    name = 'time'
+    for atts in ncvar[name].keys():
+        if atts != 'coordinates':
+            attr[atts] = ncvar[name][atts]
+
+    # the ctd will be our timebase.  It oversamples the nav data, but
+    # mildly undersamples the optics and oxygen....
+    indctd = np.where(~np.isnan(ctd.GPCTD_TEMPERATURE))[0]
+
+    print('TIME', ctd['time'])
+    ds[name] = (('time'), ctd[name].values[indctd], attr)
+   # ds['time'] = (('time'), ctd['time'].values[indctd], attr) #jp
+
+
+    print(ds['time'])
+    thenames = list(ncvar.keys())
+    print(thenames)
+    thenames.remove('time')
+
+    for name in thenames:
+        _log.info('interpolating ' + name)
+        if not('method' in ncvar[name].keys()):
+            # variables that are in the data set or can be interpolated from it
+            if 'conversion' in ncvar[name].keys():
+                convert = getattr(utils, ncvar[name]['conversion'])
+            else:
+                convert = utils._passthrough
+            sensorname = ncvar[name]['source']
+            if sensorname in ctd.keys():
+                _log.debug('sensorname %s', sensorname)
+                val = convert(ctd[sensorname])
+                val = _interp_pld_to_pld(ctd, ds, val, indctd)
+                ncvar['method'] = 'linear fill'
+            elif sensorname in arod.keys():
+                _log.debug('sensorname %s', sensorname)
+                val = convert(arod[sensorname])
+                val = _interp_pld_to_pld(arod, ds, val, indctd)
+                ncvar['method'] = 'linear fill'
+            elif sensorname in flb.keys():
+                _log.debug('sensorname %s', sensorname)
+                val = convert(flb[sensorname])
+                val = _interp_pld_to_pld(flb, ds, val, indctd)
+                ncvar['method'] = 'linear fill'
+            else:
+                val = gli[sensorname]
+                #val = utils._zero_screen(val)
+        #        val[val==0] = np.NaN
+                val = convert(val)
+                print('Gli', gli)
+                val = _interp_gli_to_pld(gli, ds, val, indctd)
+
+            # make the attributes:
+            ncvar[name].pop('coordinates', None)
+            attrs = ncvar[name]
+            attrs = utils.fill_required_attrs(attrs)
+           # ds[name] = (('time'), val, attrs)  #jp
+            ds[name] = (('time'), val.data, attrs)
+
+    # fix lon and lat to be linearly interpolated between fixes
+    good = np.where(np.abs(np.diff(ds.longitude)) +
+                    np.abs(np.diff(ds.latitude)) > 0)[0] + 1
+    ds['longitude'].values = np.interp(ds.time,
+        ds.time[good], ds.longitude[good])
+    ds['latitude'].values = np.interp(ds.time,
+        ds.time[good], ds.latitude[good])
+
+    # some derived variables:
+    ds = utils.get_glider_depth(ds)
+    ds = utils.get_distance_over_ground(ds)
+    #    ds = utils.get_profiles(ds)
+    ds = utils.get_profiles_new(ds,
+            filt_time=profile_filt_time, profile_min_time=profile_min_time)
+
+    ds = utils.get_derived_eos_raw(ds)
+
+    ds = ds.assign_coords(longitude=ds.longitude)
+    ds = ds.assign_coords(latitude=ds.latitude)
+    ds = ds.assign_coords(depth=ds.depth)
+    #ds = ds._get_distance_over_ground(ds)
+
+    ds = utils.fill_metadata(ds, deployment['metadata'])
+
+    # somehow this comes out unsorted:
+    ds = ds.sortby(ds.time)
+
+    start = ((ds['time'].values[0]).astype('timedelta64[s]') +
+        np.datetime64('1970-01-01T00:00:00'))
+    end = ((ds['time'].values[-1]).astype('timedelta64[s]')  +
+        np.datetime64('1970-01-01T00:00:00'))
+
+    ds.attrs['deployment_start'] = str(start)
+    ds.attrs['deployment_end'] = str(end)
+
+    try:
+        os.mkdir('L0-timeseries')
+    except:
+        pass
+    id0 = ds.attrs['deployment_name']
+    outname = 'L0-timeseries/' + id0 +  '_L0.nc'
+    _log.info('writing %s', outname)
+    ds.to_netcdf(outname, 'w')
+
+    return outname

@@ -772,6 +772,48 @@ def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
     return
 
 
+#only the merge jpnote
+
+## jpnote: global variables ##
+# - preprocess overwrites variables -
+# - need global list to append multiple netcdf file attributes ## 
+
+globlist = []
+latmin = []
+latmax = []
+lonmin = []
+lonmax = []
+
+def preprocess(ds):
+
+    global globlist
+    global latmin
+    global latmax
+    global lonmin
+    global lonmax
+
+  #  dsnew = ds.copy()
+# get time coverage start and time coverage end from each necdf file 
+    startmin = np.datetime64(ds.attrs['time_coverage_start']) 
+    endmax = np.datetime64(ds.attrs['time_coverage_end'])
+# append each to global list for later min max extraction 
+    globlist.append(startmin)
+    globlist.append(endmax)
+# get geospatial min and max from each necdf file 
+    latminv = ds.attrs['geospatial_lat_min'] 
+    latmaxv = ds.attrs['geospatial_lat_max']
+    lonminv = ds.attrs['geospatial_lon_min']
+    lonmaxv = ds.attrs['geospatial_lon_max']
+# append each to global list for later min max extraction 
+    latmin.append(latminv)
+    latmax.append(latmaxv)
+    lonmin.append(lonminv)
+    lonmax.append(lonmaxv)
+
+    return ds
+
+##jpnote undo this comment after testing 
+
 def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                         profile_filt_time=100, profile_min_time=300):
     """
@@ -793,6 +835,13 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
     outname : string
         name of the new merged netcdf file.
     """
+
+    #jpnote: for max min extraction for attributes of merged file 
+    global globlist
+    global latmax
+    global latmin 
+    global lonmin
+    global lonmax 
 
     with open(deploymentyaml) as fin:
         deployment = yaml.safe_load(fin)
@@ -890,8 +939,9 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
                     if id0 is None:
                         id0 = ds.attrs['deployment_name']
 
-    # now merge:
-    with xr.open_mfdataset(outdir + '/' + id + '*-M*_L0.nc', lock=False) as ds:
+# now merge:
+    #jpnote: added preprocess function to xr.open_mfdataset
+    with xr.open_mfdataset(outdir + '/' + id + '*-M*_L0.nc', lock=False,preprocess=preprocess) as ds:
         _log.debug(ds.attrs)
 
         # put the real start and end times:
@@ -900,6 +950,25 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, *,
 
         ds.attrs['deployment_start'] = str(start)
         ds.attrs['deployment_end'] = str(end)
+
+## jpnote: beginning of jp addition ## 
+        time_coverage_start_jp = str(min(globlist))
+        time_coverage_end_jp = str(max(globlist))
+# add calcs to the dataset 
+        ds.attrs['time_coverage_start'] = time_coverage_start_jp 
+        ds.attrs['time_coverage_end'] = time_coverage_end_jp
+# remove 0.0 from list, so that proper min,max can be extracted
+        latmin = [i for i in latmin if i != 0]
+        latmax = [i for i in latmax if i != 0]
+        lonmin = [i for i in lonmin if i != 0]
+        lonmax = [i for i in lonmax if i != 0]
+# add calcs to dataset 
+        ds.attrs['geospatial_lat_min'] = min(latmin)
+        ds.attrs['geospatial_lat_max'] = max(latmax)
+        ds.attrs['geospatial_lon_min'] = min(lonmin)
+        ds.attrs['geospatial_lon_max'] = max(lonmax)
+
+##end of jp addition 
         _log.debug(ds.depth.values[:100])
         _log.debug(ds.depth.values[2000:2100])
         ds = utils.get_profiles_new(ds,

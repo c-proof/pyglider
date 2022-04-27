@@ -50,24 +50,54 @@ def timeseries_plots(fname, plottingyaml):
     except:
         pass
 
-    with xr.open_dataset(fname) as ds0:
+    #with xr.open_dataset(fname) as ds0:  #jpnote commented
+    with xr.open_dataset(fname, decode_times=True) as ds0:
+    
         ds = ds0.sel(time=slice(starttime, None))
         # map!
-        fig, axs = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]})
+       # fig, axs = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]})
+        fig1, axs1 = plt.subplots()
+       # ax = axs[0]
+        ax = axs1
+        good = (ds.longitude < -125)    ## jp added
+        ax.plot(ds.longitude[good], ds.latitude[good], '.',markersize=1)
+        
+        #ax.plot(ds.longitude, ds.latitude, '.') #jp commented 
+       # ax.set_aspect(1 / np.cos(np.deg2rad(ds.latitude.mean())))
+        fig1.set_size_inches(7.5, 7.5)
+        ax.set_ylabel('Lat [degrees north]')
+        ax.set_xlabel('Lon [degrees west]')
+        ax.grid()
+        fig1.savefig(config['figdir'] + '/jp1_map%s.png'%ds.attrs['deployment_name'], dpi=200)
+       
+        locator = mdates.AutoDateLocator()
+        formatter = mdates.ConciseDateFormatter(locator)
+        formatter.offset_formats = ['',
+                                   '',
+                                    '',]
+        
+        #fig, axs = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]})
+        fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 1]})
+   #     ax = axs[1]
         ax = axs[0]
-        ax.plot(ds.longitude, ds.latitude, '.')
-        ax.set_aspect(1 / np.cos(np.deg2rad(ds.latitude.mean())))
-        ax.set_ylabel('Lat [degrees north]')
-        ax.set_xlabel('Lon [degrees east]')
+        ax.plot(ds.time[good], ds.longitude[good], '.',markersize=1) 
+   #    # ax.plot(ds.time, ds.longitude, '.') #jp commented
+        ax.set_ylabel('Lon [degrees west]')
+        ax.grid()
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(formatter)
 
+    #   ax = axs[2]
         ax = axs[1]
-        ax.plot(ds.time, ds.longitude, '.')
-        ax.set_ylabel('Lon [degrees east]')
-
-        ax = axs[2]
-        ax.plot(ds.time, ds.latitude, '.')
+        ax.plot(ds.time[good], ds.latitude[good], '.',markersize=1)
+    #   # ax.plot(ds.time, ds.latitude, '.')#jp commented
         ax.set_ylabel('Lat [degrees north]')
-        fig.savefig(config['figdir'] + '/map%s.png'%ds.attrs['deployment_name'], dpi=200)
+        ax.grid()
+
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(formatter)
+
+        fig.savefig(config['figdir'] + '/jp2_map%s.png'%ds.attrs['deployment_name'], dpi=200)
 
         # timeseries of things....
         _log.info('Plotting timeseries data')
@@ -78,17 +108,124 @@ def timeseries_plots(fname, plottingyaml):
                                     sharex=True, sharey=False)
             axs = axs.flat
             for n, k in enumerate(keys):
+                a = [0,1,2,3]
+                b = [4,5]
                 _log.debug(f'key {k}')
+               # print(f'key {k}')
                 if config['timeseries'][k] == 'True':
                     ax = axs[n]
+                    #convert 9999 to nan 
+                    ds[k] = ds[k].where(ds[k] != 9999, np.nan)
+                    #ValueError: zero-size array to reduction operation minimum which has no identity
                     good = np.where(~np.isnan(ds[k]))[0]
-                    pc = ax.plot(ds.time[good], ds[k][good], '.')
-                    min, max = _autoclim(ds[k][good])
-                    ax.set_ylim(min, max)
-                    ax.set_title(ds[k].attrs['long_name'] + ' [' +
-                             ds[k].attrs['units'] + ']', loc='left', fontsize=9)
 
+                    if good.size != 0:
+
+                        pc = ax.plot(ds.time[good], ds[k][good], '.',markersize=1)
+                        min, max = _autoclim(ds[k][good])
+                        ax.set_ylim(min, max)
+                        ax.grid()
+                    
+                        ax.set_ylabel(ds[k].attrs['long_name'] + ' [' +
+                            ds[k].attrs['units'] + ']')
+                    if n in a:
+                        ax.xaxis.set_tick_params(labelbottom=True)
+                    #ax.set_title(ds[k].attrs['long_name'] + ' [' +
+                      #  ds[k].attrs['units'] + ']', loc='left', fontsize=9)
+                    if n in b:
+                    #jpnote: offset format fix -remove hanging date
+                        locator = mdates.AutoDateLocator()
+                        formatter = mdates.ConciseDateFormatter(locator)
+                        formatter.offset_formats = ['',
+                                                    '',
+                                                    '',]
+                        ax.xaxis.set_major_locator(locator)
+                        ax.xaxis.set_major_formatter(formatter)
+                        #end offset format fix
+                    ax.set_title(ds[k].attrs['long_name'] + ' over time', loc='left', fontsize=9)
             fig.savefig(config['figdir'] + '/ts_%s.png'%ds.attrs['deployment_name'], dpi=200)
+
+        _log.info('Plotting timeseries data')
+        keys = config['timeseries'].keys()
+        N = len(keys)
+        if 1:
+            fig, axs = plt.subplots(int(N / 2), 2, figsize=(7, 12),
+                                    sharex=False, sharey=False)
+            axs = axs.flat
+            for n, k in enumerate(keys):
+                _log.debug(f'key {k}')
+                print(f'key {k}')
+                if config['timeseries'][k] == 'True':
+                    ax = axs[n]
+                    #convert 9999 to nan 
+                   # ds[k] = ds[k].where(ds[k] != 9999, np.nan)
+                   # ds[k] = ds[k].where(ds[k] != 0, np.nan)
+                    #ValueError: zero-size array to reduction operation minimum which has no identity
+                   # good = np.where(~np.isnan(ds[k]))[0]
+                    
+                    if ax == axs[1]:
+                        ax.set_xlim(30,35) #jp hardcode? 
+                       # ds[k] = ds[k].where(ds[k] != 0, np.nan)
+                       # good = np.where(~np.isnan(ds[k]))[0]
+                    if ax == axs[3]:
+                        ax.set_xlim(0,0.004) #jp hardcode
+                    if ax == axs[4]:
+                        ax.set_xlim(0,7.5)
+                    if ax == axs[5]:
+                        ax.set_xlim(0,4)
+                  
+                    good = np.where(~np.isnan(ds[k]))[0]
+                    pc = ax.plot(ds[k][good],ds.depth[good], '.',markersize=1)
+                    ax.grid()
+                    ax.set_ylabel('DEPTH [m]')
+                    ax.xaxis.set_tick_params(labelbottom=True)
+                    ax.invert_yaxis()
+               
+                    ax.set_xlabel(ds[k].attrs['long_name'] + ' [' +
+                            ds[k].attrs['units'] + ']')
+                    ax.set_title(ds[k].attrs['long_name'] + ' over depth', loc='left', fontsize=9)
+
+            fig.savefig(config['figdir'] + '/vv_%s.png'%ds.attrs['deployment_name'], dpi=200)
+    
+
+       # _log.info('Plotting timeseries data')
+        keys = config['timeseries'].keys()
+       # N = len(keys)
+       ##water temp v depth plot 
+        if 1:
+            #fig, axs = plt.subplots(int(N / 2), 2,figsize=(7.5, 7),
+                             #       sharex=True, sharey=False)
+            fig, axs = plt.subplots(1, 1,figsize=(7.5, 7),
+                                    sharex=True, sharey=False)
+          #  axs = axs.flat
+            for n, k in enumerate(keys):
+                if n == 0:
+                    a = [0,1,2,3]
+                    b = [4,5]
+                    #_log.debug(f'key {k}')
+                    #print(f'key {k}')
+                    if config['timeseries'][k] == 'True':
+                        ax = axs
+
+                        good = np.where(~np.isnan(ds[k]))[0]
+                        pc = ax.scatter(ds.temperature[good], ds.depth[good], c=ds.longitude[good], cmap='gray', s=1)   
+           
+                        ax.grid()
+                        ax.set_ylabel('DEPTH [m]')
+                        x = np.random.randint(low=0, high=10, size=13)
+                        plt.xticks(np.arange(4, len(x)+1, 1))
+                       
+                        ax.set_title('water temp over depth')
+
+                        ax.set_xlabel(ds[k].attrs['long_name'] + ' [' +
+                            ds[k].attrs['units'] + ']') 
+                        plt.gca().invert_yaxis()
+                      
+            cbar = fig.colorbar(pc, ax=axs)
+            cbar.ax.set_yticklabels(["{:.4}".format(i) for i in cbar.get_ticks()]) 
+            cbar.ax.set_ylabel('Longitude [degrees west]') 
+            fig.savefig(config['figdir'] + '/jp_ts_%s.png'%ds.attrs['deployment_name'], dpi=200)
+
 
         # colorline?
         if 0:
@@ -156,6 +293,7 @@ def timeseries_plots(fname, plottingyaml):
         fig, axs = plt.subplots(1, 2, constrained_layout=True, sharey=True)
         ax = axs[0]
 
+        ds['oxygen_concentration'][ ds['oxygen_concentration']==9999]=np.nan
         good = ~np.isnan(ds.salinity)
         smin, smax = _autoclim(ds.salinity[good])
         good = ~np.isnan(ds.temperature)
@@ -175,13 +313,14 @@ def timeseries_plots(fname, plottingyaml):
         ax.set_ylabel('$T\ [^oC]$')
         ax.set_xlim(smin, smax)
         ax.set_ylim(tmin, tmax)
-
+        ax.grid()
         try:
             ax = axs[1]
 
             ax.plot(ds['oxygen_concentration'], ds['temperature'],
                     '.', markersize=1)
             ax.set_xlabel('$O^2\ [mmol/L]$')
+            ax.grid()
         except:
             pass
         add_suptitle(fig, ds)
@@ -213,7 +352,8 @@ def grid_plots(fname, plottingyaml):
     except:
         pass
 
-    with xr.open_dataset(fname) as ds0:
+    #with xr.open_dataset(fname) as ds0:  #jpnote changed
+    with xr.open_dataset(fname, decode_times=True) as ds0:
         ds = ds0.sel(time=slice(starttime, None))
         _log.debug(str(ds))
 
@@ -223,7 +363,9 @@ def grid_plots(fname, plottingyaml):
         tmean = ds.temperature.mean(axis=1)
         indmax = np.where(~np.isnan(tmean))[0][-1]
         depmax = ds.depth[indmax]
-        fig, axs = plt.subplots(math.ceil(N/2), 2, figsize=(7.5, 7),
+       # fig, axs = plt.subplots(math.ceil(N/2), 2, figsize=(7.5, 7),  #jpnote changed
+        #                        sharex=True, sharey=True)
+        fig, axs = plt.subplots(int(N / 2), 2, figsize=(7.5, 7),
                                 sharex=True, sharey=True)
         axs = axs.flat
         for n, k in enumerate(keys):
@@ -231,13 +373,19 @@ def grid_plots(fname, plottingyaml):
 
             pconf = config['pcolor']['vars'][k]
             _log.debug(pconf)
-            cmap = pconf.get('cmap', 'viridis')
+
+            cmap = plt.cm.get_cmap('viridis') #jp
             vmin = pconf.get('vmin', None)
             vmax = pconf.get('vmax', None)
 
             ax = axs[n]
-            locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+            ax.yaxis.set_tick_params(labelbottom=True) 
+            ax.xaxis.set_tick_params(labelbottom=True)
+            locator = mdates.AutoDateLocator() 
             formatter = mdates.ConciseDateFormatter(locator)
+            formatter.offset_formats = ['',
+                                        '',
+                                        '',]
             ax.xaxis.set_major_locator(locator)
             ax.xaxis.set_major_formatter(formatter)
 
@@ -247,31 +395,46 @@ def grid_plots(fname, plottingyaml):
             if vmax is not None:
                 max = vmax
             # make time windows:
+            if ax == axs[0]:
+                vmax = 300
+                cmap.set_over("black") 
+                ax.set_ylim([300, 0])
+
+            vmax = 300
+            cmap.set_over("black") 
             # get good profiles.  i.e. those w data
             ind = np.where(np.sum(np.isfinite(ds[k].values), axis=0)>10)[0]
             _log.debug(ind)
             _log.debug(len(ds.time))
             if len(ind) > 1:
                 time = ds.time[ind[1:]] + np.diff(ds.time[ind]) / 2
+              #  print('tim1',time)
                 time = np.hstack((time[0] - (time[1]-time[0]) / 2, time))
+             #   print('tim2',time)
                 depth = ds.depth[:-1] - np.diff(ds.depth)
                 depth = np.hstack((depth, depth[-1] + np.diff(ds.depth)[-1]))
                 pc = ax.pcolormesh(time, depth, ds[k][:, ind],
-                    rasterized=True, vmin=min, vmax=max, cmap=cmap, shading='auto')
+                    rasterized=True, vmin=min, vmax=max,cmap=cmap, shading='auto')
                 ax.contour(ds.time[ind], ds.depth, ds.potential_density[:, ind], colors='0.5',
                        levels=np.arange(22, 28, 0.5)+1000, linewidths=0.5, alpha=0.7)
 
                 _log.debug(ds[k])
 
-                fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
-            ax.set_title(ds[k].attrs['long_name'] + ' [' +
-                     ds[k].attrs['units'] + ']', loc='left', fontsize=9)
+               # fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)  #jpnote commented
+                cbar = fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
+                cbar.ax.set_ylabel(ds[k].attrs['long_name'] + ' [' +
+                                 ds[k].attrs['units'] + ']', fontsize=9)
+           # ax.set_title(ds[k].attrs['long_name'] + ' [' +
+                   #  ds[k].attrs['units'] + ']', loc='left', fontsize=9) #jpnote commented 
+            ax.set_title(ds[k].attrs['long_name'] + ' over Depth [m]', loc='left', fontsize=9)      
             t0 = ds.time[0]
             t1 = ds.time[-1]
             ax.set_xlim([t0, t1])
-            ax.set_ylim([depmax, 0])
-            if n == 0:
-                ax.set_ylabel('DEPTH [m]')
+           # ax.set_ylim([depmax, 0])
+            ax.set_ylim([300, 0]) #jp changed (or should I leave it as dep max? )
+           # if n == 0:
+            ax.set_ylabel('DEPTH [m]')
+         #   ax.set_xlabel('TIME (May - June)')
             ax.set_facecolor('0.8')
         now = str(datetime.utcnow())[:-10]
         lastdata = str(ds.time[-1].values)[:-13]
