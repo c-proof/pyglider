@@ -1,6 +1,8 @@
 import collections
+import datetime
 import xarray as xr
 import numpy as np
+import pandas as pd
 from scipy.signal import argrelextrema
 import gsw
 # import webcolors
@@ -369,10 +371,17 @@ def oxygen_concentration_correction(data, ncvar):
         ref_sal = 0
     else:
         ref_sal = float(oxy_yaml['reference_salinity'])
+    # Find the closest temperature and salinity measurements to oxygen measurements with pandas timestamp matching
+    df_oxy = pd.DataFrame({"time": data.time, "oxygen_concentration": data.oxygen_concentration})
+    df_oxy = df_oxy[~np.isnan(df_oxy.oxygen_concentration)]
+    df_ctd = pd.DataFrame({"time": data.time, "salinity": data.salinity, "potential_temperature": data.potential_temperature})
+    df_ctd = df_ctd[~np.isnan(df_ctd.salinity)]
+    # Match the nearest timestamp within 5 seconds. Oxygen values with no temp/sal within 5 seconds will become nan
+    df_nearest = pd.merge_asof(df_oxy, df_ctd, on="time", direction="nearest", tolerance=datetime.timedelta(seconds=5))
     _log.info(f'Correcting oxygen using reference salinity {ref_sal} PSU')
-    o2_sol = gsw.O2sol_SP_pt(data['salinity'], data['potential_temperature'])
-    o2_sat = data['oxygen_concentration'] / gsw.O2sol_SP_pt(data['salinity']*0 + ref_sal, data['potential_temperature'])
-    data['oxygen_concentration'].values = o2_sat * o2_sol
+    o2_sol = gsw.O2sol_SP_pt(df_nearest['salinity'], df_nearest['potential_temperature'])
+    o2_sat = df_nearest['oxygen_concentration'] / gsw.O2sol_SP_pt(df_nearest['salinity']*0 + ref_sal, df_nearest['potential_temperature'])
+    data['oxygen_concentration'].values[~np.isnan(data.oxygen_concentration)] = o2_sat * o2_sol
     data['oxygen_concentration'].attrs['oxygen_concentration_QC:RTQC_methodology'] =\
         f'oxygen concentration corrected for salinity using gsw.O2sol_SP_pt with salinity and potential temperature ' \
         f'from dataset. Original oxygen concentration assumed to have been calculated using salinity = {ref_sal} PSU'
