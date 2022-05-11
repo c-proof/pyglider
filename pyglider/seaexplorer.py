@@ -361,6 +361,8 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     _log.info('writing %s', outname)
     if 'units' in ds.time.attrs.keys():
         ds.time.attrs.pop('units')
+    if 'calendar' in ds.time.attrs.keys():
+        ds.time.attrs.pop('calendar')
     if 'ad2cp_time' in list(ds):
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
