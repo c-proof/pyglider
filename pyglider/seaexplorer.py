@@ -141,6 +141,26 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
     _log.info('All raw files converted to nc')
     return True
 
+
+def drop_rogue_1970(ds):
+    """
+    If dates greater than 1971, 1, 1 are observed, drop any dates before 1971-01-01, from the datset and return it.
+    This function removes 1970 timestamps caused by a SeaExplorer rebooting during a mission.
+    If all dates are < 1971-01-01, no action is taken
+
+    Parameters:
+        ds: xarray.DataSet
+            dataset to check for pre-1971 dates
+    Returns:
+        ds: xarray.DataSet
+    """
+    dt_1971 = np.datetime64("1971-01-01")
+    # If all dates before or after 1971-01-01, return the dataset
+    if (ds.time > dt_1971).all() or (ds.time < dt_1971).all():
+        return ds
+    return ds.where(ds.time > dt_1971, drop=True)
+
+
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
@@ -185,6 +205,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
                     gli = xr.concat([gli, gli2], dim='time')
             except:
                 pass
+        gli = drop_rogue_1970(gli)
         gli.to_netcdf(outgli)
     _log.info(f'Done writing {outgli}')
 
@@ -200,6 +221,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
                     pld = xr.concat([pld, pld2], dim='time')
             except:
                 pass
+        pld = drop_rogue_1970(pld)
         pld.to_netcdf(outpld)
     _log.info(f'Done writing {outpld}')
     _log.info('Done merge_rawnc')
