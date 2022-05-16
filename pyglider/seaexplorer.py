@@ -154,7 +154,7 @@ def drop_rogue_1970(ds):
     Returns:
         ds: xarray.DataSet
     """
-    dt_1971 = pd.to_datetime(datetime.datetime(1971, 1, 1))
+    dt_1971 = np.datetime64("1971-01-01")
     # If all dates before or after 1971-01-01, return the dataset
     if (ds.time > dt_1971).all() or (ds.time < dt_1971).all():
         return ds
