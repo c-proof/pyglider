@@ -206,12 +206,16 @@ netcdf_variables:
     standard_name: concentration_of_chlorophyll_in_sea_water
     units:        mg m-3
     coordinates:  time depth latitude longitude
+    # example of how to use median rather than mean when producing gridded average netCDF
+    average_method: median
 
   cdom:
     source:  FLNTU_NTU_SCALED
     long_name:    flntu variable
     units:        arbitrary
     coordinates:  time depth latitude longitude
+    # Use geometric mean for gridded netCDF. Useful for PAR
+    average_method: "geometric mean"
 
 
 

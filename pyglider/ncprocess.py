@@ -176,13 +176,20 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     for k in ds.keys():
         if k not in ['time', 'longitude', 'latitude', 'depth'] and 'time' not in k:
             _log.info('Gridding %s', k)
-
             good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
             if len(good) > 0:
+                if "average_method" in ds[k].attrs:
+                    average_method = ds[k].attrs["average_method"]
+                    ds[k].attrs["processing"] = f"Using average method {average_method} for variable {k} following deployment yaml."
+                    if average_method == "geometric mean":
+                        average_method = stats.gmean
+                        ds[k].attrs["processing"] += " Using geometric mean implementation scipy.stats.gmean"
+                else:
+                    average_method = "mean"
                 dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
                         ds['profile_index'].values[good],
                         ds['depth'].values[good],
-                        values=ds[k].values[good], statistic='mean',
+                        values=ds[k].values[good], statistic=average_method,
                         bins=[profile_bins, depth_bins])
 
             _log.debug(f'dat{np.shape(dat)}')
