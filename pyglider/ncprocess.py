@@ -180,10 +180,10 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
             if len(good) > 0:
                 if "average_method" in ds[k].attrs:
                     average_method = ds[k].attrs["average_method"]
-                    _log.warning(f"Using average method {average_method} for variable {k} following deployment yaml")
+                    ds[k].attrs["processing"] = f"Using average method {average_method} for variable {k} following deployment yaml."
                     if average_method == "geometric mean":
                         average_method = stats.gmean
-                        _log.warning("Using geometric mean implementation scipy.stats.gmean")
+                        ds[k].attrs["processing"] += " Using geometric mean implementation scipy.stats.gmean"
                 else:
                     average_method = "mean"
                 dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
