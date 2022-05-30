@@ -16,25 +16,21 @@ def test__outputname():
     assert filenum == 36
 
 
-
-
 def test_raw_to_rawnc():
     # Default settings on a clean folder
     result_default = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
-                             'tests/data/realtime_rawnc/',
-                             None)
+        'tests/data/realtime_rawnc/', None)
     # Test the reprocess flag works
     result_reprocess = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
-                                              'tests/data/realtime_rawnc/',
-                                              None,
-                                              incremental=False)
+                                                'tests/data/realtime_rawnc/',
+                                                None, incremental=False)
     # Check that reprocessing not preformed by default
     result_no_new_files = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
-                             'tests/data/realtime_rawnc/',
-                             None)
+                                                   'tests/data/realtime_rawnc/',
+                                                   None)
     # Reject all payload files with fewer than 10000 lines
     result_strict = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
-                                              'tests/data/realtime_rawnc/',
+                                             'tests/data/realtime_rawnc/',
                                              None,
                                              incremental=False,
                                              min_samples_in_file=10000)
