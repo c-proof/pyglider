@@ -11,6 +11,7 @@ geojson
 simplekml
 webcolors
 bitstring
+sphinx
 pytest
 autoapi
 numpydoc
