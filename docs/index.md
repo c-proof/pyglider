@@ -35,7 +35,7 @@ pyglider/pyglider
 
 ```
 
-### Acknowledgements
+## Acknowledgements
 
 - Slocum binary translator based on
 <https://gitlab.oceantrack.org/ocean-gliders-canada/dinkum/tree/seabBranch_py3>
