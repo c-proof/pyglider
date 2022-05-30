@@ -437,4 +437,5 @@ def _parse_sensor_config(filename):
     active_device_dicts = {k: device_dicts[k] for k in device_dicts.keys() & {*devices}}
     return active_device_dicts
 
-__all__ = {'raw_to_rawnc', 'merge_rawnc', 'raw_to_timeseries'}
+
+__all__ = ['raw_to_rawnc', 'merge_rawnc', 'raw_to_timeseries']

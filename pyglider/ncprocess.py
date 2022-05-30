@@ -219,13 +219,8 @@ def make_gridfiles(inname, outdir, deploymentyaml, dz=1):
 
 
 # aliases
-<<<<<<< HEAD
-make_L0_gridfiles = make_gridfiles
-extract_L0timeseries_profiles = extract_timeseries_profiles
-=======
 extract_L0timeseries_profiles = extract_timeseries_profiles
 make_L0_gridfiles = make_gridfiles
 
 
-__all__ = {'extract_timeseries_profiles', 'make_gridfiles'}
->>>>>>> 9ccb337 (Too much)
+__all__ = ['extract_timeseries_profiles', 'make_gridfiles']
