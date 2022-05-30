@@ -247,7 +247,7 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
     return val
 
 
-def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
+def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                         profile_filt_time=100, profile_min_time=300):
     """
     A little different than above, for the 4-file version of the data set.
@@ -392,7 +392,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     return outname
 
 # alias:
-raw_to_L1timeseries = raw_to_L0timeseries
+raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
 
 
 def _parse_sensor_config(filename):

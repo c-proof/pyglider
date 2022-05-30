@@ -39,15 +39,12 @@ if 1:
         scisuffix=scisuffix, glidersuffix=glidersuffix)
 if 1:
     # Make level-1 timeseries netcdf file from th raw files...
-    outname = slocum.raw_to_L0timeseries(rawdir, l1tsdir, deploymentyaml,
+    outname = slocum.raw_to_timeseries(rawdir, l1tsdir, deploymentyaml,
               profile_filt_time=100, profile_min_time=300)
     # make profile netcdf files for ioos gdac...
-    ncprocess.extract_L0timeseries_profiles(outname, profiledir, deploymentyaml)
+    ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)
 
     # make grid of dataset....
 
-#pgplot.timeseries_plots(outname, plottingyaml)
-
-
-outname = ncprocess.make_L0_gridfiles(outname, griddir, deploymentyaml)
+outname = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
 pgplot.grid_plots(outname, plottingyaml)

@@ -14,8 +14,8 @@ def test__outputname():
                             'tests/data/realtime_rawnc/')
     assert fnout == 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.nc'
     assert filenum == 36
-   
-   
+
+
 
 
 def test_raw_to_rawnc():
@@ -76,18 +76,17 @@ def test__interp_gli_to_pld():
     assert len(pitch_interp) == len(ds.time)
 
 
-def test_raw_to_L0timeseries():
+def test_raw_to_timeseries():
     # Test default, will fail as we have sub data, not raw data
     with pytest.raises(FileNotFoundError) as missing_file_exc:
-        result_default = seaexplorer.raw_to_L0timeseries('tests/data/realtime_rawnc/',
+        result_default = seaexplorer.raw_to_timeseries('tests/data/realtime_rawnc/',
                                                         'tests/data/l0-profiles/',
                                                         'example-seaexplorer/deploymentRealtime.yml',
                                                         )
-    result_sub = seaexplorer.raw_to_L0timeseries('tests/data/realtime_rawnc/',
+    result_sub = seaexplorer.raw_to_timeseries('tests/data/realtime_rawnc/',
                                                     'tests/data/l0-profiles/',
                                                     'example-seaexplorer/deploymentRealtime.yml',
                                                     kind='sub')
     assert 'No such file or directory' in str(missing_file_exc)
     assert result_sub == 'tests/data/l0-profiles/dfo-eva035-20190718.nc'
-    
-    
+

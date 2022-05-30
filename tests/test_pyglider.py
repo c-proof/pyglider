@@ -59,7 +59,7 @@ slocum.binary_to_rawnc(binarydir, rawdir_slocum, cacdir, sensorlist, deploymenty
 
 slocum.merge_rawnc(rawdir_slocum, rawdir_slocum, deploymentyaml_slocum,
                    scisuffix=scisuffix, glidersuffix=glidersuffix)
-outname_slocum = slocum.raw_to_L0timeseries(rawdir_slocum, l1tsdir, deploymentyaml_slocum,
+outname_slocum = slocum.raw_to_timeseries(rawdir_slocum, l1tsdir, deploymentyaml_slocum,
                                             profile_filt_time=100, profile_min_time=300)
 output_slocum = xr.open_dataset(outname_slocum)
 # Open test data file

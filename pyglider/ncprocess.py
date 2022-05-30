@@ -11,7 +11,7 @@ import scipy.stats as stats
 
 _log = logging.getLogger(__name__)
 
-def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
+def extract_timeseries_profiles(inname, outdir, deploymentyaml):
     """
     """
     try:
@@ -104,7 +104,7 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 
-def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
+def make_gridfiles(inname, outdir, deploymentyaml, dz=1):
     """
     """
     try:
@@ -216,3 +216,8 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     _log.info('Done gridding')
 
     return outname
+
+
+# aliases
+make_L0_gridfiles = make_gridfiles
+extract_L0timeseries_profiles = extract_timeseries_profiles
