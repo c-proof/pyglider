@@ -20,8 +20,8 @@ setup(name="pyglider",
           "bitstring",
           "netcdf4",
           "geojson",
-          "seawater",
-          "scipy",
+          "gsw",
+          "scipy"
       ],
       zip_safe=True
       )
