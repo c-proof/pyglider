@@ -12,3 +12,7 @@ simplekml
 webcolors
 bitstring
 pytest
+sphinx
+autoapi
+numpydoc
+myst-parser
