@@ -11,7 +11,7 @@ import pyglider.seaexplorer as seaexplorer
 
 def test__outputname():
     fnout, filenum = seaexplorer._outputname('tests/data/realtime_raw/sea035.12.pld1.sub.36',
-                            'tests/data/realtime_rawnc/')
+                                             'tests/data/realtime_rawnc/')
     assert fnout == 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.nc'
     assert filenum == 36
 
@@ -19,7 +19,7 @@ def test__outputname():
 def test_raw_to_rawnc():
     # Default settings on a clean folder
     result_default = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
-        'tests/data/realtime_rawnc/', None)
+                                              'tests/data/realtime_rawnc/', None)
     # Test the reprocess flag works
     result_reprocess = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
                                                 'tests/data/realtime_rawnc/',
@@ -56,9 +56,9 @@ def test_merge_rawnc():
                                              'example-seaexplorer/deploymentRealtime.yml')
 
     result_sub = seaexplorer.merge_rawnc('tests/data/realtime_rawnc/',
-                                             'tests/data/realtime_rawnc/',
-                                             'example-seaexplorer/deploymentRealtime.yml',
-                                             kind='sub')
+                                         'tests/data/realtime_rawnc/',
+                                         'example-seaexplorer/deploymentRealtime.yml',
+                                         kind='sub')
     assert result_default is False
     assert result_sub is True
 
