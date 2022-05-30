@@ -51,14 +51,16 @@ def test__needsupdating():
 
 
 def test_merge_rawnc():
-    result_default = seaexplorer.merge_rawnc('tests/data/realtime_rawnc/',
-                                             'tests/data/realtime_rawnc/',
-                                             'example-seaexplorer/deploymentRealtime.yml')
+    result_default = seaexplorer.merge_rawnc(
+            'tests/data/realtime_rawnc/',
+            'tests/data/realtime_rawnc/',
+            'example-seaexplorer/deploymentRealtime.yml')
 
-    result_sub = seaexplorer.merge_rawnc('tests/data/realtime_rawnc/',
-                                         'tests/data/realtime_rawnc/',
-                                         'example-seaexplorer/deploymentRealtime.yml',
-                                         kind='sub')
+    result_sub = seaexplorer.merge_rawnc(
+            'tests/data/realtime_rawnc/',
+            'tests/data/realtime_rawnc/',
+            'example-seaexplorer/deploymentRealtime.yml',
+            kind='sub')
     assert result_default is False
     assert result_sub is True
 
