@@ -32,9 +32,9 @@ if 1:
     seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
 
         # Make level-1 timeseries netcdf file from th raw files...
-    outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
-    ncprocess.extract_L0timeseries_profiles(outname, profiledir, deploymentyaml)
-    outname2 = ncprocess.make_L0_gridfiles(outname, griddir, deploymentyaml)
+    outname = seaexplorer.raw_to_timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
+    ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)
+    outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
 
 if 1:
     # make profile netcdf files for ioos gdac...

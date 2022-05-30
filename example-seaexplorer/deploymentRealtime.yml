@@ -9,7 +9,7 @@ metadata:
   creator_name:  Jody Klymak
   creator_url:   http://cproof.uvic.ca
   # date_created etc: added automatically
-  # numbers must be eenclosed by strings so YAML keeps as strings
+  # numbers must be enclosed by strings so YAML keeps as strings
   deployment_id: '1'
   deployment_name: 'dfo-eva035-20190718'
   deployment_start: '2019-07-18'

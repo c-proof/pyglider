@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+""" Here is some documentation?
+"""
 import datetime
 import glob
 import itertools
@@ -247,8 +249,8 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
     return val
 
 
-def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
-                        profile_filt_time=100, profile_min_time=300):
+def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
+                      profile_filt_time=100, profile_min_time=300):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -343,7 +345,6 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
         ds = ds.where(~np.isnan(keeps))
         ds = ds.dropna(dim='time', how='all')
 
-
     # some derived variables:
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
@@ -392,7 +393,7 @@ def raw_to_L0timeseries(indir, outdir, deploymentyaml, kind='raw',
     return outname
 
 # alias:
-raw_to_L1timeseries = raw_to_L0timeseries
+raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
 
 
 def _parse_sensor_config(filename):
@@ -435,3 +436,6 @@ def _parse_sensor_config(filename):
 
     active_device_dicts = {k: device_dicts[k] for k in device_dicts.keys() & {*devices}}
     return active_device_dicts
+
+
+__all__ = ['raw_to_rawnc', 'merge_rawnc', 'raw_to_timeseries']

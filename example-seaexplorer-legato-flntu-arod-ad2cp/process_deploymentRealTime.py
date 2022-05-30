@@ -24,9 +24,9 @@ if __name__ == '__main__':
     # merge individual netcdf files into single netcdf files *.gli*.nc and *.pld1*.nc
     seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
     # Make level-0 timeseries netcdf file from the raw files...
-    outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
-    ncprocess.extract_L0timeseries_profiles(outname, profiledir, deploymentyaml)
-    outname2 = ncprocess.make_L0_gridfiles(outname, griddir, deploymentyaml)
+    outname = seaexplorer.raw_to_timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
+    ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)
+    outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
     # make profile netcdf files for ioos gdac...
     # make grid of dataset....
     pgplot.timeseries_plots(outname, plottingyaml)

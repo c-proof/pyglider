@@ -1,5 +1,7 @@
 *.egg-info
 __pycache__
+_build
+docs/pyglider
 
 *.nc
 *.png
