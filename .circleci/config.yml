@@ -10,8 +10,8 @@ jobs:
       - checkout
       - python/install-deps
       - run:
-          name: install theme
-          command: python -m pip install --user -ve .      
+          name: install module
+          command: python -m pip install --user -ve .
       - run:
           name: Build docs
           command: cd docs/ && make html
