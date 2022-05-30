@@ -46,3 +46,5 @@ Optionally, PyGlider provides some bespoke plotting routines.  We find these use
 ```{literalinclude} ../example-slocum/process_deploymentRealtime.py
 :language: python
 ```
+
+Weird
