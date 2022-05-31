@@ -43,7 +43,7 @@ Optionally, PyGlider provides some bespoke plotting routines.  We find these use
 (ExProcSlocum)=
 ### Example processing script
 
-```{literalinclude} ../example-slocum/process_deploymentRealtime.py
+```{literalinclude} ../example-slocum/process_deploymentRealTime.py
 :language: python
 ```
 
