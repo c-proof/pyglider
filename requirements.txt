@@ -16,3 +16,4 @@ sphinx
 autoapi
 numpydoc
 myst-parser
+pydata-sphinx-theme

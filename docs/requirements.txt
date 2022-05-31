@@ -1,4 +1,0 @@
-sphinx
-autoapi
-numpydoc
-myst-parser

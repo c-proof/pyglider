@@ -39,6 +39,6 @@ Optionally, PyGlider provides some bespoke plotting routines.  We find these use
 (ExProc)=
 ### Example processing script
 
-```{literalinclude} ../example-seaexplorer/process_deploymentRealtime.py
+```{literalinclude} ../example-seaexplorer/process_deploymentRealTime.py
 :language: python
 ```
