@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
-""" Here is some documentation?
 """
-import datetime
+SeaExplorer-specific processing routines.
+"""
 import glob
-import itertools
 import logging
-import sys
-from math import floor, fmod
 import numpy as np
 import os
-import re
-import datetime
 import xarray as xr
 import yaml
 import pyglider.utils as utils
@@ -38,10 +33,13 @@ def _needsupdating(ftype, fin, fout):
         return True
     return (os.path.getmtime(fin) >= os.path.getmtime(fout))
 
+
 def _sort(ds):
     return ds.sortby('time')
 
-def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in_file=5):
+
+def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
+                 min_samples_in_file=5):
     """
     Convert seaexplorer text files to raw netcdf files.
 
@@ -49,7 +47,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
     ----------
     indir : str
         Directory with the raw files are kept.  Recommend naming this
-        direectory "raw"
+        directory "raw"
 
     outdir : str
         Directory to write the matching ``*.nc`` files. Recommend ``rawnc``.
@@ -62,8 +60,8 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
         binary files are re-parsed.
 
     min_samples_in_file : int
-        Minimum number of samples in a raw file to trigger writing a netcdf file.
-        Defaults to 5
+        Minimum number of samples in a raw file to trigger writing a netcdf
+        file. Defaults to 5
 
     Returns
     -------
@@ -109,21 +107,21 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                 if not incremental or _needsupdating(ftype, f, fnout):
                     _log.info(f'Doing: {f} to {fnout}')
                     out = pd.read_csv(f, header=0, delimiter=';',
-                                            parse_dates=True, index_col=0,
-                                            dayfirst=True)
-                    # If AD2CP data present, convert the timestamps to datetime type
+                                      parse_dates=True, index_col=0,
+                                      dayfirst=True)
+                    # If AD2CP data present, convert timestamps to datetime
                     if 'AD2CP_TIME' in out.columns:
-                        # Set datestamps with date 00000 to None to prevent datetime error
-                        out.loc[out.AD2CP_TIME.str[:6]=='000000','AD2CP_TIME'] = None
+                        # Set datestamps with date 00000 to None
+                        out.loc[out.AD2CP_TIME.str[:6] == '000000',
+                                'AD2CP_TIME'] = None
                         out['AD2CP_TIME'] = pd.to_datetime(out.AD2CP_TIME)
                     with out.to_xarray() as outx:
-
                         key = list(outx.coords.keys())[0]
-                        outx = outx.rename({key:'time'})
+                        outx = outx.rename({key: 'time'})
                         outx['fnum'] = ('time',
-                            int(filenum) * np.ones(len(outx['time'])))
+                                        int(filenum)*np.ones(len(outx['time'])))
                         if ftype == 'gli':
-                            outx.to_netcdf(fnout[:-3]+'.nc', 'w')
+                            outx.to_netcdf(fnout[:-3] + '.nc', 'w')
                             goodfiles.append(f)
                         else:
                             if outx.indexes["time"].size > min_samples_in_file:
@@ -131,14 +129,16 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
                                                unlimited_dims=['time'])
                                 goodfiles.append(f)
                             else:
-                                _log.warning(f'Number of sensor data points too small. Skipping nc write')
+                                _log.warning('Number of sensor data points'
+                                             'too small. Skipping nc write')
                                 badfiles.append(f)
             if len(badfiles) > 0:
                 _log.warning('Some files could not be parsed:')
                 for fn in badfiles:
                     _log.warning('%s', fn)
             if not goodfiles:
-                _log.warning(f'No valid unprocessed seaexplorer files found in {indir}')
+                _log.warning(f'No valid unprocessed seaexplorer files found in'
+                             f'{indir}')
                 return False
     _log.info('All raw files converted to nc')
     return True
@@ -146,9 +146,10 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True, min_samples_in
 
 def drop_rogue_1970(ds):
     """
-    If dates greater than 1971, 1, 1 are observed, drop any dates before 1971-01-01, from the datset and return it.
-    This function removes 1970 timestamps caused by a SeaExplorer rebooting during a mission.
-    If all dates are < 1971-01-01, no action is taken
+    If dates greater than 1971, 1, 1 are observed, drop any dates before
+    1971-01-01, from the datset and return it. This function removes 1970
+    timestamps caused by a SeaExplorer rebooting during a mission. If all dates
+    are < 1971-01-01, no action is taken
 
     Parameters:
         ds: xarray.DataSet
@@ -242,8 +243,8 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
     pld_ind = np.where(~np.isnan(val))[0]
     if len(pld_ind) != len(indctd):
         val = np.interp(ds['time'],
-                           pld['time'][pld_ind],
-                           val[pld_ind])
+                        pld['time'][pld_ind],
+                        val[pld_ind])
     else:
         val = val[indctd]
     return val
@@ -275,19 +276,23 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
         if atts != 'coordinates':
             attr[atts] = ncvar[name][atts]
 
-    # If present, use the timebase specified in ncva: timebase in the deployment yaml
-    # Otherwise, the ctd will be our timebase.  It oversamples the nav data, but
-    # mildly undersamples the optics and oxygen....
+    # If present, use the timebase specified in ncva: timebase in the
+    # deployment yaml. Otherwise, the ctd will be our timebase.
+    # It oversamples the nav data, but mildly undersamples the optics and
+    # oxygen....
     if 'timebase' in ncvar:
         indctd = np.where(~np.isnan(sensor[ncvar['timebase']['source']]))[0]
     elif 'GPCTD_TEMPERATURE' in list(sensor.variables):
-        _log.warning('No timebase specified. Using GPCTD_TEMPERATURE as time base')
+        _log.warning('No timebase specified. Using GPCTD_TEMPERATURE as time'
+                     'base')
         indctd = np.where(~np.isnan(sensor.GPCTD_TEMPERATURE))[0]
     elif 'LEGATO_TEMPERATURE' in list(sensor.variables):
-        _log.warning('No timebase specified. Using LEGATO_TEMPERATURE as time base')
+        _log.warning('No timebase specified. Using LEGATO_TEMPERATURE as time'
+                     'base')
         indctd = np.where(~np.isnan(sensor.LEGATO_TEMPERATURE))[0]
     else:
-        _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time base')
+        _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time'
+                     'base')
         indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
     ds['time'] = (('time'), sensor['time'].values[indctd], attr)
     thenames = list(ncvar.keys())
@@ -309,7 +314,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                 if 'coarsen' in ncvar[name]:
                     # smooth oxygen data as originally perscribed
                     coarsen_time = ncvar[name]['coarsen']
-                    sensor_sub = sensor.coarsen(time=coarsen_time, boundary='trim').mean()
+                    sensor_sub = sensor.coarsen(time=coarsen_time,
+                                                boundary='trim').mean()
                     val2 = sensor_sub[sensorname]
                     val = _interp_gli_to_pld(sensor_sub, sensor, val2, indctd)
                 val = val[indctd]
@@ -318,7 +324,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
             else:
                 val = gli[sensorname]
                 val = convert(val)
-                # Values from the glider netcdf must be interpolated to match the sensor netcdf
+                # Values from the glider netcdf must be interpolated to match
+                # the sensor netcdf
                 val = _interp_gli_to_pld(gli, ds, val, indctd)
 
             # make the attributes:
@@ -330,10 +337,10 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     # fix lon and lat to be linearly interpolated between fixes
     good = np.where(np.abs(np.diff(ds.longitude)) +
                     np.abs(np.diff(ds.latitude)) > 0)[0] + 1
-    ds['longitude'].values = np.interp(ds.time,
-        ds.time[good], ds.longitude[good])
-    ds['latitude'].values = np.interp(ds.time,
-        ds.time[good], ds.latitude[good])
+    ds['longitude'].values = np.interp(ds.time, ds.time[good],
+                                       ds.longitude[good])
+    ds['latitude'].values = np.interp(ds.time, ds.time[good],
+                                      ds.latitude[good])
 
     # keep only timestamps with data from one of a set of variables
     if 'keep_variables' in ncvar:
@@ -349,8 +356,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
     #    ds = utils.get_profiles(ds)
-    ds = utils.get_profiles_new(ds,
-            filt_time=profile_filt_time, profile_min_time=profile_min_time)
+    ds = utils.get_profiles_new(ds, filt_time=profile_filt_time,
+                                profile_min_time=profile_min_time)
     ds = utils.get_derived_eos_raw(ds)
 
     # Correct oxygen if present:
@@ -358,11 +365,12 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
         if 'correct_oxygen' in ncvar['oxygen_concentration'].keys():
             ds = utils.oxygen_concentration_correction(ds, ncvar)
         else:
-            _log.warning("correct_oxygen not found in oxygen yaml. No correction applied")
+            _log.warning('correct_oxygen not found in oxygen yaml. No'
+                         'correction applied')
     ds = ds.assign_coords(longitude=ds.longitude)
     ds = ds.assign_coords(latitude=ds.latitude)
     ds = ds.assign_coords(depth=ds.depth)
-    #ds = ds._get_distance_over_ground(ds)
+    # ds = ds._get_distance_over_ground(ds)
 
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
 
@@ -389,8 +397,11 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     if 'ad2cp_time' in list(ds):
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
-    ds.to_netcdf(outname, 'w', encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
+    ds.to_netcdf(outname, 'w',
+                 encoding={'time': {'units':
+                                    'seconds since 1970-01-01T00:00:00Z'}})
     return outname
+
 
 # alias:
 raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
@@ -398,16 +409,20 @@ raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
 
 def _parse_sensor_config(filename):
     """
-    Reads the sensor config file of a SeaExplorer and extracts the active sensors and their calibration data.
+    Reads the sensor config file of a SeaExplorer and extracts the active
+    sensors and their calibration data.
+
     Parameters
     ----------
     filename: path to seapayload.cfg file
 
     Returns
     -------
+
     Dictionary of devices and their metadata as dictionaries of key_value pairs
     """
-    #filename = "/home/callum/Documents/data-flow/data-in/SEA063_M22/2_PLD/configs/seapayload.cfg"
+    # filename =
+    # "/home/callum/Documents/data-flow/data-in/SEA063_M22/2_PLD/configs/seapayload.cfg"
     file = open(filename, 'r').read().split('\n')
     devices = []
     device_id = 'dummy_value'
@@ -434,7 +449,8 @@ def _parse_sensor_config(filename):
     # Append the final device to the dict
     device_dicts[device_id] = dict_for_device
 
-    active_device_dicts = {k: device_dicts[k] for k in device_dicts.keys() & {*devices}}
+    active_device_dicts = {k: device_dicts[k] for k in
+                           (device_dicts.keys() & {*devices})}
     return active_device_dicts
 
 
