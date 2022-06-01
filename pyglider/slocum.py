@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 from pyglider import bitstring
-import datetime
 import glob
-import itertools
 import logging
-from math import floor, fmod
 import numpy as np
 import os
-import re
 import time
 import xarray as xr
 import yaml
@@ -18,8 +14,8 @@ _log = logging.getLogger(__name__)
 
 
 def binary_to_rawnc(indir, outdir, cacdir,
-        sensorlist, deploymentyaml,
-        incremental=True, scisuffix='EBD', glidersuffix='DBD'):
+                    sensorlist, deploymentyaml,
+                    incremental=True, scisuffix='EBD', glidersuffix='DBD'):
     """
     Convert slocum binary data (*.ebd/*.dbd) to raw netcdf files.
 
@@ -93,7 +89,6 @@ def binary_to_rawnc(indir, outdir, cacdir,
         # we need to make sure the files match...
         try:
             fmeta, _ = dbd_get_meta(filesMain[ind], cachedir=cacdir)
-            path, ext =  os.path.splitext(filesMain[ind])
             sciname = filesMain[ind][:-3] + scisuffix
             fncname = (fmeta['the8x3_filename'] + '.' +
                        fmeta['filename_extension'] + '.nc')
@@ -106,8 +101,8 @@ def binary_to_rawnc(indir, outdir, cacdir,
                 fullsncname = outdir + '/' + sncname
 
                 _log.info('Working on  %s %s',
-                    os.path.basename(filesMain[ind]),
-                    os.path.basename(sciname))
+                          os.path.basename(filesMain[ind]),
+                          os.path.basename(sciname))
 
                 ncfilesexist = (os.path.isfile(fullsncname) and
                                 os.path.isfile(fullfncname))
@@ -123,23 +118,18 @@ def binary_to_rawnc(indir, outdir, cacdir,
                     dis = deployment_ind_sci
                     dif = deployment_ind_flight
                     _log.info(f'sciind: {dis}; gliderind: {dif}')
-                    if 1:
-                        sdata, smeta = dbd_to_dict(sciname, cacdir, keys=keys)
-                        fdata, fmeta = dbd_to_dict(filesMain[ind], cacdir,
-                                keys=keys)
-                        deployment_ind_sci = int(smeta['the8x3_filename'])*1.0e4
-                        ds, deployment_ind_sci = datameta_to_nc(sdata,
-                            smeta, outdir=outdir,
+                    sdata, smeta = dbd_to_dict(sciname, cacdir, keys=keys)
+                    fdata, fmeta = dbd_to_dict(filesMain[ind], cacdir,
+                                               keys=keys)
+                    deployment_ind_sci = int(smeta['the8x3_filename'])*1.0e4
+                    ds, deployment_ind_sci = datameta_to_nc(
+                            sdata, smeta, outdir=outdir,
                             name=sncname, deployment_ind=deployment_ind_sci)
-                        deployment_ind_flight = (int(smeta['the8x3_filename']) *
-                                                 1.0e4)
-                        ds, deployment_ind_flight = datameta_to_nc(fdata, fmeta,
-                            outdir=outdir, name=fncname,
-                            deployment_ind=deployment_ind_flight)
-                    else:
-                        deployment_ind_sci = dis
-                        deployment_ind_flight = dif
-                        _log.warning('Could not decode %s', filesScience[ind])
+                    deployment_ind_flight = (int(smeta['the8x3_filename']) *
+                                             1.0e4)
+                    ds, deployment_ind_flight = datameta_to_nc(
+                        fdata, fmeta, outdir=outdir, name=fncname,
+                        deployment_ind=deployment_ind_flight)
                 else:
                     _log.info('skipping %s', sciname)
             else:
@@ -158,7 +148,6 @@ def binary_to_rawnc(indir, outdir, cacdir,
     _log.info('All done!')
 
 
-
 def _check_diag_header(diag_tuple):
     # diagnostic values should be
     # ['s', 'a', 4660, 123.45600128173828, 123456789.12345] # 4660 is 0x1234
@@ -167,9 +156,8 @@ def _check_diag_header(diag_tuple):
         if ref_tuple[i] != diag_tuple[i]:
             _log.warning('character or int failure: %s', diag_tuple)
             return False
-
     if ((abs(ref_tuple[3] - diag_tuple[3]) > .0001) or
-        (abs(ref_tuple[4] - diag_tuple[4]) > .0001)):
+            (abs(ref_tuple[4] - diag_tuple[4]) > .0001)):
         _log.warning('floating point failure')
         return False
     return True
@@ -193,7 +181,7 @@ def _decode_sensor_info(dfh, meta):
         if line.split(':')[0] != 's':
             raise ValueError('Failed to parse sensor info')
         splitLine = [string.strip() for string in line.split(' ')[1:]
-                        if string and not string.isspace()]
+                     if string and not string.isspace()]
         sensorInfo[splitLine[-2]] = splitLine
         if splitLine[0] == 'T':
             activeSensorList[int(splitLine[2])] = {
@@ -215,7 +203,7 @@ def _get_cached_sensorlist(cachedir, meta):
     found = False
     for d in dd:
         if (os.path.split(d)[1].upper() ==
-            os.path.split(fname0)[1].upper()):
+                os.path.split(fname0)[1].upper()):
             found = True
             break
     if not found:
@@ -282,7 +270,7 @@ def dbd_get_meta(filename, cachedir):
                 not int(meta['sensor_list_factored'])):
             localcache = True
             activeSensorList, sensorInfo, outlines, bindatafilepos = \
-                    _decode_sensor_info(dfh, meta)
+                _decode_sensor_info(dfh, meta)
 
         # read the cache first.  If its not there, try to make one....
         try:
@@ -293,12 +281,12 @@ def dbd_get_meta(filename, cachedir):
                 _log.info('No cache file found; trying to create one')
                 _make_cache(outlines, cachedir, meta)
             else:
-                raise FileNotFoundError(('No active sensor list found for crc ',
-                    '{}. These are often found in ',
+                raise FileNotFoundError(
+                    'No active sensor list found for crc ',
+                    f'{meta["sensor_list_crc"]}. These are often found in ',
                     'offloaddir/Science/STATE/CACHE/ or ',
                     'offloaddir/Main_board/STATE/CACHE/. ',
-                    'Copy those locally into {}'
-                    ).format(meta['sensor_list_crc'], cachedir))
+                    f'Copy those locally into {cachedir}')
         meta['activeSensorList'] = activeSensorList
         # get the file's timestamp...
         meta['_dbdfiletimestamp'] = os.path.getmtime(filename)
@@ -422,8 +410,8 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
             data = data[:ndata]
             break
         else:
-            raise ValueError(('Parsing failed at {}. ',
-                'Got {} expected d or X').format(binaryData.bytepos, d))
+            raise ValueError(f'Parsing failed at {binaryData.bytepos}. ',
+                             f'Got {d} expected d or X')
 
     proctimeend = time.time()
     _log.info(('%s lines of data read from %s, data rate of %s rows '
@@ -469,7 +457,7 @@ def add_times_flight_sci(fdata, sdata=None):
         _log.warning('Duplicate flight entries detected.')
     # Fix common problems with science data set.
     fdata['sci_m_present_time_fixed'] = (fdata['sci_m_present_time'] +
-            fdata['m_science_clothesline_lag'])
+                                         fdata['m_science_clothesline_lag'])
     # There are some nans in the sci_m_present_time_fixed set.
     # We need to interpolate them.
 
@@ -526,6 +514,7 @@ def parse_filter_file(filter_file):
                         keys += [key]
     return keys
 
+
 def _make_dinkumcache(filelist, cachedir):
     """
     Helper function to setup the cache of sensor names based on the crc
@@ -542,7 +531,7 @@ def _make_dinkumcache(filelist, cachedir):
 
 
 def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
-                deployment_ind=0):
+                   deployment_ind=0):
     """
     Convert a raw dinkum data and meta dict to a netcdf fileself.
 
@@ -621,6 +610,7 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
     _log.info(f'Wrote:, {outname}')
     return ds, deployment_ind
 
+
 def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
                 scisuffix='EBD', glidersuffix='DBD'):
 
@@ -682,7 +672,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False,
 
 
 def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
-                scisuffix='EBD', glidersuffix='DBD'):
+                      scisuffix='EBD', glidersuffix='DBD'):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
     the raw flight and science files from the slocum.
@@ -742,7 +732,8 @@ def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
             if num % 10 == 0 or nn == len(scifiles) - 1:
                 ds.to_netcdf(indir+f'TEMP{num:04d}.nc', 'w')
                 ds = None
-        with xr.open_mfdataset(indir+f'TEMP*.nc', decode_times=False, lock=False) as ds:
+        with xr.open_mfdataset(indir+'TEMP*.nc', decode_times=False,
+                               lock=False) as ds:
             dsnew = ds.sortby(ds.time)
             dsnew.to_netcdf(outnebd, 'w')
             _log.info('Wrote ' + outnebd)
@@ -764,7 +755,8 @@ def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
             if num % 10 == 0 or nn == len(scifiles) - 1:
                 ds.to_netcdf(indir+f'TEMPG{num:04d}.nc', 'w')
                 ds = None
-        with xr.open_mfdataset(indir+f'TEMPG*.nc', decode_times=False, lock=False) as ds:
+        with xr.open_mfdataset(indir+'TEMPG*.nc', decode_times=False,
+                               lock=False) as ds:
             dsnew = ds.sortby(ds.time)
             dsnew.to_netcdf(outndbd, 'w')
             _log.info('Wrote ' + outndbd)
@@ -773,7 +765,7 @@ def merge_rawncBrutal(indir, outdir, deploymentyaml, incremental=False,
 
 
 def raw_to_timeseries(indir, outdir, deploymentyaml, *,
-                        profile_filt_time=100, profile_min_time=300):
+                      profile_filt_time=100, profile_min_time=300):
     """
     Parameters
     ----------
@@ -805,7 +797,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
     id = metadata['glider_name'] + metadata['glider_serial']
 
     id0 = None
-    prev_profile = 0
     for mnum in range(0, 500):
         if 1:
             ebdn = indir + '/' + id + f'-{mnum:04d}-rawebd.nc'
@@ -832,7 +823,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
                     for name in thenames:
                         _log.info('working on %s', name)
                         if not('method' in ncvar[name].keys()):
-                            # variables that are in the data set or can be interpolated from it
+                            # variables that are in the data set or can be
+                            # interpolated from it
                             if 'conversion' in ncvar[name].keys():
                                 convert = getattr(utils, ncvar[name]['conversion'])
                             else:
@@ -859,34 +851,26 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
                     _log.debug(f'HERE, {ds}')
                     _log.debug(f'HERE, {ds.pressure[0:100]}')
                     # some derived variables:
-                    # trim bad times...
-                    #ds = ds.sel(time=slice(1e8, None))
-
                     ds = utils.get_glider_depth(ds)
-
                     ds = utils.get_distance_over_ground(ds)
-
-                    # ds = utils.get_profiles(ds)
-                    # ds['profile_index'] = ds.profile_index + prev_profile
-
-                    #ind = np.where(np.isfinite(ds.profile_index))[0]
-                    #prev_profile = ds.profile_index.values[ind][-1]
                     ds = utils.get_derived_eos_raw(ds)
                     ds = ds.assign_coords(longitude=ds.longitude)
                     ds = ds.assign_coords(latitude=ds.latitude)
                     ds = ds.assign_coords(depth=ds.depth)
 
-                    #ds = ds._get_distance_over_ground(ds)
-                    ds['time'] = ds.time.values.astype('timedelta64[s]') + np.datetime64('1970-01-01T00:00:00')
+                    ds['time'] = (ds.time.values.astype('timedelta64[s]') +
+                                  np.datetime64('1970-01-01T00:00:00'))
                     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
                     try:
                         os.mkdir(outdir)
                     except:
                         pass
                     outname = (outdir + '/' + ds.attrs['deployment_name'] +
-                                f'-M{mnum:04d}_L0.nc')
+                               f'-M{mnum:04d}_L0.nc')
                     _log.info('writing %s', outname)
-                    ds.to_netcdf(outname, 'w', encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
+                    timeunits = 'seconds since 1970-01-01T00:00:00Z'
+                    ds.to_netcdf(outname, 'w',
+                                 encoding={'time': {'units': timeunits}})
                     if id0 is None:
                         id0 = ds.attrs['deployment_name']
 
@@ -902,8 +886,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
         ds.attrs['deployment_end'] = str(end)
         _log.debug(ds.depth.values[:100])
         _log.debug(ds.depth.values[2000:2100])
-        ds = utils.get_profiles_new(ds,
-                filt_time=profile_filt_time, profile_min_time=profile_min_time)
+        ds = utils.get_profiles_new(
+            ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
         _log.debug(ds.depth.values[:100])
         _log.debug(ds.depth.values[2000:2100])
 
@@ -928,9 +912,9 @@ def timeseries_get_profiles(inname, profile_filt_time=100,
     profile_min_time : float
         how long a profile must last to be considered a proper profile (seconds)
     """
-    with  xr.open_dataset(inname) as ds:
-        ds = utils.get_profiles_new(ds,
-                filt_time=profile_filt_time, profile_min_time=profile_min_time)
+    with xr.open_dataset(inname) as ds:
+        ds = utils.get_profiles_new(
+            ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
     ds.to_netcdf(inname, mode='a')
     return inname
 
@@ -944,6 +928,6 @@ def _dbd2ebd(dbd, ds, val):
     goodt = np.where(np.isfinite(ds.time))[0]
     if (len(goodt) > 1) and (len(good) > 1):
         _log.debug(f'GOOD, {goodt}, {good}')
-        vout[goodt] = np.interp(ds.time[goodt].values,
-            dbd.m_present_time.values[good], val[good].values)
+        vout[goodt] = np.interp(
+            ds.time[goodt].values, dbd.m_present_time.values[good], val[good].values)
     return vout
