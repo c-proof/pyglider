@@ -1,0 +1,17 @@
+[flake8]
+max-line-length = 85
+ignore =
+    # flake8 default
+    E121,E123,E126,E226,E24,E704,W503,W504,
+    # bare excepts: we really should fix this...
+    E722
+exclude =
+    .git
+    build
+    doc/gallery
+    doc/tutorials
+    # External files.
+    tools/gh_api.py
+    tools/github_stats.py
+    .tox
+    .eggs
