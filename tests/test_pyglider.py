@@ -4,7 +4,6 @@ import sys
 import pytest
 
 library_dir = Path(__file__).parent.parent.absolute()
-sys.path.append(str(library_dir))
 import pyglider.seaexplorer as seaexplorer
 import pyglider.slocum as slocum
 

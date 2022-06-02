@@ -2,6 +2,7 @@
 __pycache__
 _build
 docs/pyglider
+.vscode
 
 *.nc
 *.png
