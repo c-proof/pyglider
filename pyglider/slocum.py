@@ -805,3 +805,5 @@ def _dbd2ebd(dbd, ds, val):
         vout[goodt] = np.interp(
             ds.time[goodt].values, dbd.m_present_time.values[good], val[good].values)
     return vout
+
+__all__ = ['binary_to_rawnc', 'merge_rawnc', 'raw_to_timeseries']
