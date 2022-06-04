@@ -2,6 +2,7 @@ import xarray as xr
 from pathlib import Path
 import sys
 import pytest
+import numpy as np
 
 library_dir = Path(__file__).parent.parent.absolute()
 sys.path.append(str(library_dir))
@@ -77,8 +78,11 @@ def test_variables_slocum():
 @pytest.mark.parametrize("var", variables_slocum)
 def test_example_slocum(var):
     # Test that variables and coordinates match
-    assert output_slocum[var].equals(test_data_slocum[var])
-
+    assert output_slocum[var].attrs == test_data_slocum[var].attrs
+    if var not in ['time']:
+        np.testing.assert_allclose(output_slocum[var].values, test_data_slocum[var].values)
+    else:
+        assert output_slocum[var].equals(test_data_slocum[var])
 
 def test_example_slocum_metadata():
     # Test that attributes match. Have to remove creation and issue dates first
