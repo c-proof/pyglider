@@ -534,7 +534,7 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
     # this gets passed to the next file...
     ds['_ind'] = (('_ind'), index)
 
-    ds['time'] = (('_ind'), time, {'units': 'seconds since 1970-01-01T00:00:00Z'})
+    ds['time'] = (('_ind'), time)
     for key in data.keys():
         ds[key] = (('_ind'), data[key])
         # try and find the unit for this....
@@ -564,7 +564,7 @@ def datameta_to_nc(data, meta, outdir=None, name=None, check_exists=False,
         deployment_ind = ds['_ind'].values[-1]
 
     _log.info(f'Writing! {deployment_ind}')
-    ds.to_netcdf(outname, format='NETCDF4')
+    ds.to_netcdf(outname, 'w')
     _log.info(f'Wrote:, {outname}')
     return ds, deployment_ind
 
