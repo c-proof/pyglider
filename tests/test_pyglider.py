@@ -73,6 +73,7 @@ def test_variables_slocum():
     variables_slocum.sort()
     assert variables_slocum == test_variables
 
+
 @pytest.mark.parametrize("var", variables_slocum)
 def test_example_slocum(var):
     # Test that variables and coordinates match
