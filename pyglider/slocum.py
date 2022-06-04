@@ -437,9 +437,6 @@ def add_times_flight_sci(fdata, sdata=None):
     # There are some nans in the sci_m_present_time_fixed set.
     # We need to interpolate them.
 
-    # Calculate flight times for science data
-    uniqueSciTimes, uniqueSciTimeIndices = np.unique(
-            np.array(fdata['sci_m_present_time']), return_index=True)
     # Interpolate the nans out of sci_m_present_time.
     good = ~np.isnan(fdata['sci_m_present_time_fixed'])
     bad = ~good
@@ -771,27 +768,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
         if id0 is None:
             id0 = ds.attrs['deployment_name']
 
-    if False:
-        # now merge:
-        with xr.open_mfdataset(outdir + '/' + id + '*-M*_L0.nc', lock=False) as ds:
-            _log.debug(ds.attrs)
-
-            # put the real start and end times:
-            start = ds['time'].values[0]
-            end = ds['time'].values[-1]
-
-            ds.attrs['deployment_start'] = str(start)
-            ds.attrs['deployment_end'] = str(end)
-            _log.debug(ds.depth.values[:100])
-            _log.debug(ds.depth.values[2000:2100])
-            ds = utils.get_profiles_new(ds,
-                    filt_time=profile_filt_time, profile_min_time=profile_min_time)
-            _log.debug(ds.depth.values[:100])
-            _log.debug(ds.depth.values[2000:2100])
-
-            outname = outdir + '/' + id0 + '.nc'
-            _log.info(outname)
-            ds.to_netcdf(outname)
     return outname
 
 
