@@ -12,6 +12,7 @@ import time
 import xarray as xr
 import yaml
 import pyglider.utils as utils
+import xml.etree.ElementTree as ET
 
 
 _log = logging.getLogger(__name__)
@@ -806,4 +807,46 @@ def _dbd2ebd(dbd, ds, val):
             ds.time[goodt].values, dbd.m_present_time.values[good], val[good].values)
     return vout
 
-__all__ = ['binary_to_rawnc', 'merge_rawnc', 'raw_to_timeseries']
+
+def parse_gliderState(fname):
+    """
+    Parse time, lat, and lon from a gliderstate file
+
+    Parameters
+    ----------
+    fname : string or Path
+        Location of the gliderState.xml file for the glider
+
+    Returns
+    -------
+    dat : xarray
+        xarray with fields time, lon, lat
+    """
+
+    data = {'lon': ('report', np.zeros(10000)),
+            'lat': ('report', np.zeros(10000)),
+            'time': ('report', np.zeros(10000,
+                                        dtype='datetime64[s]'))}
+
+    dat = xr.Dataset(data_vars=data)
+
+    tree = ET.parse(fname)
+    root = tree.getroot()
+    nevents = 0
+    for event in root.iter('report'):
+        e = event.find('locations')
+        for el in e.iter('valid_location'):
+            lat = el.find('lat').text
+            lon = el.find('lon').text
+            time = el.find('time').text
+            if time != 'unavailable':
+                dat.time[nevents] = np.datetime64(time[:-5])
+                dat.lon[nevents] = utils.nmea2deg(float(lon))
+                dat.lat[nevents] = utils.nmea2deg(float(lat))
+                nevents += 1
+    dat = dat.isel(report=slice(nevents))
+    return dat
+
+
+__all__ = ['binary_to_rawnc', 'merge_rawnc', 'raw_to_timeseries',
+           'parse_glider_state']
