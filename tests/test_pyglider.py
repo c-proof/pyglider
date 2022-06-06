@@ -5,15 +5,16 @@ import pytest
 import numpy as np
 
 library_dir = Path(__file__).parent.parent.absolute()
-sys.path.append(str(library_dir))
+example_dir = library_dir / '_example_data/pyglider-example-data-main/'
+
 import pyglider.seaexplorer as seaexplorer
 import pyglider.slocum as slocum
 
 # Create an L0 timeseries from seaexplorer data and test that the resulting netcdf is identical to the test data
-rawdir = str(library_dir / 'example-seaexplorer/realtime_raw/') + '/'
-rawncdir = str(library_dir / 'example-seaexplorer/realtime_rawnc/') + '/'
-deploymentyaml = str(library_dir / 'example-seaexplorer/deploymentRealtime.yml')
-l0tsdir = str(library_dir / 'example-seaexplorer/L0-timeseries-test/') + '/'
+rawdir = str(example_dir / 'example-seaexplorer/realtime_raw/') + '/'
+rawncdir = str(example_dir / 'example-seaexplorer/realtime_rawnc/') + '/'
+deploymentyaml = str(example_dir / 'example-seaexplorer/deploymentRealtime.yml')
+l0tsdir = str(example_dir / 'example-seaexplorer/L0-timeseries-test/') + '/'
 seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
 seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
 outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
@@ -46,12 +47,12 @@ def test_example_seaexplorer_metadata():
 
 
 # Create an L0 timeseries from slocum data and test that the resulting netcdf is identical to the test data
-cacdir = str(library_dir / 'example-slocum/cac/') + '/'
-sensorlist = str(library_dir / 'example-slocum/dfo-rosie713_sensors.txt')
-binarydir = str(library_dir / 'example-slocum/realtime_raw/') + '/'
-rawdir_slocum = str(library_dir / 'example-slocum/realtime_rawnc/') + '/'
-deploymentyaml_slocum = str(library_dir / 'example-slocum/deploymentRealtime.yml')
-l1tsdir = str(library_dir / 'example-slocum/L0-timeseries-test/') + '/'
+cacdir = str(example_dir / 'example-slocum/cac/') + '/'
+sensorlist = str(example_dir / 'example-slocum/dfo-rosie713_sensors.txt')
+binarydir = str(example_dir / 'example-slocum/realtime_raw/') + '/'
+rawdir_slocum = str(example_dir / 'example-slocum/realtime_rawnc/') + '/'
+deploymentyaml_slocum = str(example_dir / 'example-slocum/deploymentRealtime.yml')
+l1tsdir = str(example_dir / 'example-slocum/L0-timeseries-test/') + '/'
 scisuffix = 'tbd'
 glidersuffix = 'sbd'
 

@@ -5,7 +5,8 @@ import sys
 import os
 os.system('rm tests/data/realtime_rawnc/*')
 library_dir = Path(__file__).parent.parent.absolute()
-sys.path.append(str(library_dir))
+example_dir = library_dir / '_example_data/pyglider-example-data-main/'
+
 import pyglider.seaexplorer as seaexplorer
 
 
@@ -54,12 +55,12 @@ def test_merge_rawnc():
     result_default = seaexplorer.merge_rawnc(
             'tests/data/realtime_rawnc/',
             'tests/data/realtime_rawnc/',
-            'example-seaexplorer/deploymentRealtime.yml')
+            example_dir / 'example-seaexplorer/deploymentRealtime.yml')
 
     result_sub = seaexplorer.merge_rawnc(
             'tests/data/realtime_rawnc/',
             'tests/data/realtime_rawnc/',
-            'example-seaexplorer/deploymentRealtime.yml',
+            example_dir / 'example-seaexplorer/deploymentRealtime.yml',
             kind='sub')
     assert result_default is False
     assert result_sub is True
@@ -79,11 +80,11 @@ def test_raw_to_timeseries():
     with pytest.raises(FileNotFoundError) as missing_file_exc:
         result_default = seaexplorer.raw_to_timeseries('tests/data/realtime_rawnc/',
                                                         'tests/data/l0-profiles/',
-                                                        'example-seaexplorer/deploymentRealtime.yml',
+                                                        example_dir / 'example-seaexplorer/deploymentRealtime.yml',
                                                         )
     result_sub = seaexplorer.raw_to_timeseries('tests/data/realtime_rawnc/',
                                                     'tests/data/l0-profiles/',
-                                                    'example-seaexplorer/deploymentRealtime.yml',
+                                                    example_dir / 'example-seaexplorer/deploymentRealtime.yml',
                                                     kind='sub')
     assert 'No such file or directory' in str(missing_file_exc)
     assert result_sub == 'tests/data/l0-profiles/dfo-eva035-20190718.nc'

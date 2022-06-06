@@ -12,3 +12,4 @@ simplekml
 webcolors
 bitstring
 pytest
+pooch
