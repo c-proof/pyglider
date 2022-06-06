@@ -18,3 +18,5 @@ def get_example_data(outdir='./'):
     with ZipFile(zipfile, 'r') as zipObj:
         # Extract all the contents of zip file in outdir
         zipObj.extractall(outdir)
+
+__all__ = ['get_example_data']
