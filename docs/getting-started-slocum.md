@@ -36,14 +36,14 @@ Optionally, PyGlider provides some bespoke plotting routines.  We find these use
 (ExDeplSlocum)=
 ### Example deployment.yaml
 
-```{literalinclude} ../example-slocum/deploymentRealtime.yml
+```{literalinclude}  ../_example_data/pyglider-example-data-main/example-slocum/deploymentRealtime.yml
 :language: yaml
 ```
 
 (ExProcSlocum)=
 ### Example processing script
 
-```{literalinclude} ../example-slocum/process_deploymentRealTime.py
+```{literalinclude}  ../_example_data/pyglider-example-data-main/example-slocum/process_deploymentRealTime.py
 :language: python
 ```
 

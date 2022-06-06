@@ -32,13 +32,13 @@ Optionally, PyGlider provides some bespoke plotting routines.  We find these use
 (ExDepl)=
 ### Example deployment.yaml
 
-```{literalinclude} ../example-seaexplorer/deploymentRealtime.yml
+```{literalinclude} ../_example_data/pyglider-example-data-main/example-seaexplorer/deploymentRealtime.yml
 :language: yaml
 ```
 
 (ExProc)=
 ### Example processing script
 
-```{literalinclude} ../example-seaexplorer/process_deploymentRealTime.py
+```{literalinclude}  ../_example_data/pyglider-example-data-main/example-seaexplorer/process_deploymentRealTime.py
 :language: python
 ```
