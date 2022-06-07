@@ -3,7 +3,7 @@
 Routines to convert raw slocum dinkum files to netcdf timeseries.
 
 """
-from pyglider import bitstring
+import bitstring
 import glob
 import logging
 import numpy as np
