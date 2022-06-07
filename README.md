@@ -1,6 +1,3 @@
-pyglider
-========
-
 ![](docs/_static/PyGliderHorizontal.svg)
 
 Python tools for interacting with ocean glider data
