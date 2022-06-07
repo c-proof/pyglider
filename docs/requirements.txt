@@ -11,4 +11,10 @@ geojson
 simplekml
 webcolors
 bitstring
+pydata-sphinx-theme
+sphinx
 pytest
+autoapi
+numpydoc
+myst-parser
+nodejs
