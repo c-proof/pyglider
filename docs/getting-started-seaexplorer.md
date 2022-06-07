@@ -5,6 +5,16 @@
 
 SeaExplorers send back and record two main types of files, glider files (`*.gli.*`) that contain glider navigation information, and payload files (`*.pld1.*`) that contain the science data.  These can be subset files, `*.sub.*` that Alseamar decimates for transmission, or they can be full resolution files from the glider (`*.raw.*`), offloaded post mission.  The raw or subset files need to be made available in a single directory for `pyglider` to process.
 
+You can download and expand example data using `.get_example_data`:
+
+```python
+import pyglider.example_data as pexamp
+
+pexamp.get_example_data('./')
+```
+
+which will add a local directory `pyglider-example-data-main` to your current directory.
+
 ## Make a deployment configuration file
 
 The processing routines all take a `deployment.yaml` file as an argument, and information from this is used to fill in metadata and to map sensor names to NetCDF variable names.  See {ref}`ExDepl`, below.
@@ -32,13 +42,13 @@ Optionally, PyGlider provides some bespoke plotting routines.  We find these use
 (ExDepl)=
 ### Example deployment.yaml
 
-```{literalinclude} ../example-seaexplorer/deploymentRealtime.yml
+```{literalinclude} ../_example_data/pyglider-example-data-main/example-seaexplorer/deploymentRealtime.yml
 :language: yaml
 ```
 
 (ExProc)=
 ### Example processing script
 
-```{literalinclude} ../example-seaexplorer/process_deploymentRealTime.py
+```{literalinclude}  ../_example_data/pyglider-example-data-main/example-seaexplorer/process_deploymentRealTime.py
 :language: python
 ```

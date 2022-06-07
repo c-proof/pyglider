@@ -17,6 +17,9 @@ jobs:
           name: install module
           command: python -m pip install --user -ve .
       - run:
+          name: download examples
+          command: python get_examples.py
+      - run:
           name: Build docs
           command: cd docs/ && make html
       - persist_to_workspace:

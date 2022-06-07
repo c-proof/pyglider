@@ -2,6 +2,8 @@
 __pycache__
 _build
 docs/pyglider
+_example_data
+pyglider-example-data-main
 
 *.nc
 *.png

@@ -6,6 +6,16 @@ Slocum gliders have 4 types of files.  For telemetry data there is `*.sbd` files
 
 Slocums also have a sensor cache file `*.cac`, all of which have randomized names.  These are needed by the processing, and are usually stored in a separate cache directory.
 
+You can download and expand example data using `.get_example_data`:
+
+```python
+import pyglider.example_data as pexamp
+
+pexamp.get_example_data('./')
+```
+
+which will add a local directory `pyglider-example-data-main` to your current directory.
+
 ## Make a deployment configuration file
 
 The processing routines all take a `deployment.yaml` file as an argument, and information from this is used to fill in metadata and to map sensor names to NetCDF variable names.  See {ref}`ExDeplSlocum`, below.
@@ -36,15 +46,14 @@ Optionally, PyGlider provides some bespoke plotting routines.  We find these use
 (ExDeplSlocum)=
 ### Example deployment.yaml
 
-```{literalinclude} ../example-slocum/deploymentRealtime.yml
+```{literalinclude}  ../_example_data/pyglider-example-data-main/example-slocum/deploymentRealtime.yml
 :language: yaml
 ```
 
 (ExProcSlocum)=
 ### Example processing script
 
-```{literalinclude} ../example-slocum/process_deploymentRealTime.py
+```{literalinclude}  ../_example_data/pyglider-example-data-main/example-slocum/process_deploymentRealTime.py
 :language: python
 ```
 
-Weird
