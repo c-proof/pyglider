@@ -12,6 +12,19 @@ _log = logging.getLogger(__name__)
 
 def extract_timeseries_profiles(inname, outdir, deploymentyaml):
     """
+    Extract and save each profile from a timeseries netCDF.
+
+    Parameters
+    ----------
+    inname : str or Path
+        netcdf file to break into profiles
+
+    outdir : str or Path
+        directory to place profiles
+
+    deploymentyaml : str or Path
+        location of deployment yaml file for the netCDF file.  This should
+        be the same yaml file that was used to make the timeseries file.
     """
     try:
         os.mkdir(outdir)
@@ -106,6 +119,29 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
 
 def make_gridfiles(inname, outdir, deploymentyaml, dz=1):
     """
+    Turn a timeseries netCDF file into a vertically gridded netCDF.
+
+    Parameters
+    ----------
+    inname : str or Path
+        netcdf file to break into profiles
+
+    outdir : str or Path
+        directory to place profiles
+
+    deploymentyaml : str or Path
+        location of deployment yaml file for the netCDF file.  This should
+        be the same yaml file that was used to make the timeseries file.
+
+    dz : float, default = 1
+        Vertical grid spacing in meters.
+
+    Returns
+    -------
+    outname : str
+        Name of gridded netCDF file. The gridded netCDF file has coordinates of
+        'depth' and 'profile', so each variable is gridded in depth bins and by
+        profile number.  Each profile has a time, latitude, and longitude.
     """
     try:
         os.mkdir(outdir)
