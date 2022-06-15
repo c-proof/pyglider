@@ -137,8 +137,8 @@ def timeseries_plots(fname, plottingyaml):
           #              locator = mdates.AutoDateLocator()
           #              formatter = mdates.ConciseDateFormatter(locator)
           #              formatter.offset_formats = ['',
-                                                    '',
-                                                    '',]
+          #                                          '',
+          #                                          '',]
           #              ax.xaxis.set_major_locator(locator)
           #              ax.xaxis.set_major_formatter(formatter)
                         #end offset format fix
