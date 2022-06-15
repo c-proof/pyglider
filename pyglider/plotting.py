@@ -70,11 +70,11 @@ def timeseries_plots(fname, plottingyaml):
         ax.grid()
         fig1.savefig(config['figdir'] + '/jp1_map%s.png'%ds.attrs['deployment_name'], dpi=200)
        
-        locator = mdates.AutoDateLocator()
-        formatter = mdates.ConciseDateFormatter(locator)
-        formatter.offset_formats = ['',
-                                   '',
-                                    '',]
+        #locator = mdates.AutoDateLocator()
+        #formatter = mdates.ConciseDateFormatter(locator)
+        #formatter.offset_formats = ['',
+        #                           '',
+        #                            '',]
         
         #fig, axs = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]})
         fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 1]})
@@ -84,8 +84,8 @@ def timeseries_plots(fname, plottingyaml):
    #    # ax.plot(ds.time, ds.longitude, '.') #jp commented
         ax.set_ylabel('Lon [degrees west]')
         ax.grid()
-        ax.xaxis.set_major_locator(locator)
-        ax.xaxis.set_major_formatter(formatter)
+       # ax.xaxis.set_major_locator(locator)
+       # ax.xaxis.set_major_formatter(formatter)
 
     #   ax = axs[2]
         ax = axs[1]
@@ -94,8 +94,8 @@ def timeseries_plots(fname, plottingyaml):
         ax.set_ylabel('Lat [degrees north]')
         ax.grid()
 
-        ax.xaxis.set_major_locator(locator)
-        ax.xaxis.set_major_formatter(formatter)
+        # ax.xaxis.set_major_locator(locator)
+        # ax.xaxis.set_major_formatter(formatter)
 
         fig.savefig(config['figdir'] + '/jp2_map%s.png'%ds.attrs['deployment_name'], dpi=200)
 
@@ -134,13 +134,13 @@ def timeseries_plots(fname, plottingyaml):
                       #  ds[k].attrs['units'] + ']', loc='left', fontsize=9)
                     if n in b:
                     #jpnote: offset format fix -remove hanging date
-                        locator = mdates.AutoDateLocator()
-                        formatter = mdates.ConciseDateFormatter(locator)
-                        formatter.offset_formats = ['',
+          #              locator = mdates.AutoDateLocator()
+          #              formatter = mdates.ConciseDateFormatter(locator)
+          #              formatter.offset_formats = ['',
                                                     '',
                                                     '',]
-                        ax.xaxis.set_major_locator(locator)
-                        ax.xaxis.set_major_formatter(formatter)
+          #              ax.xaxis.set_major_locator(locator)
+          #              ax.xaxis.set_major_formatter(formatter)
                         #end offset format fix
                     ax.set_title(ds[k].attrs['long_name'] + ' over time', loc='left', fontsize=9)
             fig.savefig(config['figdir'] + '/ts_%s.png'%ds.attrs['deployment_name'], dpi=200)
@@ -267,10 +267,10 @@ def timeseries_plots(fname, plottingyaml):
                 _log.info('cl %s', k)
                 if config['timeseries'][k] == 'True':
                     ax = axs[n]
-                    locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
-                    formatter = mdates.ConciseDateFormatter(locator)
-                    ax.xaxis.set_major_locator(locator)
-                    ax.xaxis.set_major_formatter(formatter)
+           #         locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+           #         formatter = mdates.ConciseDateFormatter(locator)
+           #         ax.xaxis.set_major_locator(locator)
+           #         ax.xaxis.set_major_formatter(formatter)
                     good = np.where(~np.isnan(ds[k] + ds.depth))[0]
                     min, max = _autoclim(ds[k][good])
                     pc = ax.scatter(ds.time[good], ds.depth[good], s=3, c=ds[k][good],
@@ -381,13 +381,13 @@ def grid_plots(fname, plottingyaml):
             ax = axs[n]
             ax.yaxis.set_tick_params(labelbottom=True) 
             ax.xaxis.set_tick_params(labelbottom=True)
-            locator = mdates.AutoDateLocator() 
-            formatter = mdates.ConciseDateFormatter(locator)
-            formatter.offset_formats = ['',
-                                        '',
-                                        '',]
-            ax.xaxis.set_major_locator(locator)
-            ax.xaxis.set_major_formatter(formatter)
+           # locator = mdates.AutoDateLocator() 
+           # formatter = mdates.ConciseDateFormatter(locator)
+           # formatter.offset_formats = ['',
+           #                             '',
+           #                             '',]
+           # ax.xaxis.set_major_locator(locator)
+           # ax.xaxis.set_major_formatter(formatter)
 
             min, max = _autoclim(ds[k])
             if vmin is not None:
