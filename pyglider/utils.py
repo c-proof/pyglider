@@ -112,7 +112,6 @@ def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
              ('sources', 'time pressure'),
              ('method', 'get_profiles'),
              ('min_dp', min_dp),
-             ('inversion', inversion),
              ('filt_length', filt_length),
              ('min_nsamples', min_nsamples)])
     ds['profile_index'] = (('time'), profile, attrs)
@@ -219,7 +218,6 @@ def get_profiles_new(ds, min_dp = 10.0, filt_time=100, profile_min_time=300):
              ('sources', 'time pressure'),
              ('method', 'get_profiles_new'),
              ('min_dp', min_dp),
-             ('inversion', inversion),
              ('filt_length', filt_length),
              ('min_nsamples', min_nsamples)])
     ds['profile_index'] = (('time'), profile, attrs)
