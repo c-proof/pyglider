@@ -33,9 +33,6 @@ jobs:
       - name: install pyglider
         shell: bash -l {0}
         run: which pip; pip install -e .
-      - name: get examples
-        shell: bash -l {0}
-        run: python get_examples.py
       - name: Process seaexplorer
         shell: bash -l {0}
         run: which python; cd tests/example-data/example-seaexplorer; make clean-all; python process_deploymentRealTime.py
