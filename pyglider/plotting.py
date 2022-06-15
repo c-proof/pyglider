@@ -396,8 +396,7 @@ def grid_plots(fname, plottingyaml):
                 max = vmax
             # make time windows:
             if ax == axs[0]:
-                vmax = 300
-                cmap.set_over("black") 
+                vmax = 300 
                 ax.set_ylim([300, 0])
 
             vmax = 300
