@@ -5,7 +5,7 @@ import sys
 import os
 os.system('rm tests/data/realtime_rawnc/*')
 library_dir = Path(__file__).parent.parent.absolute()
-example_dir = library_dir / '_example_data/pyglider-example-data-main/'
+example_dir = library_dir / 'tests/example-data/'
 
 import pyglider.seaexplorer as seaexplorer
 

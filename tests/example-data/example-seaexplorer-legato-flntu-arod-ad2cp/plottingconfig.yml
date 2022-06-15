@@ -1,0 +1,29 @@
+figdir: './figs/'
+starttime: '2019-06-13T13:00'
+timeseries:
+  temperature:  "True"
+  salinity:     "True"
+  oxygen_concentration:    "True"
+  backscatter_700: "False"
+  chlorophyll:   "True"
+  cdom:          "True"
+# 'RdBu_r', 'viridis', 'RdYlBu', 'Greens'
+pcolor:
+  ncols : 2
+  density_cont_interval : 0.5
+  vars:
+    temperature:
+      cmap:    'RdBu_r'
+    salinity:
+      cmap:    'viridis'
+      #vmin:     6
+      #vmax:     16
+    oxygen_concentration:
+      cmap:    'RdYlBu'
+      vmin:     80
+      vmax:     350
+    chlorophyll:
+      cmap:    'Greens'
+      vmin:     0
+      vmax:     0.5
+

@@ -1,0 +1,348 @@
+metadata:
+  # https://github.com/ioos/ioosngdac/wiki/NGDAC-NetCDF-File-Format-Version-2
+  acknowledgement: Funding from Fisheries and Oceans Canada, Canadian Foundation
+                   for Innovation, BC Knowledge Development Fund
+  comment:        "Explorer Seamount cruise on Tully"
+  contributor_name: James Pegg, Jody Klymak, Tetjana Ross
+  contributor_role: Lead Technician, Principal Investigator, Co-PI
+  creator_email: jklymak@uvic.ca
+  creator_name:  Jody Klymak
+  creator_url:   http://cproof.uvic.ca
+  # date_created etc: added automatically
+  # numbers must be enclosed by strings so YAML keeps as strings
+  deployment_id: '1'
+  deployment_name: 'dfo-eva035-20190718'
+  deployment_start: '2019-07-18'
+  deployment_end: '2019-12-30'
+  format_version: IOOS_Glider_NetCDF_v2.0.nc
+  # id filled automatically...
+  glider_name: dfo-eva035
+  glider_serial: '035'
+  glider_model: SeaExplorer
+  glider_instrument_name: seaexplorer
+  glider_wmo: '999999'
+  institution: C-PROOF
+  keywords: "AUVS, Autonomous Underwater Vehicles, Oceans, Ocean Pressure,
+             Water Pressure, Oceans, Ocean Temperature, Water Temperature,
+             Oceans, Salinity/Density, Conductivity, Oceans,
+             Salinity/Density, Density, Oceans, Salinity/Density, Salinity"
+  keywords_vocabulary: GCMD Science Keywords
+  license: "This data may be redistributed and used without restriction or
+            warranty"
+  metadata_link: "https://cproof.uvic.ca"
+  Metadata_Conventions: CF-1.6, Unidata Dataset Discovery v1.0
+  naming_authority: "ca.uvic.cproof"
+  platform_type:    "SeaExplorer Glider"
+  processing_level: "Data provided as is with no expressed or implied
+                     assurance of quality assurance or quality control."
+  project: ExplorerSeamount19
+  project_url: http://cproof.uvic.ca
+  publisher_email: jklymak@uvic.ca
+  publisher_name:  Jody Klymak
+  publisher_url:   http://cproof.uvic.ca
+  references:     cproof toolbox URL
+  # https://www.nodc.noaa.gov/General/NODC-Archive/seanamelist.txt
+  sea_name:   BC Coastal Waters
+  source:     Observational data from a profiling glider.
+  standard_name_vocabulary: CF STandard Name Table v49
+  summary: Short deployment off Tully near Explorer Seamount.
+  transmission_system: IRRIDIUM
+  wmo_id: "999999"
+
+
+glider_devices:
+  pressure:
+    make: Micron
+    model: Pressure
+    serial: '104702'
+  ctd:
+    make: Seabird
+    model: GPCTD
+    serial: '0278'
+    long_name: Seabird SlocumCTD
+    make_model: Seabird SlocumCTD
+    factory_calibrated: "Yes"
+    calibration_date: "02/11/2018"
+    calibration_report: " "
+    comment:   " "
+  optics:
+    make: Wetlabs
+    model: FLBBCDSLC
+    serial: '4741'
+  oxygen:
+    make: AROD_FT
+    model: Optode4831
+    serial: '0022'
+
+# map between glider variables and netcdf variables.  This shouldn't
+# change too much.
+netcdf_variables:
+  timebase:
+    source:       GPCTD_TEMPERATURE
+  # Time and Place:
+  time:
+    source:        time
+    long_name:     Time
+    standard_name: time
+    axis:          T
+    observation_type: "measured"
+    coordinates:   time depth latitude longitude
+
+  latitude:
+    source:       NAV_LATITUDE
+    long_name:    latitude
+    standard_name: latitude
+    units:        degrees_north
+    axis:         Y
+    coordinates:   time depth latitude longitude
+    conversion:   nmea2deg
+    comment:     "Estimated between surface fixes"
+    observation_type: measured
+    platform:     platform
+    reference:    WGS84
+    valid_max:    "90.0"
+    valid_min:    "-90.0"
+    coordinate_reference_frame:  urn:ogc:crs:EPSG::4326
+
+  longitude:
+    source:       NAV_LONGITUDE
+    long_name:    longitude
+    standard_name: longitude
+    units:        degrees_east
+    axis:         X
+    coordinates:  time depth latitude longitude
+    conversion:   nmea2deg
+    comment:     "Estimated between surface fixes"
+    observation_type: measured
+    platform:     platform
+    reference:    WGS84
+    valid_max:    "180.0"
+    valid_min:    "-180.0"
+    coordinate_reference_frame:  urn:ogc:crs:EPSG::4326
+
+  heading:
+    source:       Heading
+    long_name:    glider heading angle
+    standard_name: platform_orientation
+    units:        rad
+    coordinates:  time depth latitude longitude
+
+  pitch:
+    source:       Pitch
+    long_name:    glider pitch angle
+    standard_name: platform_pitch_angle
+    units:        rad
+    coordinates:  time depth latitude longitude
+
+  roll:
+    source:       Roll
+    long_name:    glider roll angle
+    standard_name: platform_roll_angle
+    units:        rad
+    coordinates:  time depth latitude longitude
+
+  # data parameters
+  conductivity:
+    source:       GPCTD_CONDUCTIVITY
+    long_name:    water conductivity
+    standard_name: sea_water_electrical_conductivity
+    units:        S m-1
+    coordinates:  time depth latitude longitude
+    instrument:    instrument_ctd
+    valid_min:    "0."
+    valid_max:    "10."
+    observation_type: "measured"
+    accuracy:      "0.0003"
+    precision:     "0.0001"
+    resolution:     "0.00002"
+
+  temperature:
+    source:       GPCTD_TEMPERATURE
+    long_name:    water temperature
+    standard_name: sea_water_temperature
+    units:        Celsius
+    coordinates:  time depth latitude longitude
+    instrument:   instrument_ctd
+    valid_min:    "-5"
+    valid_max:    "50"
+    observation_type: "measured"
+    accuracy:      "0.002"
+    precision:     "0.001"
+    resolution:    "0.0002"
+
+  pressure:
+    source:       GPCTD_PRESSURE
+    long_name:    water pressure
+    standard_name:  sea_water_pressure
+    units:        dbar
+    coordinates:  time depth latitude longitude
+    valid_min:    "0"
+    valid_max:    "2000"
+    positive:      "down"
+    reference_datum:  "sea-surface"
+    instrument:     "instrument_ctd"
+    observation_type: "measured"
+    accuracy:         "1"
+    precision:        "2"
+    resolution:       "0.02"
+    comment:          "ctd pressure sensor"
+
+# optics:
+  chlorophyll:
+    source:       FLBBCD_CHL_SCALED
+    long_name:    chlorophyll
+    standard_name: concentration_of_chlorophyll_in_sea_water
+    units:        mg m-3
+    coordinates:  time depth latitude longitude
+
+  cdom:
+    source:  FLBBCD_CDOM_SCALED
+    long_name:    CDOM
+    units:        ppb
+    coordinates:  time depth latitude longitude
+
+  backscatter_700:
+    source:       FLBBCD_BB_700_SCALED
+    long_name:    700 nm wavelength backscatter
+    units:         "1"
+    coordinates:  time depth latitude longitude
+
+# Oxygen
+  oxygen_concentration:
+    source:       AROD_FT_DO
+    long_name:    oxygen concentration
+    standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
+    units:        umol l-1
+    coordinates:   time depth latitude longitude
+    coarsen:      8
+
+  temperature_oxygen:
+    source:  AROD_FT_TEMP
+    long_name:    oxygen sensor temperature
+    standard_name: temperature_of_sensor_for_oxygen_in_sea_water
+    units:        Celsius
+    coordinates:   time depth latitude longitude
+    coarsen:      8
+
+# derived water speed:
+  # water_velocity_eastward:
+  #   source:    m_final_water_vx
+  #   long_name:      mean eastward water velocity in segment
+  #   standard_name:  barotropic_eastward_sea_water_velocity
+  #   units:          m s-1
+  #   coordinates:   time depth latitude longitude
+  #
+  # water_velocity_northward:
+  #   source:    m_final_water_vy
+  #   long_name:      mean northward water velocity in segment
+  #   standard_name:  barotropic_northward_sea_water_velocity
+  #   units:          m s-1
+  #   coordinates:   time depth latitude longitude
+
+profile_variables:
+  # variables for extract_L1timeseries_profiles processing step...
+  profile_id:
+    comment: Sequential profile number within the trajectory.  This value is unique in each file that is part of a single trajectory/deployment.
+    long_name: 'Profile ID'
+    valid_max: '2147483647'
+    valid_min: '1'
+
+  profile_time:
+    comment:           Timestamp corresponding to the mid-point of the profile
+    long_name:         Profile Center Time
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     time
+
+  profile_time_start:
+    comment:           Timestamp corresponding to the start of the profile
+    long_name:         Profile Start Time
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     time
+
+  profile_time_end:
+    comment:           Timestamp corresponding to the end of the profile
+    long_name:         Profile End Time
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     time
+
+  profile_lat:
+    comment:           Value is interpolated to provide an estimate of the latitude at the mid-point of the profile
+    long_name:         Profile Center Latitude
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     latitude
+    units:             degrees_north
+    valid_max:         "90.0"
+    valid_min:         "-90.0"
+
+  profile_lon:
+    comment:           Value is interpolated to provide an estimate of the latitude at the mid-point of the profile
+    long_name:         Profile Center Longitude
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     longitude
+    units:             degrees_east
+    valid_max:         "180.0"
+    valid_min:         "-180.0"
+
+  u:
+    comment:  The depth-averaged current is an estimate of the net current measured while the glider is underwater.  The value is calculated over the entire underwater segment, which may consist of 1 or more dives.
+    long_name:         Depth-Averaged Eastward Sea Water Velocity
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     eastward_sea_water_velocity
+    units:             m s-1
+    valid_max:         "10.0"
+    valid_min:         "-10.0"
+
+  v:
+    comment:  The depth-averaged current is an estimate of the net current measured while the glider is underwater.  The value is calculated over the entire underwater segment, which may consist of 1 or more dives.
+    long_name:         Depth-Averaged Northward Sea Water Velocity
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     northward_sea_water_velocity
+    units:             m s-1
+    valid_max:         "10.0"
+    valid_min:         "-10.0"
+
+  lon_uv:
+    comment:           Not computed
+    long_name:         Longitude
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     longitude
+    units:             degrees_east
+    valid_max:         "180.0"
+    valid_min:         "-180.0"
+
+  lat_uv:
+    comment:           Not computed
+    long_name:         Latitude
+    observation_type:  calculated
+    platform:          platform
+    standard_name:     latitude
+    units:             degrees_north
+    valid_max:         "90.0"
+    valid_min:         "-90.0"
+
+  time_uv:
+    comment:       Not computed
+    long_name:     Time
+    standard_name: time
+    calendar:      gregorian
+    units:         seconds since 1970-01-01T00:00:00Z
+    observation_type: calculated
+
+  instrument_ctd:
+    comment:    pumped CTD
+    calibration_date:     "2017-12-24"
+    calibration_report:   20171224_Seabird_SlocumCTD_SN9446_calibrations.pdf
+    factory_calibrated:  "yes"
+    long_name:           Seabird Glider Payload CTD
+    make_model:          Seabird GPCTD
+    platform:            platform
+    serial_number:       "9446"
+    type:                platform

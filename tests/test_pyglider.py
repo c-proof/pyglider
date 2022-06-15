@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 library_dir = Path(__file__).parent.parent.absolute()
-example_dir = library_dir / '_example_data/pyglider-example-data-main/'
+example_dir = library_dir / 'tests/example-data/'
 
 import pyglider.seaexplorer as seaexplorer
 import pyglider.slocum as slocum
