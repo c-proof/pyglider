@@ -29,19 +29,22 @@ jobs:
           use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
       - name: Conda info
         shell: bash -l {0}
-        run: conda info    
+        run: conda info
       - name: install pyglider
         shell: bash -l {0}
         run: which pip; pip install -e .
+      - name: get examples
+        shell: bash -l {0}
+        run: python get_examples.py
       - name: Process seaexplorer
         shell: bash -l {0}
-        run: which python; cd example-seaexplorer; make clean-all; python process_deploymentRealTime.py
+        run: which python; cd _example_data/pyglider-example-data-main/example-seaexplorer; make clean-all; python process_deploymentRealTime.py
       - name: Process slocum
         shell: bash -l {0}
-        run: which python; cd example-slocum; make clean-all; python process_deploymentRealTime.py
+        run: which python; cd _example_data/pyglider-example-data-main/example-slocum; make clean-all; python process_deploymentRealTime.py
       - name: Process seaexplorer-legato-flntu-arod-ad2cp
         shell: bash -l {0}
-        run: which python; cd example-seaexplorer-legato-flntu-arod-ad2cp; make clean-all; python process_deploymentRealTime.py
+        run: which python; cd _example_data/pyglider-example-data-main/example-seaexplorer-legato-flntu-arod-ad2cp; make clean-all; python process_deploymentRealTime.py
       - name: Run tests
         shell: bash -l {0}
         run: which python; pytest

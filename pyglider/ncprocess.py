@@ -1,5 +1,3 @@
-import collections
-import datetime
 import logging
 import xarray as xr
 import numpy as np
@@ -11,8 +9,22 @@ import scipy.stats as stats
 
 _log = logging.getLogger(__name__)
 
-def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
+
+def extract_timeseries_profiles(inname, outdir, deploymentyaml):
     """
+    Extract and save each profile from a timeseries netCDF.
+
+    Parameters
+    ----------
+    inname : str or Path
+        netcdf file to break into profiles
+
+    outdir : str or Path
+        directory to place profiles
+
+    deploymentyaml : str or Path
+        location of deployment yaml file for the netCDF file.  This should
+        be the same yaml file that was used to make the timeseries file.
     """
     try:
         os.mkdir(outdir)
@@ -29,19 +41,19 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
         profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
                                             and (p > 0))]
         for p in profiles:
-            ind = np.where(ds.profile_index==p)[0]
+            ind = np.where(ds.profile_index == p)[0]
             dss = ds.isel(time=ind)
             outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
             _log.info('Checking %s', outname)
             if not os.path.exists(outname):
                 # this is the id for the whole file, not just this profile..
-                dss['trajectory'] =  utils.get_file_id(ds).encode()
+                dss['trajectory'] = utils.get_file_id(ds).encode()
                 trajlen = len(utils.get_file_id(ds).encode())
                 dss['trajectory'].attrs['cf_role'] = 'trajectory_id'
-                dss['trajectory'].attrs['comment'] = ('A trajectory is a single'
-                        'deployment of a glider and may span multiple data files.')
-                dss['trajectory'].attrs['long_name'] = \
-                        'Trajectory/Deployment Name'
+                dss['trajectory'].attrs['comment'] = (
+                    'A trajectory is a single'
+                    'deployment of a glider and may span multiple data files.')
+                dss['trajectory'].attrs['long_name'] = 'Trajectory/Deployment Name'
 
                 # profile-averaged variables....
                 profile_meta = deployment['profile_variables']
@@ -64,14 +76,14 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
                 dss['lat'] = dss['latitude']
                 dss['lon'] = dss['longitude']
                 dss['platform'] = np.NaN
-                comment = (meta['glider_model'] + ' opperated by ' +
+                comment = (meta['glider_model'] + ' operated by ' +
                            meta['institution'])
-                dss['platform'].attrs['comment'] =  comment
-                dss['platform'].attrs['id'] =  (meta['glider_name'] +
-                                                meta['glider_serial'])
-                dss['platform'].attrs['instrument'] =  'instrument_ctd'
-                dss['platform'].attrs['long_name'] = (meta['glider_model'] +
-                        dss['platform'].attrs['id'])
+                dss['platform'].attrs['comment'] = comment
+                dss['platform'].attrs['id'] = (
+                    meta['glider_name'] + meta['glider_serial'])
+                dss['platform'].attrs['instrument'] = 'instrument_ctd'
+                dss['platform'].attrs['long_name'] = (
+                    meta['glider_model'] + dss['platform'].attrs['id'])
                 dss['platform'].attrs['type'] = 'platform'
                 dss['platform'].attrs['wmo_id'] = meta['wmo_id']
 
@@ -89,7 +101,7 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
 
                 # ancillary variables::
                 to_fill = ['temperature', 'pressure', 'conductivity',
-                            'salinity', 'density', 'lon', 'lat', 'depth']
+                           'salinity', 'density', 'lon', 'lat', 'depth']
                 for name in to_fill:
                     dss[name].attrs['ancillary_variables'] = name + '_qc'
 
@@ -97,15 +109,39 @@ def extract_L0timeseries_profiles(inname, outdir, deploymentyaml):
                 _log.info('Writing %s', outname)
                 if 'units' in dss.profile_time.attrs:
                     dss.profile_time.attrs.pop('units')
-                dss.to_netcdf(outname, encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
+                timeunits = 'seconds since 1970-01-01T00:00:00Z'
+                dss.to_netcdf(outname, encoding={'time': {'units': timeunits}})
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 
-def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
+def make_gridfiles(inname, outdir, deploymentyaml, dz=1):
     """
+    Turn a timeseries netCDF file into a vertically gridded netCDF.
+
+    Parameters
+    ----------
+    inname : str or Path
+        netcdf file to break into profiles
+
+    outdir : str or Path
+        directory to place profiles
+
+    deploymentyaml : str or Path
+        location of deployment yaml file for the netCDF file.  This should
+        be the same yaml file that was used to make the timeseries file.
+
+    dz : float, default = 1
+        Vertical grid spacing in meters.
+
+    Returns
+    -------
+    outname : str
+        Name of gridded netCDF file. The gridded netCDF file has coordinates of
+        'depth' and 'profile', so each variable is gridded in depth bins and by
+        profile number.  Each profile has a time, latitude, and longitude.
     """
     try:
         os.mkdir(outdir)
@@ -122,10 +158,9 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     _log.debug(str(ds.time[0]))
     _log.debug(str(ds.time[-1]))
 
-
     profiles = np.unique(ds.profile_index)
     profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
-                                                and (p > 0))]
+                                        and (p > 0))]
     profile_bins = np.hstack((np.array(profiles) - 0.5, [profiles[-1]+0.5]))
 
     Nprofiles = len(profiles)
@@ -133,9 +168,9 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
     depth_bins = np.arange(0, 1100.1, dz)
     depths = depth_bins[:-1] + 0.5
 
-    dsout = xr.Dataset(coords={'depth': ('depth', depths),
-                               'profile': ('time', profiles)},
-                      )
+    dsout = xr.Dataset(
+        coords={'depth': ('depth', depths),
+                'profile': ('time', profiles)})
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)/1e9
     for td in ('time_1970', 'longitude', 'latitude'):
@@ -144,52 +179,49 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
                 ds['profile_index'].values[good],
                 ds[td].values[good], statistic='mean',
                 bins=[profile_bins])
-
         if td == 'time_1970':
             td = 'time'
             dat = dat.astype('timedelta64[s]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
-        dsout[td] = (('time'), dat, ds[td].attrs )
+        dsout[td] = (('time'), dat, ds[td].attrs)
     ds.drop('time_1970')
-    #datmax = np.zeros(len(profiles))
-    #datmin = np.zeros(len(profiles))
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
-    datmax, xedges, binnumber = stats.binned_statistic(
-            ds['profile_index'].values[good],
-            ds['time'].values[good], statistic='max',
-            bins=[profile_bins])
-    datmin, xedges, binnumber = stats.binned_statistic(
-            ds['profile_index'].values[good],
-            ds['time'].values[good], statistic='min',
-            bins=[profile_bins])
-    if 0:
-        for n, p in enumerate(profiles):
-            ind = np.where(ds.profile_index == p)[0]
-            datmax[n] = ds['time'][ind[-1]]
-            datmin[n] = ds['time'][ind[0]]
     _log.info(f'Done times! {len(dat)}')
-    dsout['profile_time_start'] = (('time'), dat,
-            profile_meta['profile_time_start'] )
-    dsout['profile_time_end'] = (('time'), dat,
-            profile_meta['profile_time_end'])
+    dsout['profile_time_start'] = (
+        ('time'), dat, profile_meta['profile_time_start'])
+    dsout['profile_time_end'] = (
+        ('time'), dat, profile_meta['profile_time_end'])
 
     for k in ds.keys():
-        if k not in ['time', 'longitude', 'latitude', 'depth'] and 'time' not in k:
-            _log.info('Gridding %s', k)
+        if k in ['time', 'longitude', 'latitude', 'depth'] or 'time' in k:
+            continue
+        _log.info('Gridding %s', k)
+        good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
+        if len(good) <= 0:
+            continue
+        if "average_method" in ds[k].attrs:
+            average_method = ds[k].attrs["average_method"]
+            ds[k].attrs["processing"] = (
+                f"Using average method {average_method} for "
+                f"variable {k} following deployment yaml.")
+            if average_method == "geometric mean":
+                average_method = stats.gmean
+                ds[k].attrs["processing"] += (" Using geometric mean implementation "
+                                              "scipy.stats.gmean")
+        else:
+            average_method = "mean"
 
-            good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
-            if len(good) > 0:
-                dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
-                        ds['profile_index'].values[good],
-                        ds['depth'].values[good],
-                        values=ds[k].values[good], statistic='mean',
-                        bins=[profile_bins, depth_bins])
+        dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
+                ds['profile_index'].values[good],
+                ds['depth'].values[good],
+                values=ds[k].values[good], statistic=average_method,
+                bins=[profile_bins, depth_bins])
 
-            _log.debug(f'dat{np.shape(dat)}')
-            dsout[k] = (('depth', 'time'), dat.T, ds[k].attrs)
+        _log.debug(f'dat{np.shape(dat)}')
+        dsout[k] = (('depth', 'time'), dat.T, ds[k].attrs)
 
-            # fill gaps in data:
-            dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)
+        # fill gaps in data:
+        dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)
 
     # fix u and v, because they should really not be gridded...
     if (('water_velocity_eastward' in dsout.keys()) and
@@ -205,7 +237,16 @@ def make_L0_gridfiles(inname, outdir, deploymentyaml, dz=1):
 
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid.nc'
     _log.info('Writing %s', outname)
-    dsout.to_netcdf(outname, encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
+    timeunits = 'seconds since 1970-01-01T00:00:00Z'
+    dsout.to_netcdf(outname, encoding={'time': {'units': timeunits}})
     _log.info('Done gridding')
 
     return outname
+
+
+# aliases
+extract_L0timeseries_profiles = extract_timeseries_profiles
+make_L0_gridfiles = make_gridfiles
+
+
+__all__ = ['extract_timeseries_profiles', 'make_gridfiles']

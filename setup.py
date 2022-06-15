@@ -1,15 +1,14 @@
-import re
 from setuptools import setup, find_packages
 
 # Get the version from versioneer
-__version__ = "0.0"
+__version__ = "0.0.2"
 
 setup(name="pyglider",
       version=__version__,
-      description="Glider processing toolbox in python",
-      author="jklymak",
+      description="Glider data to netCDF translation in python",
+      author="Jody Klymak",
       author_email="jklymak@gmail.com",
-      url="https://github.com/jklymak/pyglider.git",
+      url="https://github.com/c-proof/pyglider.git",
       packages=find_packages(exclude=['tests']),
       python_requires='>=3.6',
       install_requires=[
@@ -20,8 +19,10 @@ setup(name="pyglider",
           "bitstring",
           "netcdf4",
           "geojson",
-          "seawater",
+          "gsw",
           "scipy",
+          "pooch",
+          "pyyaml"
       ],
       zip_safe=True
       )
