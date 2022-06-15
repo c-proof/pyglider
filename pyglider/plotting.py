@@ -399,8 +399,7 @@ def grid_plots(fname, plottingyaml):
                 vmax = 300 
                 ax.set_ylim([300, 0])
 
-            vmax = 300
-            cmap.set_over("black") 
+            vmax = 300 
             # get good profiles.  i.e. those w data
             ind = np.where(np.sum(np.isfinite(ds[k].values), axis=0)>10)[0]
             _log.debug(ind)
@@ -428,11 +427,9 @@ def grid_plots(fname, plottingyaml):
             t0 = ds.time[0]
             t1 = ds.time[-1]
             ax.set_xlim([t0, t1])
-           # ax.set_ylim([depmax, 0])
-            ax.set_ylim([300, 0]) #jp changed (or should I leave it as dep max? )
-           # if n == 0:
-            ax.set_ylabel('DEPTH [m]')
-         #   ax.set_xlabel('TIME (May - June)')
+            ax.set_ylim([depmax, 0])
+            if n == 0:
+                ax.set_ylabel('DEPTH [m]')
             ax.set_facecolor('0.8')
         now = str(datetime.utcnow())[:-10]
         lastdata = str(ds.time[-1].values)[:-13]
