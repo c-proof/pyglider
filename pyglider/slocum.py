@@ -638,6 +638,7 @@ def merge_rawnc(indir, outdir, deploymentyaml,
         ds['_ind'] = np.arange(len(ds.time))
         ds.to_netcdf(outnebd, 'w')
 
+
 def raw_to_timeseries(indir, outdir, deploymentyaml, *,
                       profile_filt_time=100, profile_min_time=300):
     """
@@ -726,7 +727,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
 
         _log.debug(f'HERE, {ds}')
         _log.debug(f'HERE, {ds.pressure[0:100]}')
-
         # some derived variables:
         # trim bad times...
         #ds = ds.sel(time=slice(1e8, None))
@@ -753,7 +753,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
 
         ds.attrs['deployment_start'] = str(start)
         ds.attrs['deployment_end'] = str(end)
-
         _log.debug(ds.depth.values[:100])
         _log.debug(ds.depth.values[2000:2100])
         ds = utils.get_profiles_new(
