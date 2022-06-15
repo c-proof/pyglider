@@ -638,114 +638,6 @@ def merge_rawnc(indir, outdir, deploymentyaml,
         ds['_ind'] = np.arange(len(ds.time))
         ds.to_netcdf(outnebd, 'w')
 
-
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
-    metadata = deployment['metadata']
-    id = metadata['glider_name'] + metadata['glider_serial']
-    outnebd = outdir + '/' + id + '-rawebd.nc'
-    outndbd = outdir + '/' + id + '-rawdbd.nc'
-
-    _log.info('Opening *.ebd.nc multi-file dataset')
-    scifiles = sorted(glob.glob(indir + '/*.' + scisuffix + '.nc'))
-    for fn in scifiles:
-        _log.debug(fn)
-    glifiles = sorted(glob.glob(indir + '/*.' + glidersuffix + '.nc'))
-
-    if len(scifiles) > 1:
-        # this is complicated because merging is very slow compared to
-        # mfd dataset.  So merge 10 at a time, save the intermeddairies,
-        # and then re-open.  We have to do this file by file because some
-        # of the files are bad...
-        ds = None
-        num = 0
-        for nn, name in enumerate(scifiles):
-            _log.debug('Hello')
-            _log.info(f'merging {scifiles[nn]}')
-            with xr.open_dataset(name, decode_times=True) as ds2:
-                if 1:
-                    if ds is not None:
-                        ds = ds.merge(ds2)
-                    else:
-                        ds = ds2.copy()
-                    num = num + 1
-                else:
-                    _log.info(f'Failed to merge {name}')
-            if num % 10 == 0 or nn == len(scifiles) - 1:
-                ds.to_netcdf(indir+f'TEMP{num:04d}.nc', 'w')
-                ds = None
-        with xr.open_mfdataset(indir+f'TEMP*.nc', decode_times=False, lock=False) as ds:
-            dsnew = ds.sortby(ds.time)
-            dsnew.to_netcdf(outnebd, 'w')
-            _log.info('Wrote ' + outnebd)
-
-    if len(glifiles) > 1:
-        ds = None
-        num = 0
-        for nn, name in enumerate(glifiles):
-            _log.info(f'merging {glifiles[nn]}')
-            with xr.open_dataset(name, decode_times=False) as ds2:
-                try:
-                    if ds is not None:
-                        ds = ds.merge(ds2)
-                    else:
-                        ds = ds2.copy()
-                    num = num + 1
-                except:
-                    _log.info(f'Failed to merge {name}')
-            if num % 10 == 0 or nn == len(scifiles) - 1:
-                ds.to_netcdf(indir+f'TEMPG{num:04d}.nc', 'w')
-                ds = None
-        with xr.open_mfdataset(indir+f'TEMPG*.nc', decode_times=False, lock=False) as ds:
-            dsnew = ds.sortby(ds.time)
-            dsnew.to_netcdf(outndbd, 'w')
-            _log.info('Wrote ' + outndbd)
-
-    return
-
-
-#only the merge jpnote
-
-## jpnote: global variables ##
-# - preprocess overwrites variables -
-# - need global list to append multiple netcdf file attributes ## 
-
-globlist = []
-latmin = []
-latmax = []
-lonmin = []
-lonmax = []
-
-def preprocess(ds):
-
-    global globlist
-    global latmin
-    global latmax
-    global lonmin
-    global lonmax
-
-  #  dsnew = ds.copy()
-# get time coverage start and time coverage end from each necdf file 
-    startmin = np.datetime64(ds.attrs['time_coverage_start']) 
-    endmax = np.datetime64(ds.attrs['time_coverage_end'])
-# append each to global list for later min max extraction 
-    globlist.append(startmin)
-    globlist.append(endmax)
-# get geospatial min and max from each necdf file 
-    latminv = ds.attrs['geospatial_lat_min'] 
-    latmaxv = ds.attrs['geospatial_lat_max']
-    lonminv = ds.attrs['geospatial_lon_min']
-    lonmaxv = ds.attrs['geospatial_lon_max']
-# append each to global list for later min max extraction 
-    latmin.append(latminv)
-    latmax.append(latmaxv)
-    lonmin.append(lonminv)
-    lonmax.append(lonmaxv)
-
-    return ds
-
-##jpnote undo this comment after testing 
-
 def raw_to_timeseries(indir, outdir, deploymentyaml, *,
                       profile_filt_time=100, profile_min_time=300):
     """
@@ -767,13 +659,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
     outname : string
         name of the new merged netcdf file.
     """
-
-    #jpnote: for max min extraction for attributes of merged file 
-    global globlist
-    global latmax
-    global latmin 
-    global lonmin
-    global lonmax 
 
     with open(deploymentyaml) as fin:
         deployment = yaml.safe_load(fin)
@@ -841,6 +726,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
 
         _log.debug(f'HERE, {ds}')
         _log.debug(f'HERE, {ds.pressure[0:100]}')
+
         # some derived variables:
         # trim bad times...
         #ds = ds.sel(time=slice(1e8, None))
@@ -868,24 +754,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
         ds.attrs['deployment_start'] = str(start)
         ds.attrs['deployment_end'] = str(end)
 
-## jpnote: beginning of jp addition ## 
-        time_coverage_start_jp = str(min(globlist))
-        time_coverage_end_jp = str(max(globlist))
-# add calcs to the dataset 
-        ds.attrs['time_coverage_start'] = time_coverage_start_jp 
-        ds.attrs['time_coverage_end'] = time_coverage_end_jp
-# remove 0.0 from list, so that proper min,max can be extracted
-        latmin = [i for i in latmin if i != 0]
-        latmax = [i for i in latmax if i != 0]
-        lonmin = [i for i in lonmin if i != 0]
-        lonmax = [i for i in lonmax if i != 0]
-# add calcs to dataset 
-        ds.attrs['geospatial_lat_min'] = min(latmin)
-        ds.attrs['geospatial_lat_max'] = max(latmax)
-        ds.attrs['geospatial_lon_min'] = min(lonmin)
-        ds.attrs['geospatial_lon_max'] = max(lonmax)
-
-##end of jp addition 
         _log.debug(ds.depth.values[:100])
         _log.debug(ds.depth.values[2000:2100])
         ds = utils.get_profiles_new(
