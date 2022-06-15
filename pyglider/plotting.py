@@ -132,7 +132,7 @@ def timeseries_plots(fname, plottingyaml):
                         ax.xaxis.set_tick_params(labelbottom=True)
                     #ax.set_title(ds[k].attrs['long_name'] + ' [' +
                       #  ds[k].attrs['units'] + ']', loc='left', fontsize=9)
-                    if n in b:
+          #          if n in b:
                     #jpnote: offset format fix -remove hanging date
           #              locator = mdates.AutoDateLocator()
           #              formatter = mdates.ConciseDateFormatter(locator)
