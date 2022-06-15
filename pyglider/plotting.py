@@ -267,10 +267,10 @@ def timeseries_plots(fname, plottingyaml):
                 _log.info('cl %s', k)
                 if config['timeseries'][k] == 'True':
                     ax = axs[n]
-           #         locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
-           #         formatter = mdates.ConciseDateFormatter(locator)
-           #         ax.xaxis.set_major_locator(locator)
-           #         ax.xaxis.set_major_formatter(formatter)
+                    locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+                    formatter = mdates.ConciseDateFormatter(locator)
+                    ax.xaxis.set_major_locator(locator)
+                    ax.xaxis.set_major_formatter(formatter)
                     good = np.where(~np.isnan(ds[k] + ds.depth))[0]
                     min, max = _autoclim(ds[k][good])
                     pc = ax.scatter(ds.time[good], ds.depth[good], s=3, c=ds[k][good],
@@ -374,20 +374,20 @@ def grid_plots(fname, plottingyaml):
             pconf = config['pcolor']['vars'][k]
             _log.debug(pconf)
 
-            cmap = plt.cm.get_cmap('viridis') #jp
+            cmap = pconf.get('cmap','viridis')
             vmin = pconf.get('vmin', None)
             vmax = pconf.get('vmax', None)
 
             ax = axs[n]
             ax.yaxis.set_tick_params(labelbottom=True) 
             ax.xaxis.set_tick_params(labelbottom=True)
-           # locator = mdates.AutoDateLocator() 
-           # formatter = mdates.ConciseDateFormatter(locator)
-           # formatter.offset_formats = ['',
-           #                             '',
-           #                             '',]
-           # ax.xaxis.set_major_locator(locator)
-           # ax.xaxis.set_major_formatter(formatter)
+            locator = mdates.AutoDateLocator() 
+            formatter = mdates.ConciseDateFormatter(locator)
+            formatter.offset_formats = ['',
+                                        '',
+                                        '',]
+            ax.xaxis.set_major_locator(locator)
+            ax.xaxis.set_major_formatter(formatter)
 
             min, max = _autoclim(ds[k])
             if vmin is not None:
@@ -414,7 +414,7 @@ def grid_plots(fname, plottingyaml):
                 depth = ds.depth[:-1] - np.diff(ds.depth)
                 depth = np.hstack((depth, depth[-1] + np.diff(ds.depth)[-1]))
                 pc = ax.pcolormesh(time, depth, ds[k][:, ind],
-                    rasterized=True, vmin=min, vmax=max,cmap=cmap, shading='auto')
+                    rasterized=True, vmin=min, vmax=max, cmap=cmap, shading='auto')
                 ax.contour(ds.time[ind], ds.depth, ds.potential_density[:, ind], colors='0.5',
                        levels=np.arange(22, 28, 0.5)+1000, linewidths=0.5, alpha=0.7)
 
@@ -424,9 +424,8 @@ def grid_plots(fname, plottingyaml):
                 cbar = fig.colorbar(pc, ax=ax, extend='both', shrink=0.6)
                 cbar.ax.set_ylabel(ds[k].attrs['long_name'] + ' [' +
                                  ds[k].attrs['units'] + ']', fontsize=9)
-           # ax.set_title(ds[k].attrs['long_name'] + ' [' +
-                   #  ds[k].attrs['units'] + ']', loc='left', fontsize=9) #jpnote commented 
-            ax.set_title(ds[k].attrs['long_name'] + ' over Depth [m]', loc='left', fontsize=9)      
+            ax.set_title(ds[k].attrs['long_name'] + ' [' +
+                     ds[k].attrs['units'] + ']', loc='left', fontsize=9) #jpnote commented 
             t0 = ds.time[0]
             t1 = ds.time[-1]
             ax.set_xlim([t0, t1])
