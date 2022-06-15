@@ -514,6 +514,20 @@ def oxygen_concentration_correction(ds, ncvar):
     return ds
 
 
+def bar2dbar(val):
+    """
+    convert val bar to dbar
+    """
+    return val * 10
+
+
+def dbar2bar(val):
+    """
+    convert val dbar to bar
+    """
+    return val / 10
+
+
 def _passthrough(val):
     return val
 
