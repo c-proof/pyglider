@@ -1,0 +1,44 @@
+name: Test pyglider
+on: [push, pull_request]
+jobs:
+  test-gliders:
+    name: pyglider (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.9"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Cache conda
+        uses: actions/cache@v2
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{hashFiles('environment.yml') }}
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: pyglider
+          environment-file: environment.yml
+          python-version: ${{ matrix.python-version }}
+          channel-priority: strict
+          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+      - name: Conda info
+        shell: bash -l {0}
+        run: conda info
+      - name: install pyglider
+        shell: bash -l {0}
+        run: which pip; pip install -e .
+      - name: Process seaexplorer
+        shell: bash -l {0}
+        run: which python; cd example-seaexplorer; make clean-all; python process_deploymentRealTime.py
+      - name: Process slocum
+        shell: bash -l {0}
+        run: which python; cd example-slocum; make clean-all; python process_deploymentRealTime.py
+      - name: Process seaexplorer-legato-flntu-arod-ad2cp
+        shell: bash -l {0}
+        run: which python; cd example-seaexplorer-legato-flntu-arod-ad2cp; make clean-all; python process_deploymentRealTime.py
