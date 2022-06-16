@@ -1,14 +1,8 @@
-matplotlib
 numpy
 xarray
 dask
 netcdf4
-pyyaml
 gsw
 scipy
-jinja2
-geojson
-simplekml
 bitstring
-pytest
 pooch

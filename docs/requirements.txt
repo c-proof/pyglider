@@ -1,15 +1,10 @@
-matplotlib
 numpy
 xarray
 dask
 netcdf4
-pyyaml
 gsw
 scipy
 pooch
-jinja2
-geojson
-simplekml
 bitstring
 pydata-sphinx-theme
 sphinx

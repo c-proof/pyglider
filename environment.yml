@@ -4,19 +4,14 @@ channels:
   - defaults
 dependencies:
   - python
-  - matplotlib
   - numpy
   - pip
   - xarray
   - dask
   - netcdf4
-  - pyyaml
   - gsw
   - scipy
   - jinja2
-  - geojson
-  - simplekml
-  - webcolors
   - bitstring
   - pytest
   - pooch
