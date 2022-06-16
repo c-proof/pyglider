@@ -2,8 +2,8 @@
 import logging
 import os
 import pyglider.ncprocess as ncprocess
-import pyglider.plotting as pgplot
 import pyglider.slocum as slocum
+import pyglider.utils as pgutils
 
 logging.basicConfig(level='INFO')
 
@@ -15,7 +15,6 @@ deploymentyaml = './deploymentRealtime.yml'
 l1tsdir    = './L0-timeseries/'
 profiledir = './L0-profiles/'
 griddir    = './L0-gridfiles/'
-plottingyaml = './plottingconfig.yml'
 scisuffix    = 'tbd'
 glidersuffix = 'sbd'
 
@@ -29,16 +28,16 @@ if real:
 os.system('rm ' + rawdir + 'dfo* ' + rawdir + 'TEMP*.nc ' + l1tsdir + '* ' + profiledir + '* ' +
           griddir + '* ')
 
-print(scisuffix)
 # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
-if 1:
+if True:
     slocum.binary_to_rawnc(binarydir, rawdir, cacdir, sensorlist, deploymentyaml,
         incremental=True, scisuffix=scisuffix, glidersuffix=glidersuffix)
 
 # merge individual neetcdf files into single netcdf files *.ebd.nc and *.dbd.nc
     slocum.merge_rawnc(rawdir, rawdir, deploymentyaml,
         scisuffix=scisuffix, glidersuffix=glidersuffix)
-if 1:
+
+if True:
     # Make level-1 timeseries netcdf file from th raw files...
     outname = slocum.raw_to_timeseries(rawdir, l1tsdir, deploymentyaml,
               profile_filt_time=100, profile_min_time=300)
@@ -47,6 +46,7 @@ if 1:
 
     # make grid of dataset....
 
-
 outname = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
-pgplot.grid_plots(outname, plottingyaml)
+pgutils.example_gridplot(outname, './gridplot.png', ylim=[150, 0],
+                        toplot=['potential_temperature', 'salinity', 'oxygen_concentration',
+                                'chlorophyll', 'cdom'])
