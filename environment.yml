@@ -11,7 +11,5 @@ dependencies:
   - netcdf4
   - gsw
   - scipy
-  - jinja2
   - bitstring
-  - pytest
   - pooch
