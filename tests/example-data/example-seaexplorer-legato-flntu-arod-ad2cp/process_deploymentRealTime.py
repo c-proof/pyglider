@@ -2,7 +2,6 @@ import logging
 import os
 import pyglider.seaexplorer as seaexplorer
 import pyglider.ncprocess as ncprocess
-import pyglider.plotting as pgplot
 
 logging.basicConfig(level='INFO')
 
@@ -12,7 +11,6 @@ deploymentyaml = './deploymentRealtime.yml'
 l0tsdir = './L0-timeseries/'
 profiledir = './L0-profiles/'
 griddir = './L0-gridfiles/'
-plottingyaml = './plottingconfig.yml'
 
 if __name__ == '__main__':
     # clean last processing...
@@ -29,5 +27,3 @@ if __name__ == '__main__':
     outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
     # make profile netcdf files for ioos gdac...
     # make grid of dataset....
-    pgplot.timeseries_plots(outname, plottingyaml)
-    pgplot.grid_plots(outname2, plottingyaml)

@@ -2,7 +2,6 @@ import logging
 import os
 import pyglider.seaexplorer as seaexplorer
 import pyglider.ncprocess as ncprocess
-import pyglider.plotting as pgplot
 
 logging.basicConfig(level='INFO')
 
@@ -13,19 +12,16 @@ deploymentyaml = './deploymentRealtime.yml'
 l0tsdir    = './L0-timeseries/'
 profiledir = './L0-profiles/'
 griddir    = './L0-gridfiles/'
-plottingyaml = './plottingconfig.yml'
 
 ## get the data and clean up derived
-#os.system('source synctodfo.sh')
-if 0:
+if False:
     os.system('rsync -av ' + sourcedir + ' ' + rawdir)
 
 # clean last processing...
 os.system('rm ' + rawncdir + '* ' + l0tsdir + '* ' + profiledir + '* ' +
           griddir + '* ')
 
-
-if 1:
+if True:
     # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
     seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
         # merge individual neetcdf files into single netcdf files *.ebd.nc and *.dbd.nc
@@ -35,9 +31,3 @@ if 1:
     outname = seaexplorer.raw_to_timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
     ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)
     outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
-
-if 1:
-    # make profile netcdf files for ioos gdac...
-    # make grid of dataset....
-    pgplot.timeseries_plots(outname, plottingyaml)
-    pgplot.grid_plots(outname2, plottingyaml)
