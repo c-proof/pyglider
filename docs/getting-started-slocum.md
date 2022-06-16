@@ -38,22 +38,18 @@ Data comes from an input directory, and is translated to raw glider-dependent ne
 
 It is likely that between these steps the user will want to add any screening steps, or adjustments to the calibrations.  PyGlider does not provide those steps.
 
-## Plotting
-
-Optionally, PyGlider provides some bespoke plotting routines.  We find these useful for realtime monitoring of data as it is telemetered back from deployed gliders, so they are provided here for reference.  They use a separate `plotting.yml` file to configure the subplots.
-
 
 (ExDeplSlocum)=
 ### Example deployment.yaml
 
-```{literalinclude}  ../_example_data/pyglider-example-data-main/example-slocum/deploymentRealtime.yml
+```{literalinclude}  ../tests/example-data/example-slocum/deploymentRealtime.yml
 :language: yaml
 ```
 
 (ExProcSlocum)=
 ### Example processing script
 
-```{literalinclude}  ../_example_data/pyglider-example-data-main/example-slocum/process_deploymentRealTime.py
+```{literalinclude}  ../tests/example-data/example-slocum/process_deploymentRealTime.py
 :language: python
 ```
 

@@ -34,21 +34,17 @@ Data comes from an input directory, and is translated to raw glider-dependent ne
 
 It is likely that between these steps the user will want to add any screening steps, or adjustments to the calibrations.  PyGlider does not provide those steps.
 
-## Plotting
-
-Optionally, PyGlider provides some bespoke plotting routines.  We find these useful for realtime monitoring of data as it is telemetered back from deployed gliders, so they are provided here for reference.  They use a separate `plotting.yml` file to configure the subplots.
-
 
 (ExDepl)=
 ### Example deployment.yaml
 
-```{literalinclude} ../_example_data/pyglider-example-data-main/example-seaexplorer/deploymentRealtime.yml
+```{literalinclude} ../tests/example-data/example-seaexplorer/deploymentRealtime.yml
 :language: yaml
 ```
 
 (ExProc)=
 ### Example processing script
 
-```{literalinclude}  ../_example_data/pyglider-example-data-main/example-seaexplorer/process_deploymentRealTime.py
+```{literalinclude}  ../tests/example-data/example-seaexplorer/process_deploymentRealTime.py
 :language: python
 ```

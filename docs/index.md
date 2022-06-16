@@ -30,7 +30,6 @@ maxdepth: 1
 Install
 getting-started-seaexplorer
 getting-started-slocum
-plotting
 pyglider/pyglider
 
 ```
