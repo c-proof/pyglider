@@ -10,7 +10,6 @@ pooch
 jinja2
 geojson
 simplekml
-webcolors
 bitstring
 pydata-sphinx-theme
 sphinx

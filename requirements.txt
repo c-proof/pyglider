@@ -9,7 +9,6 @@ scipy
 jinja2
 geojson
 simplekml
-webcolors
 bitstring
 pytest
 pooch

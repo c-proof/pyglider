@@ -28,9 +28,9 @@ def binary_to_rawnc(indir, outdir, cacdir,
     Parameters
     ----------
     indir : str
-        Directory with the raw *.ebd (science) and *.dbd (flight) files.
+        Directory with the raw ``*.ebd`` (science) and ``*.dbd`` (flight) files.
         These usually come from ``card_offload/Science/SENTLOGS`` or
-        ``card_offload/Science/LOGS``, and ``card_offload/Main_board/SENTLOGS`
+        ``card_offload/Science/LOGS``, and ``card_offload/Main_board/SENTLOGS``
         and ``card_offload/Main_board/LOGS`. Recommend ``binary``
 
     outdir : str
@@ -291,7 +291,7 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
         list of sensor names to include in the *data* dictionary.  This
         allows us to make the dictionaries more compact and not have
         all the redundant sensor info.  If a single string then keys is a
-        file name and passed to  `dinkum.parse_filter_file` to get the list
+        file name and passed to  `~.slocum.parse_filter_file` to get the list
         of keys.
 
     Returns

@@ -1,3 +1,7 @@
+"""
+Routines that are used for common processing of netcdf files after they have
+been converted to standard timeseries.
+"""
 import logging
 import xarray as xr
 import numpy as np

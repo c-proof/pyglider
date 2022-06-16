@@ -1,15 +1,31 @@
+"""
+Utilities that are used for processing scripts.
+"""
 import collections
 import xarray as xr
 import numpy as np
 from scipy.signal import argrelextrema
 import gsw
-# import webcolors
 import logging
 
 _log = logging.getLogger(__name__)
 
 
 def get_distance_over_ground(ds):
+    """
+    Add a distance over ground variable to a netcdf structure
+
+    Parameters
+    ----------
+    ds : `xarray.Dataset`
+        Must have variable ``latitude`` and ``longitude`` indexed
+        by ``time`` dimension.
+
+    Returns
+    -------
+    ds : `.xarray.Dataset`
+        With ``distance_over_ground`` key.
+    """
     good = ~np.isnan(ds.latitude + ds.longitude)
     dist = gsw.distance(ds.longitude[good].values, ds.latitude[good].values)/1000
     dist = np.roll(np.append(dist, 0), 1)
@@ -21,8 +37,23 @@ def get_distance_over_ground(ds):
     ds['distance_over_ground'] = (('time'), dist, attr)
     return ds
 
-def get_glider_depth(ds):
 
+def get_glider_depth(ds):
+    """
+    Get glider depth from pressure sensor.
+
+    Parameters
+    ----------
+    ds : `xarray.Dataset`
+        Must have variables ``pressure`` and ``latitude`` indexed
+        by ``time`` dimension.  Assume pressure sensor in dbar.
+
+    Returns
+    -------
+    ds : `.xarray.Dataset`
+        With ``depth`` key.
+
+    """
     good = np.where(~np.isnan(ds.pressure))[0]
     ds['depth'] = ds.pressure * 0.
     ds['depth'].values = -gsw.z_from_p(ds.pressure.values,
@@ -46,7 +77,9 @@ def get_glider_depth(ds):
 def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
                  min_nsamples=14):
     """
-    make two variables: profile_direction and profile_index; this veersion
+    Not currently used...
+
+    make two variables: profile_direction and profile_index; this version
     is good for lots of data.  Less good for sparse data
     """
     profile = ds.pressure.values * 0
@@ -79,7 +112,6 @@ def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
              ('sources', 'time pressure'),
              ('method', 'get_profiles'),
              ('min_dp', min_dp),
-             ('inversion', inversion),
              ('filt_length', filt_length),
              ('min_nsamples', min_nsamples)])
     ds['profile_index'] = (('time'), profile, attrs)
@@ -95,19 +127,27 @@ def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
     return ds
 
 
-def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
-                 profile_min_time=300):
+def get_profiles_new(ds, min_dp = 10.0, filt_time=100, profile_min_time=300):
     """
-    make two variables: profile_direction and profile_index; this version
-    is good for lots of data.  Less good for sparse data
+    Find profiles in a glider timeseries:
 
-    filt_time is in seconds
-    min_nsamples is in seconds
+    Parameters
+    ----------
+    ds : `xarray.Dataset`
+        Must have *time* coordinate and *pressure* as a variable
+    min_dp : float, default=10.0
+        Minimum distance a profile must transit to be considered a profile, in dbar.
+    filt_time : float, default=100
+        Approximate length of time filter, in seconds.  Note that the filter
+        is really implemented by sample, so the number of samples is ``filt_time / dt``
+        where *dt* is the median time between samples in the time series.
+    profile_min_time : float, default=300
+        Minimum time length of profile in s.
     """
+
     profile = ds.pressure.values * 0
     direction = ds.pressure.values * 0
     pronum = 1
-    lastpronum = 0
 
     good = np.where(np.isfinite(ds.pressure))[0]
     #dt = float(np.median(np.diff(ds.time.values[good[:200000]])))
@@ -143,35 +183,32 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
     nmin = 0
     nmax=0
     while (nmin < len(mins)) and (nmax < len(maxs)):
-        if 1:
-            nmax = np.where(maxs>mins[nmin])[0]
-            if len(nmax) >= 1:
-                nmax = nmax[0]
-            else:
-                break
-            _log.debug(nmax)
-            ins = range(int(mins[nmin]), int(maxs[nmax]+1))
-            _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
-            _log.debug(f'Down, {ins}, {p[ins[0]].values},{p[ins[-1]].values}')
-            if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
-                profile[ins] = pronum
-                direction[ins] = +1
-                pronum += 1
-            nmin = np.where(mins>maxs[nmax])[0]
-            if len(nmin) >= 1:
-                nmin = nmin[0]
-            else:
-                break
-            ins = range(maxs[nmax], mins[nmin])
-            _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
-            _log.debug(f'Up, {ins}, {p[ins[0]].values}, {p[ins[-1]].values}')
-            if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
-                # up
-                profile[ins] = pronum
-                direction[ins] = -1
-                pronum += 1
+        nmax = np.where(maxs>mins[nmin])[0]
+        if len(nmax) >= 1:
+            nmax = nmax[0]
         else:
-            _log.debug('Failed?')
+            break
+        _log.debug(nmax)
+        ins = range(int(mins[nmin]), int(maxs[nmax]+1))
+        _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
+        _log.debug(f'Down, {ins}, {p[ins[0]].values},{p[ins[-1]].values}')
+        if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
+            profile[ins] = pronum
+            direction[ins] = +1
+            pronum += 1
+        nmin = np.where(mins>maxs[nmax])[0]
+        if len(nmin) >= 1:
+            nmin = nmin[0]
+        else:
+            break
+        ins = range(maxs[nmax], mins[nmin])
+        _log.debug(f'{pronum}, {ins}, {len(p)}, {mins[nmin]}, {maxs[nmax]}')
+        _log.debug(f'Up, {ins}, {p[ins[0]].values}, {p[ins[-1]].values}')
+        if (len(ins) > min_nsamples and np.nanmax(p[ins]) - np.nanmin(p[ins]) > min_dp):
+            # up
+            profile[ins] = pronum
+            direction[ins] = -1
+            pronum += 1
 
     _log.debug('Doing this...')
     attrs = collections.OrderedDict([('long_name', 'profile index'),
@@ -179,25 +216,62 @@ def get_profiles_new(ds, min_dp = 10.0, inversion=3., filt_time=100,
              ('comment',
               'N = inside profile N, N + 0.5 = between profiles N and N + 1'),
              ('sources', 'time pressure'),
-             ('method', 'get_profiles'),
+             ('method', 'get_profiles_new'),
              ('min_dp', min_dp),
-             ('inversion', inversion),
              ('filt_length', filt_length),
              ('min_nsamples', min_nsamples)])
     ds['profile_index'] = (('time'), profile, attrs)
-
 
     attrs = collections.OrderedDict([('long_name', 'glider vertical speed direction'),
              ('units', '1'),
              ('comment',
               '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
              ('sources', 'time pressure'),
-             ('method', 'get_profiles')])
+             ('method', 'get_profiles_new')])
     ds['profile_direction'] = (('time'), direction, attrs)
     return ds
 
 
 def get_derived_eos_raw(ds):
+    """
+    Calculate salinity, potential density, density, and potential temperature
+
+    Parameters
+    ----------
+    ds : `xarray.Dataset`
+        Must have *time* coordinate and *temperature*, *conductivity*, *pressure*,
+        and *latitude* and *longitude* as variables.
+
+    Returns
+    -------
+    ds : `xarray.Dataset`
+        with *salinity*, *potential_density*, *density*, and *potential_temperature*
+        as new variables.
+
+    Notes
+    -----
+    Thermodynamic variables derived from the Gibbs seawater toolbox ``import gsw``.
+
+    - *salinity*::
+
+        gsw.conversions.SP_from_C(r, ds.temperature, ds.pressure)
+
+    - *potential_density*::
+
+        sa = gsw.SA_from_SP(ds['salinity'], ds['pressure'], ds['longitude'], ds['latitude'])
+        ct = gsw.CT_from_t(sa, ds['temperature'], ds['pressure'])
+        ds['potential_density'] = (('time'), 1000 + gsw.density.sigma0(sa, ct).values)
+    - *density*::
+
+        ds['density'] = (('time'), gsw.density.rho(
+            ds.salinity, ds.temperature, ds.pressure).values)
+    - *potential_temperature*::
+
+        ds['potential_temperature'] = (('time'), gsw.conversions.pt0_from_t(
+            ds.salinity, ds.temperature, ds.pressure).values)
+
+    """
+
     # GPCTD and slocum ctd require a scale factor of 10 for conductivity. Legato does not
     if 'S m' in ds.conductivity.units:
         r = 10 * ds.conductivity
@@ -280,7 +354,7 @@ def get_derived_eos_raw(ds):
     return ds
 
 
-def time_to_datetime64(time):
+def _time_to_datetime64(time):
     """
     Pass in a glider undecoded time (seconds since 1970-01-01), and
     get a np.datetime64[s] object back.
@@ -304,10 +378,25 @@ def fill_required_attrs(attrs):
 
 
 def get_file_id(ds):
+    """
+    Make a file id for a Dataset
+
+    Parameters
+    ----------
+    ds : `xarray.Dataset`
+        Dataset to make an id for.  The attributes of the Dataset
+        must have *glider_name* and *glider_serial* in them.
+
+    Return
+    ------
+    id : string
+        Id = *glider_name* + *glider_serial* + "YYYYMMDDTHHMM"
+
+    """
 
     _log.debug(ds.time)
     if not ds.time.dtype=='datetime64[ns]':
-        dt = time_to_datetime64(ds.time.values[0])
+        dt = _time_to_datetime64(ds.time.values[0])
     else:
         dt = ds.time.values[0].astype('datetime64[s]')
     _log.debug(f'dt, {dt}')
@@ -317,7 +406,26 @@ def get_file_id(ds):
 
 
 def fill_metadata(ds, metadata, sensor_data):
+    """
+    Add metadata to a Dataset
 
+    Parameters
+    ----------
+    ds : `xarray.Dataset`
+        Dataset must have *longtidue*, *latitude*, and *time* values
+    metadata : dict
+        dictionary of attributes to add to the global attributes.  Usually
+        taken from *deployment.yml* file.
+    sensor_data : dict
+        dictionary of device data to add to the global attributes.
+
+    Returns
+    -------
+    ds : `xarray.Dataset`
+        Dataset with attributes filled out.
+
+
+    """
     good = ~np.isnan(ds.latitude.values + ds.longitude.values)
     ds.attrs['geospatial_lat_max'] = np.max(ds.latitude.values[good])
     ds.attrs['geospatial_lat_min'] = np.min(ds.latitude.values[good])
@@ -351,18 +459,41 @@ def fill_metadata(ds, metadata, sensor_data):
 
     return ds
 
+
 def _zero_screen(val):
     val[val==0] = np.NaN
     return val
 
 
 def nmea2deg(nmea):
+    """
+    Convert a NMEA float to a decimal degree float.  e.g. -12640.3232 = -126.6721
+    """
     deg = (np.fix(nmea / 100) +
            np.sign(nmea) * np.remainder(np.abs(nmea), 100) / 60)
     return deg
 
 
-def oxygen_concentration_correction(data, ncvar):
+def oxygen_concentration_correction(ds, ncvar):
+    """
+    Correct oxygen signal for salinity signal
+
+    Parameters
+    ----------
+    ds : `xarray.Dataset`
+        Should have *oxygen_concentration*, *potential_temperature*, *salinity*,
+        on a *time* coordinate.
+    ncvar : dict
+        dictionary with netcdf variable definitions in it.  Should have
+        *oxygen_concentration* as a key, which itself should specify
+        a *reference_salinity* and have *correct_oxygen* set to ``"True"``.
+
+    Returns
+    -------
+    ds : `xarray.Dataset`
+        With *oxygen_concentration* corrected for the salinity effect.
+    """
+
     oxy_yaml = ncvar['oxygen_concentration']
     if 'reference_salinity' not in oxy_yaml.keys():
         _log.warning('No reference_salinity found in oxygen deployment yaml. Assuming reference salinity of 0 psu')
@@ -370,23 +501,31 @@ def oxygen_concentration_correction(data, ncvar):
     else:
         ref_sal = float(oxy_yaml['reference_salinity'])
     _log.info(f'Correcting oxygen using reference salinity {ref_sal} PSU')
-    ds_oxy = data.oxygen_concentration[~np.isnan(data.oxygen_concentration)]
+    ds_oxy = ds.oxygen_concentration[~np.isnan(ds.oxygen_concentration)]
     # Match the nearest temperature and salinity values from their timestamps
-    ds_temp = data.potential_temperature[~np.isnan(data.potential_temperature)].reindex(time=ds_oxy.time, method="nearest")
-    ds_sal = data.salinity[~np.isnan(data.salinity)].reindex(time=ds_oxy.time, method="nearest")
+    ds_temp = ds.potential_temperature[~np.isnan(ds.potential_temperature)].reindex(time=ds_oxy.time, method="nearest")
+    ds_sal = ds.salinity[~np.isnan(ds.salinity)].reindex(time=ds_oxy.time, method="nearest")
     o2_sol = gsw.O2sol_SP_pt(ds_sal, ds_temp)
     o2_sat = ds_oxy / gsw.O2sol_SP_pt(ds_sal*0 + ref_sal, ds_temp)
-    data['oxygen_concentration'].values[~np.isnan(data.oxygen_concentration)] = o2_sat * o2_sol
-    data['oxygen_concentration'].attrs['oxygen_concentration_QC:RTQC_methodology'] =\
+    ds['oxygen_concentration'].values[~np.isnan(ds.oxygen_concentration)] = o2_sat * o2_sol
+    ds['oxygen_concentration'].attrs['oxygen_concentration_QC:RTQC_methodology'] =\
         f'oxygen concentration corrected for salinity using gsw.O2sol_SP_pt with salinity and potential temperature ' \
         f'from dataset. Original oxygen concentration assumed to have been calculated using salinity = {ref_sal} PSU'
-    return data
+    return ds
+
 
 def bar2dbar(val):
-    return val * 10.0
+    """
+    convert val bar to dbar
+    """
+    return val * 10
 
-def cbar2dbar(val):
-    return val / 10.0
+
+def dbar2bar(val):
+    """
+    convert val dbar to bar
+    """
+    return val / 10
 
 
 def _passthrough(val):
@@ -409,8 +548,11 @@ def gappy_fill_vertical(data):
             data[:, j][ind[0]:ind[-1]] = np.interp(int, ind, data[ind, j])
     return data
 
-def parse_gliderxml_pos(fname):
+
+def _parse_gliderxml_pos(fname):
     """
+    DEPRECATED: use slocum.parse_gliderState instead
+
     returns lon, lat, timestr
     """
 
@@ -441,8 +583,10 @@ def parse_gliderxml_pos(fname):
         lat = nmea2deg(lat)
     return lon, lat, time
 
-def parse_gliderxml_surfacedatetime(fname):
+def _parse_gliderxml_surfacedatetime(fname):
     """
+    DEPRECATED: use slocum.parse_gliderState instead
+
     returns lon, lat, timestr
     """
 
@@ -459,31 +603,6 @@ def parse_gliderxml_surfacedatetime(fname):
                 except:
                     pass
     return time
-
-def get_html_non_blue(num=None):
-    """
-    """
-
-    colors = list(webcolors.css3_names_to_hex.keys())
-    colors0 = colors.copy()
-    for c in colors0:
-        if (c.lower().find('blue') >= 0 or
-                c.lower().find('cyan') >= 0 or
-                c.lower().find('turquoise') >= 0 or
-                c.lower().find('aqua')>= 0 or
-                c.lower().find('navy') >= 0 or
-                c.lower().find('teal')>= 0 or
-                c.lower().find('teal')>= 0 or
-                c.lower().find('gray')>= 0 or
-                c.lower().find('grey')>= 0  or
-                c.lower().find('white')>= 0  or
-                c.lower().find('sea')>= 0):
-            colors.remove(c)
-    if num is None:
-        num = np.random.randint(0, len(colors))
-    cname = colors[num]
-    ints = webcolors.name_to_rgb(cname)
-    return ints
 
 
 def example_gridplot(filename, outname, toplot=['potential_temperature', 'salinity', 'oxygen_concentration'],
@@ -504,3 +623,7 @@ def example_gridplot(filename, outname, toplot=['potential_temperature', 'salini
             if ylim:
                 ax.set_ylim(ylim)
         fig.savefig(outname, dpi=dpi)
+
+__all__ = ['get_distance_over_ground', 'get_glider_depth', 'get_profiles_new',
+'get_derived_eos_raw', "get_glider_id", "fill_metadata", "nmea2deg",
+"gappy_fill_vertical", "oxygen_concentration_correction"]
