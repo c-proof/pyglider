@@ -3,6 +3,7 @@ import logging
 import os
 import pyglider.ncprocess as ncprocess
 import pyglider.slocum as slocum
+import pyglider.utils as pgutils
 
 logging.basicConfig(level='INFO')
 
@@ -46,3 +47,6 @@ if True:
     # make grid of dataset....
 
 outname = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
+pgutils.example_gridplot(outname, './gridplot.png', ylim=[150, 0],
+                        toplot=['potential_temperature', 'salinity', 'oxygen_concentration',
+                                'chlorophyll', 'cdom'])

@@ -29,4 +29,6 @@ if __name__ == '__main__':
     outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
     # make profile netcdf files for ioos gdac...
     # make grid of dataset....
-    pgutils.example_gridplot(outname2)
+    pgutils.example_gridplot(outname2, './gridplot.png', ylim=[100, 0],
+                             toplot=['potential_temperature', 'salinity', 'oxygen_concentration',
+                                     'chlorophyll', 'cdom'])

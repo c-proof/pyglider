@@ -2,6 +2,7 @@ import logging
 import os
 import pyglider.seaexplorer as seaexplorer
 import pyglider.ncprocess as ncprocess
+import pyglider.utils as pgutils
 
 logging.basicConfig(level='INFO')
 
@@ -31,3 +32,7 @@ if True:
     outname = seaexplorer.raw_to_timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
     ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)
     outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
+
+    pgutils.example_gridplot(outname2, './gridplot.png', ylim=[700, 0],
+                             toplot=['potential_temperature', 'salinity', 'oxygen_concentration',
+                                     'chlorophyll', 'cdom'])

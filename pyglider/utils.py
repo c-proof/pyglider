@@ -484,3 +484,23 @@ def get_html_non_blue(num=None):
     cname = colors[num]
     ints = webcolors.name_to_rgb(cname)
     return ints
+
+
+def example_gridplot(filename, outname, toplot=['potential_temperature', 'salinity', 'oxygen_concentration'],
+                     pdenlevels=np.arange(10, 30, 0.5), dpi=200, ylim=None):
+    """
+    Smoketest for plotting the netcdf files.
+    """
+
+    import matplotlib.pyplot as plt
+
+    ntoplot = len(toplot)
+    with xr.open_dataset(filename) as ds:
+        fig, axs =  plt.subplots(nrows=ntoplot, constrained_layout=True, figsize=(7, 3*ntoplot),
+                                 sharex=True, sharey=True)
+        for ax, vname in zip(axs, toplot):
+            ds[vname].plot.pcolormesh(ax=ax)
+            (ds['potential_density']-1000).plot.contour(ax=ax, levels=pdenlevels)
+            if ylim:
+                ax.set_ylim(ylim)
+        fig.savefig(outname, dpi=dpi)
