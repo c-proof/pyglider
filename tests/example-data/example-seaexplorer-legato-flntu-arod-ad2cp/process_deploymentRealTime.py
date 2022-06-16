@@ -2,6 +2,8 @@ import logging
 import os
 import pyglider.seaexplorer as seaexplorer
 import pyglider.ncprocess as ncprocess
+import pyglider.utils as pgutils
+
 
 logging.basicConfig(level='INFO')
 
@@ -27,3 +29,4 @@ if __name__ == '__main__':
     outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
     # make profile netcdf files for ioos gdac...
     # make grid of dataset....
+    pgutils.example_gridplot(outname2)
