@@ -360,6 +360,21 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                                 profile_min_time=profile_min_time)
     ds = utils.get_derived_eos_raw(ds)
 
+    # somehow this comes out unsorted:
+    len_before_drop = len(ds.time)
+    ds = ds.sortby(ds.time)
+    # Drop duplicate timestamps and check how many are removed this way
+    ds = ds.drop_duplicates(dim="time")
+    len_after_drop = len(ds.time)
+    proportion_kept = len_after_drop / len_before_drop
+    loss_str = f"{100 * (1-proportion_kept)} % samples removed by timestamp deduplication."
+    if proportion_kept < 0.5:
+        raise ValueError(f"{loss_str} Check input data for duplicate timestamps")
+    elif proportion_kept < 0.999:
+        _log.warning(loss_str)
+    else:
+        _log.info(loss_str)
+
     # Correct oxygen if present:
     if 'oxygen_concentration' in ncvar.keys():
         if 'correct_oxygen' in ncvar['oxygen_concentration'].keys():
@@ -373,9 +388,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     # ds = ds._get_distance_over_ground(ds)
 
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
-
-    # somehow this comes out unsorted:
-    ds = ds.sortby(ds.time)
 
     start = ds['time'].values[0]
     end = ds['time'].values[-1]
