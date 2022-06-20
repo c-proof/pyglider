@@ -361,19 +361,22 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds = utils.get_derived_eos_raw(ds)
 
     # somehow this comes out unsorted:
-    len_before_drop = len(ds.time)
     ds = ds.sortby(ds.time)
     # Drop duplicate timestamps and check how many are removed this way
-    ds = ds.drop_duplicates(dim="time")
-    len_after_drop = len(ds.time)
-    proportion_kept = len_after_drop / len_before_drop
-    loss_str = f"{100 * (1-proportion_kept)} % samples removed by timestamp deduplication."
-    if proportion_kept < 0.5:
-        raise ValueError(f"{loss_str} Check input data for duplicate timestamps")
-    elif proportion_kept < 0.999:
-        _log.warning(loss_str)
+    if "drop_duplicates" in ds.__dir__():
+        len_before_drop = len(ds.time)
+        ds = ds.drop_duplicates(dim="time")
+        len_after_drop = len(ds.time)
+        proportion_kept = len_after_drop / len_before_drop
+        loss_str = f"{100 * (1-proportion_kept)} % samples removed by timestamp deduplication."
+        if proportion_kept < 0.5:
+            raise ValueError(f"{loss_str} Check input data for duplicate timestamps")
+        elif proportion_kept < 0.999:
+            _log.warning(loss_str)
+        else:
+            _log.info(loss_str)
     else:
-        _log.info(loss_str)
+        _log.warning("drop_duplicates not found in xarray. Install xarray>=2022.3.0 for deduplication functionality")
 
     # Correct oxygen if present:
     if 'oxygen_concentration' in ncvar.keys():
