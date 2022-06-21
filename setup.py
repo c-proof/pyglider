@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 # Get the version from versioneer
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 setup(name="pyglider",
       version=__version__,
@@ -17,7 +17,7 @@ setup(name="pyglider",
         "netcdf4",
         "gsw",
         "scipy",
-        "bitstring"
+        "bitstring",
         "pooch"
       ],
       license='Apache',
