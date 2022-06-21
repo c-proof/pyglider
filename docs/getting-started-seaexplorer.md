@@ -13,7 +13,7 @@ import pyglider.example_data as pexamp
 pexamp.get_example_data('./')
 ```
 
-which will add a local directory `pyglider-example-data-main` to your current directory.
+which will add a local directory `example-data` to your current directory.
 
 ## Make a deployment configuration file
 
