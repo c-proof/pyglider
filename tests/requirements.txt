@@ -1,3 +1,4 @@
+pytest
 matplotlib
 numpy
 xarray
@@ -5,8 +6,5 @@ dask
 netcdf4
 gsw
 scipy
-jinja2
-simplekml
 bitstring
-pytest
 pooch

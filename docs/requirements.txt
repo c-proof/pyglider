@@ -12,4 +12,3 @@ pytest
 autoapi
 numpydoc
 myst-parser
-nodejs

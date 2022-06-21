@@ -1,13 +1,9 @@
 # Installation
 
-## Dependencies
+## conda/pip
 
-- install conda/miniconda
-- clone the repository onto your computer and cd into the directory
-- from inside the cloned repository directory run
-`conda env create -f environment.yml`, it will read environment.yml and
-automatically install the dependencies, and create environment `pyglider`,
-(though you can change the name by editing `environment.yml`)
+
+
 
 ## Editable installation
 
