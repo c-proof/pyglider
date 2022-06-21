@@ -12,7 +12,7 @@ jobs:
           name: Install Python dependencies
           command: |
             python -m pip install --user \
-                -r docs/requirements.txt
+                -r docs-requirements.txt
       - run:
           name: install module
           command: python -m pip install --user -ve .
