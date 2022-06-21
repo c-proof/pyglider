@@ -9,11 +9,11 @@ def get_example_data(outdir='./'):
     ----------
     outdir : str or Path, optional
         Location to extract the example files into.  They will be put at
-        ``outdir/pyglider-example-data/``.  Default is to unpack in the
+        ``outdir/example-data/``.  Default is to unpack in the
         current directory.
     """
-    zipfile = pooch.retrieve("https://github.com/c-proof/pyglider-example-data/archive/refs/heads/main.zip",
-                             known_hash=None)
+    zipfile = pooch.retrieve("https://cproof.uvic.ca/pyglider-example-data/pyglider-example-data.zip",
+                             known_hash='5643a5301530e8dd60060a357cd9ed88eb1e84d761710c2a4013bc3c1817a859')
 
     with ZipFile(zipfile, 'r') as zipObj:
         # Extract all the contents of zip file in outdir
