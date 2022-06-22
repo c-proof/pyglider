@@ -1,7 +1,5 @@
 from setuptools import setup, find_packages
-
-# Get the version from versioneer
-__version__ = "0.0.4"
+from pyglider._version import __version__
 
 setup(name="pyglider",
       version=__version__,

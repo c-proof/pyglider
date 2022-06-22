@@ -14,15 +14,16 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+from pyglider._version import __version__
 
 # -- Project information -----------------------------------------------------
 
 project = 'PyGlider'
-copyright = '2022, PyGlider team'
+copyright = '2022-, PyGlider team'
 author = 'PyGlider team'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -69,3 +70,32 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ['_static']
 
 html_logo = "_static/PyGliderHorizontal.svg"
+
+html_context = {
+    # "github_url": "https://github.com", # or your GitHub Enterprise interprise
+    "github_user": "cproof",
+    "github_repo": "pyglider",
+    "doc_path": "docs/",
+}
+html_theme_options = {
+    "icon_links": [
+        {
+            # Label for this link
+            "name": "GitHub",
+            # URL where the link will redirect
+            "url": "https://github.com/cproof/pyglider",  # required
+            # Icon class (if "type": "fontawesome"), or path to local image (if "type": "local")
+            "icon": "fab fa-github-square",
+            # The type of image to be used (see below for details)
+            "type": "fontawesome",
+        },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/pyglider",
+            "icon": "fas fa-box",
+        },
+        # {   "name": "conda-forge",
+        #     "url": "https://anaconda.org/conda-forge/pyglider",
+        #     "icon": "fas fa-box"
+        # }
+   ]}
