@@ -138,8 +138,8 @@ def _check_diag_header(diag_tuple):
             _log.warning('character or int failure: %s', diag_tuple)
             return False
     if (((abs(ref_tuple[3] - diag_tuple[3]) > .0001) or
-            (abs(ref_tuple[4] - diag_tuple[4]) > .0001))) and 
-            (((abs(ref_tuple_new[3] - diag_tuple[3]) > 0.0001) or 
+            (abs(ref_tuple[4] - diag_tuple[4]) > .0001)) and 
+            ((abs(ref_tuple_new[3] - diag_tuple[3]) > 0.0001) or 
             (abs(ref_tuple_new[4] - diag_tuple[4]) > 0.0001))):
         _log.warning('floating point failure')
         return False
