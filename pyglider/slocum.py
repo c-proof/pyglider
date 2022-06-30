@@ -129,13 +129,18 @@ def binary_to_rawnc(indir, outdir, cacdir,
 def _check_diag_header(diag_tuple):
     # diagnostic values should be
     # ['s', 'a', 4660, 123.45600128173828, 123456789.12345] # 4660 is 0x1234
+    # for new Slocum G3s (as of 2022), diagnostic values should be
+    # ['s', 'a', 13330, 1.5184998373247989e+35, -6.257491929421848e-90]
     ref_tuple = ['s', 'a', 4660, 123.456, 123456789.12345]
+    ref_tuple_new = ['s', 'a', 13330, 1.5185e+35, -6.2575e-90]
     for i in range(3):
-        if ref_tuple[i] != diag_tuple[i]:
+        if (ref_tuple[i] != diag_tuple[i]) and (ref_tuple_new[i] != diag_tuple[i]):
             _log.warning('character or int failure: %s', diag_tuple)
             return False
-    if ((abs(ref_tuple[3] - diag_tuple[3]) > .0001) or
-            (abs(ref_tuple[4] - diag_tuple[4]) > .0001)):
+    if (((abs(ref_tuple[3] - diag_tuple[3]) > .0001) or
+            (abs(ref_tuple[4] - diag_tuple[4]) > .0001))) and 
+                (((abs(ref_tuple_new[3] - diag_tuple[3]) > 0.0001) or 
+                    (abs(ref_tuple_new[4] - diag_tuple[4]) > 0.0001))):
         _log.warning('floating point failure')
         return False
     return True
