@@ -132,7 +132,7 @@ def _check_diag_header(diag_tuple):
     # for new Slocum G3s (as of 2022), diagnostic values should be
     # ['s', 'a', 13330, 1.5184998373247989e+35, -6.257491929421848e-90]
     ref_tuple = ['s', 'a', 4660, 123.456, 123456789.12345]
-    ref_tuple_new = ['s', 'a', 13330, 1.5185e+35, -6.2575e-90]
+    ref_tuple_new = ['s', 'a', 13330, 1.5184998373247989e+35, -6.257491929421848e-90]
     for i in range(3):
         if (ref_tuple[i] != diag_tuple[i]) and (ref_tuple_new[i] != diag_tuple[i]):
             _log.warning('character or int failure: %s', diag_tuple)
