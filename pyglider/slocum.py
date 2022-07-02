@@ -4,16 +4,17 @@ Routines to convert raw slocum dinkum files to netcdf timeseries.
 
 """
 import bitstring
+from datetime import datetime
 import glob
 import logging
 import numpy as np
 import os
 import time
 import xarray as xr
-import yaml
-import pyglider.utils as utils
 import xml.etree.ElementTree as ET
-from datetime import datetime
+import yaml
+
+import pyglider.utils as utils
 
 
 _log = logging.getLogger(__name__)
@@ -124,26 +125,6 @@ def binary_to_rawnc(indir, outdir, cacdir,
                 _log.warning('%s', fn)
 
     _log.info('All done!')
-
-
-def _check_diag_header(diag_tuple):
-    # diagnostic values should be
-    # ['s', 'a', 4660, 123.45600128173828, 123456789.12345] # 4660 is 0x1234
-    # for new Slocum G3s (as of 2022), diagnostic values should be
-    # ['s', 'a', 13330, 1.5184998373247989e+35, -6.257491929421848e-90]
-    ref_tuple = ['s', 'a', 4660, 123.456, 123456789.12345]
-    ref_tuple_new = ['s', 'a', 13330, 1.5184998373247989e+35, -6.257491929421848e-90]
-    for i in range(3):
-        if (ref_tuple[i] != diag_tuple[i]) and (ref_tuple_new[i] != diag_tuple[i]):
-            _log.warning('character or int failure: %s', diag_tuple)
-            return False
-    if (((abs(ref_tuple[3] - diag_tuple[3]) > .0001) or
-            (abs(ref_tuple[4] - diag_tuple[4]) > .0001)) and 
-            ((abs(ref_tuple_new[3] - diag_tuple[3]) > 0.0001) or 
-            (abs(ref_tuple_new[4] - diag_tuple[4]) > 0.0001))):
-        _log.warning('floating point failure')
-        return False
-    return True
 
 
 def _decode_sensor_info(dfh, meta):
@@ -326,12 +307,37 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
     # offset for number of characters already read in.
     binaryData = bitstring.BitStream(dfh, offset=bindatafilepos * 8)
     # First there's the s,a,2byte int, 4 byte float, 8 byte double.
-    diag_header = binaryData.readlist(['bits:8', 'bits:8',
-                                       'uint:16', 'float:32', 'float:64'])
+    # sometimes the endianess seems to get swapped.
+    # ref_tuple = ['s', 'a', 4660, 123.456, 123456789.12345]
+    diag_header = binaryData.readlist(['bits:8', 'bits:8'])
     diag_header[0] = chr(int(diag_header[0].hex, 16))
     diag_header[1] = chr(int(diag_header[1].hex, 16))
-    if not _check_diag_header(diag_header):
+    if not (diag_header[0] == 's') and (diag_header[1] == 'a'):
+        _log.warning("character failure: %s != 's', 'a'", diag_header)
         raise ValueError('Diagnostic header check failed.')
+
+    endian = 'be'
+    data = binaryData.read(f'uint{endian}:16')
+    _log.debug('Checking endianness %s == 4660 or 13330', data)
+    if data == 4660:
+        pass
+    elif data == 13330:
+        endian = 'le'
+    else:
+        _log.warning("integer failure: %s != 4660", data)
+        raise ValueError("Diagnostic header check failed.")
+    _log.debug('Endianness is %s', endian)
+
+    data = binaryData.read(f'float{endian}:32')
+    if not np.allclose(data, 123.456):
+        _log.warning("float32 failure: %s != 123.456", data)
+        raise ValueError("Diagnostic header check failed.")
+
+    data = binaryData.read(f'float{endian}:64')
+    if not np.allclose(data, 123456789.12345):
+        _log.warning("float64 failure: %s != 123456789.12345", data)
+        raise ValueError("Diagnostic header check failed.")
+    _log.debug('Diagnostic check passed.  Endian is %s', endian)
 
     nsensors = int(meta['sensors_per_cycle'])
     currentValues = np.zeros(int(meta['sensors_per_cycle'])) + np.NaN
@@ -365,11 +371,10 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
             elif code == '10':  # New value.
                 if int(activeSensorList[i]['bits']) in [4, 8]:
                     currentValues[i] = binaryData.read(
-                        'float:' + str(int(activeSensorList[i]['bits']) * 8))
-                    # print currentValues[i], activeSensorList[i]['name']
+                        f'float{endian}:' + str(int(activeSensorList[i]['bits']) * 8))
                 elif int(activeSensorList[i]['bits']) in [1, 2]:
                     currentValues[i] = binaryData.read(
-                        'uint:' + str(int(activeSensorList[i]['bits']) * 8))
+                        f'uint{endian}:' + str(int(activeSensorList[i]['bits']) * 8))
                 else:
                     raise ValueError('Bad bits')
             else:
@@ -377,8 +382,13 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
                                   'Parsing failed'))
         data[ndata] = currentValues
         binaryData.bytealign()
+
         # We've arrived at the next line.
-        d = binaryData.peek('bytes:1').decode('utf-8')
+        try:
+            d = binaryData.peek('bytes:1').decode('utf-8')
+        except bitstring.ReadError:
+            _log.warning('End of file reached without termination char')
+            d = 'X'
         if d == 'd':
             frameCheck = binaryData.read('bytes:1').decode('utf-8')
             ndata += 1
@@ -620,7 +630,6 @@ def merge_rawnc(indir, outdir, deploymentyaml,
             else:
                 bad = False
         if bad:
-            print(ds)
             os.rename(f, f+'.singleton')
             fglider = f
             try:
