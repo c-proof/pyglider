@@ -305,6 +305,7 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
     # Grab the seek pos and use that for a bookmark.
     # ------------------------------------------
     # offset for number of characters already read in.
+    _log.debug('reading file from %d', bindatafilepos * 8)
     binaryData = bitstring.BitStream(dfh, offset=bindatafilepos * 8)
     # First there's the s,a,2byte int, 4 byte float, 8 byte double.
     # sometimes the endianess seems to get swapped.
@@ -387,6 +388,8 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
         try:
             d = binaryData.peek('bytes:1').decode('utf-8')
         except bitstring.ReadError:
+            _log.debug('position at end of stream %d',
+                       binaryData.pos + 8 * bindatafilepos)
             _log.warning('End of file reached without termination char')
             d = 'X'
         if d == 'd':

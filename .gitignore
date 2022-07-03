@@ -4,5 +4,5 @@ _build
 docs/pyglider
 dist
 
-*.nc
 *.png
+.DS_Store
