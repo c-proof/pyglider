@@ -10,7 +10,6 @@ import numpy as np
 import locale
 
 logging.basicConfig(level='INFO')
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 binarydir  = './realtime_raw/'
 rawdir     = './realtime_rawnc/'

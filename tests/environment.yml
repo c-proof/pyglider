@@ -15,3 +15,6 @@ dependencies:
   - pytest
   - pooch
   - matplotlib
+  - pip:
+    - dbdreader
+

@@ -30,6 +30,7 @@ def get_distance_over_ground(ds):
     dist = gsw.distance(ds.longitude[good].values, ds.latitude[good].values)/1000
     dist = np.roll(np.append(dist, 0), 1)
     dist = np.cumsum(dist)
+    dist = np.interp(ds.time, ds.time[good], dist)
     attr = {'long_name': 'distance over ground flown since mission start',
      'method': 'get_distance_over_ground',
      'units': 'km',
@@ -82,8 +83,8 @@ def get_profiles(ds, min_dp = 10.0, inversion=3., filt_length=7,
     make two variables: profile_direction and profile_index; this version
     is good for lots of data.  Less good for sparse data
     """
-    profile = ds.pressure.values * 0
-    direction = ds.pressure.values * 0
+    profile = ds.pressure.values * np.NaN
+    direction = ds.pressure.values * np.NaN
     pronum = 1
     lastpronum = 0
 
