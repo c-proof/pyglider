@@ -1,0 +1,36 @@
+figdir: './figs/'
+starttime: '2022-06-14T00:00'
+timeseries:
+  temperature:  "True"
+  salinity:     "True"
+  oxygen_concentration:    "True"
+  backscatter_700: "True"
+  chlorophyll:   "True"
+  cdom:          "True"
+# 'RdBu_r', 'viridis', 'RdYlBu', 'Greens'
+pcolor:
+  ncols : 2
+  density_cont_interval : 0.5
+  maxz : 250
+  vars:
+    temperature:
+      cmap:    'RdBu_r'
+      vmin:     8.0
+      vmax:     10.5
+    salinity:
+      cmap:    'viridis'
+      vmin:     28.5
+      vmax:     31.5
+    oxygen_concentration:
+      cmap:    'RdYlBu'
+      vmin:     -50
+      vmax:     120
+    chlorophyll:
+      cmap:    'Greens'
+      vmin:     0
+      vmax:     8
+    cdom:
+      cmap:    'BuPu'
+      vmin:    1.2
+    backscatter_700:
+      cmap:    'hot_r'
