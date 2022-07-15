@@ -139,7 +139,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
             if not goodfiles:
                 _log.warning(f'No valid unprocessed seaexplorer files found in'
                              f'{indir}')
-                return False
+                continue
     _log.info('All raw files converted to nc')
     return True
 
