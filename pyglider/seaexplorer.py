@@ -81,6 +81,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
         pass
 
     for ftype in ['gli', 'pld1']:
+        goodfiles = []
         for rawsub in ['raw', 'sub']:
             _log.info(f'Reading in raw files matching *{ftype}.{rawsub}*')
             d = indir + f'*.{ftype}.{rawsub}.*'
@@ -99,7 +100,6 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                 continue
 
             badfiles = []
-            goodfiles = []
             for ind, f in enumerate(files):
                 # output name:
                 fnout, filenum = _outputname(f, outdir)
@@ -136,10 +136,9 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                 _log.warning('Some files could not be parsed:')
                 for fn in badfiles:
                     _log.warning('%s', fn)
-            if not goodfiles:
-                _log.warning(f'No valid unprocessed seaexplorer files found in'
-                             f'{indir}')
-                continue
+    if not goodfiles:
+        _log.warning(f'No valid unprocessed seaexplorer files found in'f'{indir}')
+        return False
     _log.info('All raw files converted to nc')
     return True
 
