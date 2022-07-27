@@ -82,6 +82,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
 
     for ftype in ['gli', 'pld1']:
         goodfiles = []
+        badfiles = []
         for rawsub in ['raw', 'sub']:
             _log.info(f'Reading in raw files matching *{ftype}.{rawsub}*')
             d = indir + f'*.{ftype}.{rawsub}.*'
@@ -99,7 +100,6 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                 # If no files of this type found, try the next type
                 continue
 
-            badfiles = []
             for ind, f in enumerate(files):
                 # output name:
                 fnout, filenum = _outputname(f, outdir)
@@ -132,10 +132,10 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                                 _log.warning('Number of sensor data points'
                                              'too small. Skipping nc write')
                                 badfiles.append(f)
-            if len(badfiles) > 0:
-                _log.warning('Some files could not be parsed:')
-                for fn in badfiles:
-                    _log.warning('%s', fn)
+    if len(badfiles) > 0:
+        _log.warning('Some files could not be parsed:')
+        for fn in badfiles:
+            _log.warning('%s', fn)
     if not goodfiles:
         _log.warning(f'No valid unprocessed seaexplorer files found in'f'{indir}')
         return False
