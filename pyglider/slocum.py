@@ -1,10 +1,14 @@
-# -*- coding: utf-8 -*-
 """
 Routines to convert raw slocum dinkum files to netcdf timeseries.
 
 """
 import bitstring
 from datetime import datetime
+try:
+    import dbdreader
+    have_dbdreader = True
+except ImportError:
+    have_dbdreader = True
 import glob
 import logging
 import numpy as np
@@ -93,7 +97,7 @@ def binary_to_rawnc(indir, outdir, cacdir,
             # we need to make sure the files match...
             try:
                 fmeta, _ = dbd_get_meta(filen, cachedir=cacdir)
-                path, ext =  os.path.splitext(filen)
+                path, ext = os.path.splitext(filen)
                 fncname = (fmeta['the8x3_filename'] + '.' +
                            fmeta['filename_extension'] + '.nc')
                 fullfncname = outdir + '/' + fncname
@@ -110,13 +114,13 @@ def binary_to_rawnc(indir, outdir, cacdir,
                     # need a unique index that increases monotonically, and is
                     # different for each file (we can't use time because it is
                     # not necessarily monotonic):
-                    deployment_ind_flight = (int(fmeta['the8x3_filename']) * 1.0e4)
+                    deployment_ind_flight = (int(fmeta['the8x3_filename']) * 1.0e6)
                     ds, deployment_ind_flight = datameta_to_nc(
                         fdata, fmeta, outdir=outdir, name=fncname,
                         deployment_ind=deployment_ind_flight)
             except Exception as e:
-                badfiles += [filesMain[ind]]
-                _log.warning('Could not do parsing for %s', filesMain[ind])
+                badfiles += [files[ind]]
+                _log.warning('Could not do parsing for %s', files[ind])
                 _log.warning('%s', e)
 
         if len(badfiles) > 0:
@@ -372,10 +376,12 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
             elif code == '10':  # New value.
                 if int(activeSensorList[i]['bits']) in [4, 8]:
                     currentValues[i] = binaryData.read(
-                        f'float{endian}:' + str(int(activeSensorList[i]['bits']) * 8))
+                        f'float{endian}:' +
+                        str(int(activeSensorList[i]['bits']) * 8))
                 elif int(activeSensorList[i]['bits']) in [1, 2]:
                     currentValues[i] = binaryData.read(
-                        f'uint{endian}:' + str(int(activeSensorList[i]['bits']) * 8))
+                        f'uint{endian}:' +
+                        str(int(activeSensorList[i]['bits']) * 8))
                 else:
                     raise ValueError('Bad bits')
             else:
@@ -643,14 +649,15 @@ def merge_rawnc(indir, outdir, deploymentyaml,
 
     fin = glob.glob(indir + '/*.' + glidersuffix + '.nc')
     with xr.open_mfdataset(fin, decode_times=False, lock=False) as ds:
-        outnebd = outdir + '/' + id + f'rawdbd.nc'
+        outnebd = outdir + '/' + id + 'rawdbd.nc'
         ds = ds.sortby('time')
         ds['_ind'] = np.arange(len(ds.time))
         ds.to_netcdf(outnebd, 'w')
 
     fin = glob.glob(indir + '/*.' + scisuffix + '.nc')
+
     with xr.open_mfdataset(fin, decode_times=False, lock=False) as ds:
-        outnebd = outdir + '/' + id + f'rawebd.nc'
+        outnebd = outdir + '/' + id + 'rawebd.nc'
         ds = ds.sortby('time')
         ds['_ind'] = np.arange(len(ds.time))
         ds.to_netcdf(outnebd, 'w')
@@ -671,7 +678,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
         saved)
     profile_min_time : float
         minimum time to consider a profile an actual profile (seconds)
-
     Returns
     -------
     outname : string
@@ -689,103 +695,228 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
     id = metadata['glider_name'] + metadata['glider_serial']
 
     id0 = None
-    prev_profile = 0
-    for mnum in range(0, 1):
-        ebdn = indir + '/' + id + 'rawebd.nc'
-        dbdn = indir + '/' + id + 'rawdbd.nc'
-        _log.debug(f'{ebdn}, {dbdn}')
-        if not os.path.exists(ebdn) or not os.path.exists(dbdn):
+    ebdn = indir + '/' + id + 'rawebd.nc'
+    dbdn = indir + '/' + id + 'rawdbd.nc'
+    _log.debug(f'{ebdn}, {dbdn}')
+    if not os.path.exists(ebdn) or not os.path.exists(dbdn):
+        raise FileNotFoundError('Could not find %s and %s', ebdn, dbdn)
+
+    _log.info('Opening:', ebdn, dbdn)
+    ebd = xr.open_dataset(ebdn, decode_times=False)
+    dbd = xr.open_dataset(dbdn, decode_times=False)
+    _log.debug(f'DBD, {dbd}, {dbd.m_depth}')
+    if len(ebd.time) <= 2:
+        raise RuntimeError('Science file has no data')
+    # build a new data set based on info in `deployment.`
+    # We will use ebd.m_present_time as the interpolant if the
+    # variable is in dbd.
+    ds = xr.Dataset()
+    attr = {}
+    name = 'time'
+    for atts in ncvar[name].keys():
+        if atts != 'coordinates':
+            attr[atts] = ncvar[name][atts]
+    ds[name] = (('time'), ebd[name].values, attr)
+
+    for name in thenames:
+        _log.info('working on %s', name)
+        if 'method' in ncvar[name].keys():
             continue
+        # variables that are in the data set or can be interpolated from it
+        if 'conversion' in ncvar[name].keys():
+            convert = getattr(utils, ncvar[name]['conversion'])
+        else:
+            convert = utils._passthrough
+        sensorname = ncvar[name]['source']
+        _log.info('names: %s %s', name, sensorname)
+        if sensorname in ebd.keys():
+            _log.debug('EBD sensorname %s', sensorname)
+            val = ebd[sensorname]
+            val = utils._zero_screen(val)
+    #        val[val==0] = np.NaN
+            val = convert(val)
+        else:
+            _log.debug('DBD sensorname %s', sensorname)
+            val = convert(dbd[sensorname])
+            val = _dbd2ebd(dbd, ds, val)
+            ncvar['method'] = 'linear fill'
+        # make the attributes:
+        ncvar[name].pop('coordinates', None)
+        attrs = ncvar[name]
+        attrs = utils.fill_required_attrs(attrs)
+        ds[name] = (('time'), val.data, attrs)
 
-        _log.info('Opening:', ebdn, dbdn)
-        ebd = xr.open_dataset(ebdn, decode_times=False)
-        dbd = xr.open_dataset(dbdn, decode_times=False)
-        _log.debug(f'DBD, {dbd}, {dbd.m_depth}')
-        if len(ebd.time) <= 2:
+    _log.debug(f'HERE, {ds}')
+    _log.debug(f'HERE, {ds.pressure[0:100]}')
+    # some derived variables:
+    # trim bad times...
+
+    ds = utils.get_glider_depth(ds)
+    ds = utils.get_distance_over_ground(ds)
+
+    ds = utils.get_derived_eos_raw(ds)
+    ds = ds.assign_coords(longitude=ds.longitude)
+    ds = ds.assign_coords(latitude=ds.latitude)
+    ds = ds.assign_coords(depth=ds.depth)
+
+    ds['time'] = (ds.time.values.astype('timedelta64[s]') +
+                  np.datetime64('1970-01-01T00:00:00'))
+    ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
+    start = ds['time'].values[0]
+    end = ds['time'].values[-1]
+
+    ds.attrs['deployment_start'] = str(start)
+    ds.attrs['deployment_end'] = str(end)
+    _log.debug(ds.depth.values[:100])
+    _log.debug(ds.depth.values[2000:2100])
+    ds = utils.get_profiles_new(
+        ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
+    _log.debug(ds.depth.values[:100])
+    _log.debug(ds.depth.values[2000:2100])
+
+    try:
+        os.mkdir(outdir)
+    except:
+        pass
+    outname = (outdir + '/' + ds.attrs['deployment_name'] + '.nc')
+    _log.info('writing %s', outname)
+    ds.to_netcdf(outname, 'w',
+                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
+    if id0 is None:
+        id0 = ds.attrs['deployment_name']
+
+    return outname
+
+
+def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
+                         search='*.[D|E]BD',
+                         profile_filt_time=100, profile_min_time=300):
+    """
+    Convert directly from binary files to netcdf timeseries file.  Requires
+    dbdreader to be installed.
+
+    Parameters
+    ----------
+    indir : string
+        Directory with binary files from the glider.
+
+    cachedir : string
+        Directory with glider cache files (cac files)
+
+    outdir : string
+        Directory to put the merged timeseries files.
+
+    deploymentyaml : str
+        YAML text file with deployment information for this glider.
+
+    profile_filt_time : float
+        time in seconds over which to smooth the pressure time series for
+        finding up and down profiles (note, doesn't filter the data that is
+        saved)
+
+    profile_min_time : float
+        minimum time to consider a profile an actual profile (seconds)
+
+    Returns
+    -------
+    outname : string
+        name of the new merged netcdf file.
+    """
+
+    if not have_dbdreader:
+        raise ImportError('Cannot import dbdreader')
+
+    with open(deploymentyaml) as fin:
+        deployment = yaml.safe_load(fin)
+    ncvar = deployment['netcdf_variables']
+    device_data = deployment['glider_devices']
+    thenames = list(ncvar.keys())
+    thenames.remove('time')
+
+    # get the dbd file
+    _log.info(f'{indir}/{search}')
+    dbd = dbdreader.MultiDBD(pattern=f'{indir}/{search}',
+                             cacheDir=cachedir)
+
+    # build a new data set based on info in `deployment.`
+    # We will use ebd.m_present_time as the interpolant if the
+    # variable is in dbd.
+    ds = xr.Dataset()
+    attr = {}
+    name = 'time'
+    for atts in ncvar[name].keys():
+        if atts != 'coordinates':
+            attr[atts] = ncvar[name][atts]
+    if 'sci_m_present_time' in dbd.parameterNames['sci']:
+        time_base = 'sci_m_present_time'
+    elif 'm_present_time' in dbd.parameterNames['eng']:
+        time_base = 'm_present_time'
+    ds[name] = (('time'), dbd.get(time_base)[0], attr)
+
+    for name in thenames:
+        _log.info('working on %s', name)
+        if 'method' in ncvar[name].keys():
             continue
-        # build a new data set based on info in `deployment.`
-        # We will use ebd.m_present_time as the interpolant if the
-        # variable is in dbd.
-        ds = xr.Dataset()
-        attr = {}
-        name = 'time'
-        for atts in ncvar[name].keys():
-            if atts != 'coordinates':
-                attr[atts] = ncvar[name][atts]
-        ds[name] = (('time'), ebd[name].values, attr)
+        # variables that are in the data set or can be interpolated from it
+        if 'conversion' in ncvar[name].keys():
+            convert = getattr(utils, ncvar[name]['conversion'])
+        else:
+            convert = utils._passthrough
 
-        for name in thenames:
-            _log.info('working on %s', name)
-            if 'method' in ncvar[name].keys():
-                continue
-            # variables that are in the data set or can be interpolated from it
-            if 'conversion' in ncvar[name].keys():
-                convert = getattr(utils, ncvar[name]['conversion'])
-            else:
-                convert = utils._passthrough
-            sensorname = ncvar[name]['source']
-            _log.info('names: %s %s', name, sensorname)
-            if sensorname in ebd.keys():
-                _log.debug('EBD sensorname %s', sensorname)
-                val = ebd[sensorname]
-                val = utils._zero_screen(val)
-        #        val[val==0] = np.NaN
-                val = convert(val)
-            else:
-                _log.debug('DBD sensorname %s', sensorname)
-                val = convert(dbd[sensorname])
-                val = _dbd2ebd(dbd, ds, val)
-                ncvar['method'] = 'linear fill'
-            # make the attributes:
-            ncvar[name].pop('coordinates', None)
-            attrs = ncvar[name]
-            attrs = utils.fill_required_attrs(attrs)
-            ds[name] = (('time'), val.data, attrs)
+        sensorname = ncvar[name]['source']
+        _log.info('names: %s %s', name, sensorname)
+        if sensorname in dbd.parameterNames['sci']:
+            _log.debug('Sci sensorname %s', sensorname)
+            time, time, val = dbd.get_sync(time_base, sensorname)
+            val = utils._zero_screen(val)
+            val = convert(val)
+        elif sensorname in dbd.parameterNames['eng']:
+            _log.debug('Eng sensorname %s', sensorname)
+            time, time, val = dbd.get_sync(time_base, sensorname)
+            val = convert(val)
+            ncvar['method'] = 'linear fill'
+        # make the attributes:
+        ncvar[name].pop('coordinates', None)
+        attrs = ncvar[name]
+        attrs = utils.fill_required_attrs(attrs)
+        ds[name] = (('time'), val, attrs)
 
-        _log.debug(f'HERE, {ds}')
-        _log.debug(f'HERE, {ds.pressure[0:100]}')
-        # some derived variables:
-        # trim bad times...
-        #ds = ds.sel(time=slice(1e8, None))
+    _log.info(f'HERE, {ds}')
+    _log.debug(f'HERE, {ds.pressure[0:100]}')
 
-        ds = utils.get_glider_depth(ds)
+    ds = utils.get_glider_depth(ds)
+    ds = utils.get_distance_over_ground(ds)
 
-        ds = utils.get_distance_over_ground(ds)
+    ds = utils.get_derived_eos_raw(ds)
+    ds = ds.assign_coords(longitude=ds.longitude)
+    ds = ds.assign_coords(latitude=ds.latitude)
+    ds = ds.assign_coords(depth=ds.depth)
 
-        # ds = utils.get_profiles(ds)
-        # ds['profile_index'] = ds.profile_index + prev_profile
+    ds['time'] = (ds.time.values.astype('timedelta64[s]') +
+                  np.datetime64('1970-01-01T00:00:00'))
+    ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
+    start = ds['time'].values[0]
+    end = ds['time'].values[-1]
+    _log.debug('Long')
+    _log.debug(ds.longitude.values[-2000:])
+    ds.attrs['deployment_start'] = str(start)
+    ds.attrs['deployment_end'] = str(end)
+    _log.debug(ds.depth.values[:100])
+    _log.debug(ds.depth.values[2000:2100])
 
-        #ind = np.where(np.isfinite(ds.profile_index))[0]
-        #prev_profile = ds.profile_index.values[ind][-1]
-        ds = utils.get_derived_eos_raw(ds)
-        ds = ds.assign_coords(longitude=ds.longitude)
-        ds = ds.assign_coords(latitude=ds.latitude)
-        ds = ds.assign_coords(depth=ds.depth)
+    ds = utils.get_profiles_new(
+        ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
+    _log.debug(ds.depth.values[:100])
+    _log.debug(ds.depth.values[2000:2100])
 
-        #ds = ds._get_distance_over_ground(ds)
-        ds['time'] = ds.time.values.astype('timedelta64[s]') + np.datetime64('1970-01-01T00:00:00')
-        ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
-        start = ds['time'].values[0]
-        end = ds['time'].values[-1]
-
-        ds.attrs['deployment_start'] = str(start)
-        ds.attrs['deployment_end'] = str(end)
-        _log.debug(ds.depth.values[:100])
-        _log.debug(ds.depth.values[2000:2100])
-        ds = utils.get_profiles_new(
-            ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
-        _log.debug(ds.depth.values[:100])
-        _log.debug(ds.depth.values[2000:2100])
-
-        try:
-            os.mkdir(outdir)
-        except:
-            pass
-        outname = (outdir + '/' + ds.attrs['deployment_name'] + '.nc')
-        _log.info('writing %s', outname)
-        ds.to_netcdf(outname, 'w', encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
-        if id0 is None:
-            id0 = ds.attrs['deployment_name']
+    try:
+        os.mkdir(outdir)
+    except:
+        pass
+    outname = (outdir + '/' + ds.attrs['deployment_name'] + '.nc')
+    _log.info('writing %s', outname)
+    ds.to_netcdf(outname, 'w',
+                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
 
     return outname
 
@@ -890,34 +1021,34 @@ def parse_logfiles(files):
         found_time = False
 
         with open(fn, 'r') as fin:
-            for l in fin:
-                if 'Curr Time:' in l:
-                    times[ntimes] = l
+            for ll in fin:
+                if 'Curr Time:' in ll:
+                    times[ntimes] = ll
                     ntimes += 1
-                    found_time=True
-                if found_time and 'GPS Location' in l:
-                    gps[ntimes - 1] = l
-                if found_time and "sensor:m_coulomb_amphr_total" in l:
-                    amph[ntimes-1] = l
+                    found_time = True
+                if found_time and 'GPS Location' in ll:
+                    gps[ntimes - 1] = ll
+                if found_time and "sensor:m_coulomb_amphr_total" in ll:
+                    amph[ntimes-1] = ll
     amph = amph[:ntimes]
     gps = gps[:ntimes]
     times = times[:ntimes]
 
     # now parse them
-    out = xr.Dataset(coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[s]'))})
+    out = xr.Dataset(
+        coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[s]'))})
     out['ampH'] = ('surfacing', np.zeros(ntimes) * np.NaN)
     out['lon'] = ('surfacing', np.zeros(ntimes) * np.NaN)
     out['lat'] = ('surfacing', np.zeros(ntimes) * np.NaN)
 
     for i in range(ntimes):
         timestring = times[i][11:-13]
-        out['time'][i] = np.datetime64(datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'))
+        out['time'][i] = np.datetime64(
+            datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'))
         try:
             st = amph[i].index('=')
             en = amph[i][st:].index(' ') + st
             out['ampH'][i] = float(amph[i][(st+1):en])
-
-            #        GPS Location:  4912.737 N -12357.253 E measured    110.757 secs ago
             sp = gps[i].split(' ')
             out['lat'][i] = utils.nmea2deg(float(sp[3]))
             out['lon'][i] = utils.nmea2deg(float(sp[5]))
@@ -928,4 +1059,4 @@ def parse_logfiles(files):
 
 
 __all__ = ['binary_to_rawnc', 'merge_rawnc', 'raw_to_timeseries',
-           'parse_glider_state', 'parse_logfiles']
+           'parse_gliderState', 'parse_logfiles']

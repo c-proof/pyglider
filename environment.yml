@@ -13,3 +13,5 @@ dependencies:
   - scipy
   - bitstring
   - pooch
+  - pip:
+    - dbdreader

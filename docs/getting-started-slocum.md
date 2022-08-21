@@ -31,12 +31,12 @@ There are four top-levels to the `deployment.yaml`
 
 The example script is relatively straight forward if there is no intermediate processing.  See {ref}`ExProcSlocum`, below.
 
-Data comes from an input directory, and is translated to raw glider-dependent netCDF files and put in a new directory.  These files are useful of their own right, but are not CF compliant.  These files are then merged into a single monolithic netCDF file, and this is translated to a CF-compliant timeseries file.  Finally individual profiles are saved and a 2-D 1-m grid in time-depth is saved.
+Data comes from an input directory, and is translated into a single CF-compliant  netCDF timeseries file using the package [dbdreader](https://dbdreader.readthedocs.io/en/latest/).  Finally individual profiles are saved and a 2-D 1-m grid in time-depth is saved.
 
-```{note} The initial conversion from the Dinkum format to netCDF is quite slow, particularly for full-resolution datasets.
+```{note} There is a version that does not require `dbdreader` to do the initial conversion from the Dinkum format to netCDF.  However it is quite slow, particularly for full-resolution datasets, and less robust.  We suggest using the `slocum.raw_to_timeseries`.
 ```
 
-It is likely that between these steps the user will want to add any screening steps, or adjustments to the calibrations.  PyGlider does not provide those steps.
+It is possible that between these steps the user will want to add any screening steps, or adjustments to the calibrations.  PyGlider does not provide those steps, but is designed so they are easy to add.
 
 
 (ExDeplSlocum)=

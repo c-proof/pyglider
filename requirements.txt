@@ -1,8 +1,9 @@
-numpy
-xarray
-dask
-netcdf4
-gsw
-scipy
 bitstring
+dbdreader
+dask
+gsw
+netcdf4
+numpy
 pooch
+scipy
+xarray
