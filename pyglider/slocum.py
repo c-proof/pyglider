@@ -875,13 +875,22 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             time, time, val = dbd.get_sync(time_base, sensorname)
             val = convert(val)
             ncvar['method'] = 'linear fill'
+        else:
+            ValueError(f'{sensorname} not in science or eng parameter names')
+        if len(time) < ds.sizes['time']:
+            _log.info(f'{sensorname} does not have as many entries '
+                      'as other variables.')
+            # sometimes one of the sensors isn't on right away:
+            valnew = ds.time.values * np.NaN
+            valnew[ds.time.values >= time[0]] = val
+            val = valnew
         # make the attributes:
         ncvar[name].pop('coordinates', None)
         attrs = ncvar[name]
         attrs = utils.fill_required_attrs(attrs)
         ds[name] = (('time'), val, attrs)
 
-    _log.info(f'HERE, {ds}')
+    _log.info(f'Getting glider depths, {ds}')
     _log.debug(f'HERE, {ds.pressure[0:100]}')
 
     ds = utils.get_glider_depth(ds)
