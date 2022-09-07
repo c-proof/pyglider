@@ -73,7 +73,7 @@ html_logo = "_static/PyGliderHorizontal.svg"
 
 html_context = {
     # "github_url": "https://github.com", # or your GitHub Enterprise interprise
-    "github_user": "cproof",
+    "github_user": "c-proof",
     "github_repo": "pyglider",
     "doc_path": "docs/",
 }
@@ -83,7 +83,7 @@ html_theme_options = {
             # Label for this link
             "name": "GitHub",
             # URL where the link will redirect
-            "url": "https://github.com/cproof/pyglider",  # required
+            "url": "https://github.com/c-proof/pyglider",  # required
             # Icon class (if "type": "fontawesome"), or path to local image (if "type": "local")
             "icon": "fab fa-github-square",
             # The type of image to be used (see below for details)
