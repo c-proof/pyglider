@@ -880,9 +880,10 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         if len(time) < ds.sizes['time']:
             _log.info(f'{sensorname} does not have as many entries '
                       'as other variables.')
-            # sometimes one of the sensors isn't on right away:
+            # sometimes one of the sensors has more or less data:
             valnew = ds.time.values * np.NaN
-            valnew[ds.time.values >= time[0]] = val
+            for t, v in time, val:
+                valnew[ds.time.values==t] = v
             val = valnew
         # make the attributes:
         ncvar[name].pop('coordinates', None)
@@ -1052,9 +1053,9 @@ def parse_logfiles(files):
 
     for i in range(ntimes):
         timestring = times[i][11:-13]
-        out['time'][i] = np.datetime64(
-            datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'))
         try:
+            out['time'][i] = np.datetime64(
+                datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'))
             st = amph[i].index('=')
             en = amph[i][st:].index(' ') + st
             out['ampH'][i] = float(amph[i][(st+1):en])
