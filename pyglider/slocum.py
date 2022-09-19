@@ -882,7 +882,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
                       'as other variables.')
             # sometimes one of the sensors has more or less data:
             valnew = ds.time.values * np.NaN
-            for t, v in time, val:
+            for t, v in zip(time, val):
                 valnew[ds.time.values==t] = v
             val = valnew
         # make the attributes:
