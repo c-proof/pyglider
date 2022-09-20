@@ -881,10 +881,10 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             _log.info(f'{sensorname} does not have as many entries '
                       'as other variables.')
             # sometimes one of the sensors has more or less data:
-            valnew = ds.time.values * np.NaN
-            for t, v in zip(time, val):
-                valnew[ds.time.values==t] = v
-            val = valnew
+            dsfix = xr.DataArray(val, dims='time',
+                                 coords={'time': time})
+            val = dsfix.reindex_like(ds).values
+
         # make the attributes:
         ncvar[name].pop('coordinates', None)
         attrs = ncvar[name]
