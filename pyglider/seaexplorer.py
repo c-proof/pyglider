@@ -39,7 +39,7 @@ def _sort(ds):
 
 
 def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
-                 min_samples_in_file=5):
+                 min_samples_in_file=5, dropna_subset=None, dropna_thresh=1):
     """
     Convert seaexplorer text files to raw netcdf files.
 
@@ -63,6 +63,17 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
         Minimum number of samples in a raw file to trigger writing a netcdf
         file. Defaults to 5
 
+    dropna_subset : list of strings, default None
+        If more values than *dropna_thresh* of the variables listed here are
+        empty (NaN), then drop this line of data.  Useful for raw payload files
+        that are heavily oversampled.  Get the variable names from the raw text
+        file.  See `pandas.DataFrame.dropna`.
+
+    dropna_thresh : integer, default 1
+        Number of variables listed in dropna_subset that can be empty before
+        the line is dropped.
+
+
     Returns
     -------
     status : bool
@@ -72,6 +83,13 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
     -----
 
     This process can be slow for many files.
+
+    For the *dropna* functionality, list one variable for each of the sensors
+    that is *not* over-sampled.  For instance, we had an AROD, GPCTD, and
+    FLBBCD and the AROD was grossly oversampled, whereas the other two were not,
+    but were not sampled synchronously.  In that case we chose:
+    `dropna_subset=['GPCTD_TEMPERATURE', 'FLBBCD_CHL_COUNT']` to keep all
+    rows where either of these were good, and dropped all other rows.
 
     """
     # Create out directory for netcdfs if it does not exist
@@ -86,6 +104,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
         for rawsub in ['raw', 'sub']:
             _log.info(f'Reading in raw files matching *{ftype}.{rawsub}*')
             d = indir + f'*.{ftype}.{rawsub}.*'
+
             files = glob.glob(d)
             fnum = np.zeros(len(files))
             # these files don't sort properly, but we can sort them here.
@@ -115,6 +134,11 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                         out.loc[out.AD2CP_TIME.str[:6] == '000000',
                                 'AD2CP_TIME'] = None
                         out['AD2CP_TIME'] = pd.to_datetime(out.AD2CP_TIME)
+
+                    # subsetting for heavily oversampled raw data:
+                    if rawsub=='raw' and dropna_subset is not None:
+                        out = out.dropna(subset=dropna_subset, thresh=dropna_thresh)
+
                     with out.to_xarray() as outx:
                         key = list(outx.coords.keys())[0]
                         outx = outx.rename({key: 'time'})
