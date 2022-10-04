@@ -10,13 +10,15 @@ setup(name="pyglider",
       packages=find_packages(exclude=['tests']),
       python_requires='>=3.6',
       install_requires=[
+        "numpy", 
         "xarray",
         "dask",
         "netcdf4",
         "gsw",
         "scipy",
         "bitstring",
-        "pooch"
+        "pooch",
+        "dbdreader>=0.4.11"
       ],
       license='Apache',
       extras_require={

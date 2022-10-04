@@ -1,9 +1,1 @@
-bitstring
-dbdreader
-dask
-gsw
-netcdf4
-numpy
-pooch
-scipy
-xarray
+.
