@@ -253,7 +253,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
 def _interp_gli_to_pld(gli, ds, val, indctd):
     gli_ind = ~np.isnan(val)
     valout = np.interp(ds['time'],
-                       gli['time'][gli_ind],
+                       gli.filter(gli_ind)["time"],
                        val[gli_ind])
     return valout
 
