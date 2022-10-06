@@ -132,7 +132,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                         out = out.rename({"Timestamp": "time"})
                     else:
                         out = out.with_column(
-                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S.%f"))
+                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S.%3f"))
                         out = out.rename({"PLD_REALTIMECLOCK": "time"})
                     # If AD2CP data present, convert timestamps to datetime
                     if 'AD2CP_TIME' in out.columns:
