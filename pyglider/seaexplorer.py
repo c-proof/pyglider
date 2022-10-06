@@ -252,9 +252,15 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
 
 def _interp_gli_to_pld(gli, ds, val, indctd):
     gli_ind = ~np.isnan(val)
-    valout = np.interp(ds['time'],
-                       gli.filter(gli_ind)["time"],
-                       val[gli_ind])
+    # switch for if we are comparing two polars dataframes or a polars dataframe and a xarray dataset
+    if type(ds) is pl.internals.dataframe.frame.DataFrame:
+        valout = np.interp(ds["time"],
+                           gli.filter(gli_ind)["time"],
+                           val[gli_ind])
+    else:
+        valout = np.interp(ds['time'].astype(int),
+                           np.array(gli.filter(gli_ind)["time"].to_numpy().astype('datetime64[ns]')).astype(int),
+                           val[gli_ind])
     return valout
 
 
