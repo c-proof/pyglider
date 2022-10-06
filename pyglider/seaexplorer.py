@@ -25,7 +25,7 @@ def _outputname(f, outdir):
     for ff in fns:
         fnout += ff.lower() + '.'
     filenum = int(fns[4])
-    return outdir + fnout + 'nc', filenum
+    return outdir + fnout + 'parquet', filenum
 
 
 def _needsupdating(ftype, fin, fout):
@@ -149,11 +149,11 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
 
                     if ftype == 'gli':
                         out = out.with_columns([(pl.col("NavState") * 0 + int(filenum)).alias("fnum")])
-                        out.write_parquet(fnout[:-3] + '.parquet')
+                        out.write_parquet(fnout)
                         goodfiles.append(f)
                     else:
                         if out.select("time").shape[0] > min_samples_in_file:
-                            out.write_parquet(fnout[:-3] + '.parquet')
+                            out.write_parquet(fnout)
                             goodfiles.append(f)
                         else:
                             _log.warning('Number of sensor data points'
