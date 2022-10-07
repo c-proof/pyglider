@@ -39,7 +39,7 @@ def test_example_seaexplorer(var):
     # Test that each variable and its coordinates match
     assert output[var].attrs == test_data[var].attrs
     if var not in ['time']:
-        np.testing.assert_allclose(output[var].values, test_data[var].values)
+        np.testing.assert_allclose(output[var].values, test_data[var].values, rtol=1e-5)
     else:
         dt0 = output[var].values - np.datetime64('2000-01-01')
         dt1 = test_data[var].values - np.datetime64('2000-01-01')
