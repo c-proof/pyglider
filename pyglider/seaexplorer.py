@@ -342,9 +342,16 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                     coarsen_time = ncvar[name]['coarsen']
                     coarse_ints = np.arange(0, len(sensor)/coarsen_time, 1/coarsen_time).astype(int)
                     sensor_sub = sensor.with_columns(pl.lit(coarse_ints).alias("coarse_ints"))
-                    sensor_sub_coarse = sensor_sub.groupby('coarse_ints').median().sort(by="time")
-                    val2 = sensor_sub_coarse.select(sensorname).to_numpy()[:, 0]
-                    val = _interp_gli_to_pld(sensor_sub_coarse, sensor, val2, indctd)
+                    sensor_sub_grouped = sensor_sub.with_column(
+                        pl.col('time').to_physical()
+                    ).groupby(
+                        by=pl.col('coarse_ints'),
+                        maintain_order=True
+                    ).mean().with_column(
+                        pl.col('time').cast(pl.Datetime('ms'))
+                    )[:-1, :]
+                    val2 = sensor_sub_grouped.select(sensorname).to_numpy()[:, 0]
+                    val = _interp_gli_to_pld(sensor_sub_grouped, sensor, val2, indctd)
                 val = val[indctd]
 
                 ncvar['method'] = 'linear fill'
