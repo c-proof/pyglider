@@ -125,7 +125,11 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                 _log.info(f'{f} to {fnout}')
                 if not incremental or _needsupdating(ftype, f, fnout):
                     _log.info(f'Doing: {f} to {fnout}')
-                    out = pl.read_csv(f, sep=';')
+                    try:
+                        out = pl.read_csv(f, sep=';')
+                    except:
+                        _log.warning(f'Could not read {f}')
+                        continue
                     if "Timestamp" in out.columns:
                         out = out.with_column(
                             pl.col("Timestamp").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S"))
@@ -134,6 +138,9 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                         out = out.with_column(
                             pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S.%3f"))
                         out = out.rename({"PLD_REALTIMECLOCK": "time"})
+                    for col_name in out.columns:
+                        if "time" not in col_name.lower():
+                            out = out.with_column(pl.col(col_name).cast(pl.Float64))
                     # If AD2CP data present, convert timestamps to datetime
                     if 'AD2CP_TIME' in out.columns:
                         # Set datestamps with date 00000 to None
