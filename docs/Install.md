@@ -7,9 +7,9 @@ hence we recommend these be installed with [``conda``](https://www.anaconda.com/
 PyGlider, create an environment, and do
 
 ```
-conda env create -n gliderwork
+conda create -n gliderwork
 conda activate gliderwork
-conda install pyglider
+conda install -c conda-forge pyglider
 ```
 
 ## Editable installation
