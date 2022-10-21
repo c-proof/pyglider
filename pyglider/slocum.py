@@ -769,8 +769,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
     ds.attrs['deployment_end'] = str(end)
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
-    ds = utils.get_profiles_new(
-        ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 
@@ -914,8 +912,6 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 
-    ds = utils.get_profiles_new(
-        ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 

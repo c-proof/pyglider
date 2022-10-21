@@ -33,8 +33,8 @@ if real:
 if do_direct:
     # turn *.sdb and *.tbd into timeseries netcdf files
     outname = slocum.binary_to_timeseries(
-        binarydir, cacdir, l1tsdir, deploymentyaml, search='*.[s|t]bd',
-        profile_filt_time=20, profile_min_time=20)
+        binarydir, cacdir, l1tsdir, deploymentyaml, search='*.[s|t]bd')
+    outname = pgutils.get_profiles(outname,filt_time=20, profile_min_time=20)
 else:
     # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
     slocum.binary_to_rawnc(

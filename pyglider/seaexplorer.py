@@ -273,8 +273,7 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
     return val
 
 
-def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
-                      profile_filt_time=100, profile_min_time=300):
+def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw'):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -378,9 +377,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     # some derived variables:
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
-    #    ds = utils.get_profiles(ds)
-    ds = utils.get_profiles_new(ds, filt_time=profile_filt_time,
-                                profile_min_time=profile_min_time)
     ds = utils.get_derived_eos_raw(ds)
 
     # somehow this comes out unsorted:

@@ -6,6 +6,7 @@ import xarray as xr
 import numpy as np
 from scipy.signal import argrelextrema
 import gsw
+import shutil
 import logging
 
 _log = logging.getLogger(__name__)
@@ -75,67 +76,13 @@ def get_glider_depth(ds):
     return ds
 
 
-def get_profiles(ds, min_dp=10.0, inversion=3., filt_length=7,
-                 min_nsamples=14):
-    """
-    Not currently used...
-
-    make two variables: profile_direction and profile_index; this version
-    is good for lots of data.  Less good for sparse data
-    """
-    profile = ds.pressure.values * np.NaN
-    direction = ds.pressure.values * np.NaN
-    pronum = 1
-    lastpronum = 0
-
-    good = np.where(~np.isnan(ds.pressure))[0]
-    p = np.convolve(ds.pressure.values[good],
-                    np.ones(filt_length) / filt_length, 'same')
-    dpall = np.diff(p)
-    inflect = np.where(dpall[:-1] * dpall[1:] < 0)[0]
-    for n, i in enumerate(inflect[:-1]):
-        nprofile = inflect[n+1] - inflect[n]
-        inds = np.arange(good[inflect[n]], good[inflect[n+1]]+1) + 1
-        dp = np.diff(ds.pressure[inds[[-1, 0]]])
-        if ((nprofile >= min_nsamples) and (np.abs(dp) > 10)):
-            _log.debug('Good')
-            direction[inds] = np.sign(dp)
-            profile[inds] = pronum
-            lastpronum = pronum
-            pronum += 1
-        else:
-            profile[good[inflect[n]]:good[inflect[n+1]]] = lastpronum + 0.5
-
-    attrs = collections.OrderedDict([
-        ('long_name', 'profile index'),
-        ('units', '1'),
-        ('comment',
-         'N = inside profile N, N + 0.5 = between profiles N and N + 1'),
-        ('sources', 'time pressure'),
-        ('method', 'get_profiles'),
-        ('min_dp', min_dp),
-        ('filt_length', filt_length),
-        ('min_nsamples', min_nsamples)])
-    ds['profile_index'] = (('time'), profile, attrs)
-
-    attrs = collections.OrderedDict([
-        ('long_name', 'glider vertical speed direction'),
-        ('units', '1'),
-        ('comment',
-         '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
-        ('sources', 'time pressure'),
-        ('method', 'get_profiles')])
-    ds['profile_direction'] = (('time'), direction, attrs)
-    return ds
-
-
-def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
+def get_profiles(nc, min_dp=10.0, filt_time=100, profile_min_time=300):
     """
     Find profiles in a glider timeseries:
 
     Parameters
     ----------
-    ds : `xarray.Dataset`
+    nc : `str or path` path to netCDF file
         Must have *time* coordinate and *pressure* as a variable
     min_dp : float, default=10.0
         Minimum distance a profile must transit to be considered a profile, in dbar.
@@ -148,6 +95,7 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
         Minimum time length of profile in s.
     """
 
+    ds = xr.open_dataset(nc)
     profile = ds.pressure.values * 0
     direction = ds.pressure.values * 0
     pronum = 1
@@ -236,7 +184,12 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
         ('sources', 'time pressure'),
         ('method', 'get_profiles_new')])
     ds['profile_direction'] = (('time'), direction, attrs)
-    return ds
+    tempfile = "tmp.nc"
+    ds.to_netcdf(tempfile, 'w',
+                 encoding={'time': {'units':
+                                    'seconds since 1970-01-01T00:00:00Z'}})
+    shutil.move(tempfile, nc)
+    return nc
 
 
 def get_derived_eos_raw(ds):

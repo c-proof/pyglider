@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import pyglider.ncprocess as ncprocess
+import pyglider.utils as utils
 import cproofutils.plotting as cpplot
 import cproofutils.plotlinepmap as lpmap
 import pyglider.slocum as slocum
@@ -47,8 +48,8 @@ print('Done merge')
 
 if True:
     # Make level-1 timeseries netcdf file from the raw files...
-    outname = slocum.raw_to_timeseries(rawdir, l1tsdir, deploymentyaml,
-              profile_filt_time=400, profile_min_time=100)
+    outname = slocum.raw_to_timeseries(rawdir, l1tsdir, deploymentyaml)
+    outname = utils.get_profiles(outname, filt_time=400, profile_min_time=100)
     # make profile netcdf files for ioos gdac...
     #ncprocess.extract_L1timeseries_profiles(outname, profiledir, deploymentyaml)
     # make grid of dataset....
