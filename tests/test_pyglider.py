@@ -79,7 +79,7 @@ slocum.merge_rawnc(rawdir_slocum, rawdir_slocum, deploymentyaml_slocum,
 outname_slocum = slocum.raw_to_timeseries(
     rawdir_slocum, l1tsdir, deploymentyaml_slocum,
     profile_filt_time=100, profile_min_time=300)
-outname_slocum = pgutils.get_profiles(outname, filt_time=100, profile_min_time=300)
+outname_slocum = pgutils.get_profiles(outname_slocum, filt_time=100, profile_min_time=300)
 output_slocum = xr.open_dataset(outname_slocum)
 # Open test data file
 test_data_slocum = xr.open_dataset(
