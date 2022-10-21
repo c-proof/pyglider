@@ -5,6 +5,7 @@ import numpy as np
 
 import pyglider.seaexplorer as seaexplorer
 import pyglider.slocum as slocum
+import pyglider.utils as pgutils
 
 library_dir = Path(__file__).parent.parent.absolute()
 example_dir = library_dir / 'tests/example-data/'
@@ -19,6 +20,7 @@ seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
 seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
 outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir,
                                           deploymentyaml, kind='sub')
+outname = pgutils.get_profiles(outname)
 output = xr.open_dataset(outname)
 # Open test data file
 test_data = xr.open_dataset(
@@ -77,6 +79,7 @@ slocum.merge_rawnc(rawdir_slocum, rawdir_slocum, deploymentyaml_slocum,
 outname_slocum = slocum.raw_to_timeseries(
     rawdir_slocum, l1tsdir, deploymentyaml_slocum,
     profile_filt_time=100, profile_min_time=300)
+outname_slocum = pgutils.get_profiles(outname, filt_time=100, profile_min_time=300)
 output_slocum = xr.open_dataset(outname_slocum)
 # Open test data file
 test_data_slocum = xr.open_dataset(
