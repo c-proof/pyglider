@@ -7,9 +7,9 @@ import pyglider.utils as pgutils
 logging.basicConfig(level='INFO')
 
 sourcedir = '~alseamar/Documents/SEA035/000012/000012/C-Csv/*'
-rawdir  = '/home/callum/Downloads/glider_data/sea45_m60/'
+rawdir  = './realtime_raw/'
 rawncdir     = './realtime_rawnc/'
-deploymentyaml = '/home/callum/Documents/data-flow/raw-to-nc/deployment-yaml/mission_yaml/SEA45_M60.yml'
+deploymentyaml = './deploymentRealtime.yml'
 l0tsdir    = './L0-timeseries/'
 profiledir = './L0-profiles/'
 griddir    = './L0-gridfiles/'
