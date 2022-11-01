@@ -153,6 +153,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
 
                     # subsetting for heavily oversampled raw data:
                     if rawsub == 'raw' and dropna_subset is not None:
+                        # This check is the polars equivalent of pandas dropna. See docstring note on dropna
                         out = out.with_column(out.select(pl.col(dropna_subset).is_null().cast(pl.Int64))
                                               .sum(axis=1).alias("null_count")).filter(
                             pl.col("null_count") <= dropna_thresh) \
@@ -181,7 +182,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
     return True
 
 
-def drop_rogue_1970(df):
+def drop_pre_1971_samples(df):
     """
     If dates greater than 1971, 1, 1 are observed, drop any dates before
     1971-01-01, from the datset and return it. This function removes 1970
@@ -189,10 +190,10 @@ def drop_rogue_1970(df):
     are < 1971-01-01, no action is taken
 
     Parameters:
-        ds: xarray.DataSet
-            dataset to check for pre-1971 dates
+        df: polars.DataFrame
+            dataframe to check for pre-1971 dates
     Returns:
-        ds: xarray.DataSet
+        df: polars.DataFrame
     """
     dt_1971 = datetime.datetime(1971, 1, 1)
     # If all dates before or after 1971-01-01, return the dataset
@@ -243,7 +244,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         _log.warning(f'No *gli*.parquet files found in {indir}')
         return False
     gli = pl.read_parquet(indir + '/*.gli.sub.*.parquet')
-    gli = drop_rogue_1970(gli)
+    gli = drop_pre_1971_samples(gli)
     gli.write_parquet(outgli)
     _log.info(f'Done writing {outgli}')
 
@@ -253,7 +254,7 @@ def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         _log.warning(f'No *{kind}*.parquet files found in {indir}')
         return False
     pld = pl.read_parquet(indir + '/*.pld1.' + kind + '.*.parquet')
-    pld = drop_rogue_1970(pld)
+    pld = drop_pre_1971_samples(pld)
     pld.write_parquet(outpld)
 
     _log.info(f'Done writing {outpld}')
