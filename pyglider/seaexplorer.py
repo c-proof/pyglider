@@ -125,11 +125,15 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                 _log.info(f'{f} to {fnout}')
                 if not incremental or _needsupdating(ftype, f, fnout):
                     _log.info(f'Doing: {f} to {fnout}')
+                    # Try to read the file with polars. If the file is corrupted (rare), file read will fail and file
+                    # is appended to badfiles
                     try:
                         out = pl.read_csv(f, sep=';')
                     except:
                         _log.warning(f'Could not read {f}')
+                        badfiles.append(f)
                         continue
+                    # Parse the datetime from nav files (called Timestamp) and pld1 files (called PLD_REALTIMECLOCK)
                     if "Timestamp" in out.columns:
                         out = out.with_column(
                             pl.col("Timestamp").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S"))
