@@ -51,12 +51,12 @@ def test__needsupdating():
 
 
 def test_merge_rawnc():
-    result_default = seaexplorer.merge_rawnc(
+    result_default = seaexplorer.merge_parquet(
             'tests/data/realtime_rawnc/',
             'tests/data/realtime_rawnc/',
             example_dir / 'example-seaexplorer/deploymentRealtime.yml')
 
-    result_sub = seaexplorer.merge_rawnc(
+    result_sub = seaexplorer.merge_parquet(
             'tests/data/realtime_rawnc/',
             'tests/data/realtime_rawnc/',
             example_dir / 'example-seaexplorer/deploymentRealtime.yml',

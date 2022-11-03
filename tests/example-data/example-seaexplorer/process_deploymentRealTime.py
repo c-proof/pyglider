@@ -26,7 +26,7 @@ if True:
     # turn *.EBD and *.DBD into *.ebd.nc and *.dbd.nc netcdf files.
     seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
         # merge individual neetcdf files into single netcdf files *.ebd.nc and *.dbd.nc
-    seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
+    seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='sub')
 
         # Make level-1 timeseries netcdf file from th raw files...
     outname = seaexplorer.raw_to_timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')

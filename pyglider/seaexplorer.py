@@ -206,7 +206,7 @@ def drop_pre_1971_samples(df):
     return df.filter(pl.col("time") > dt_1971)
 
 
-def merge_rawnc(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
+def merge_parquet(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     """
     Merge all the raw netcdf files in indir.  These are meant to be
     the raw flight and science files from the slocum.
@@ -352,7 +352,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                 if 'coarsen' in ncvar[name]:
                     # smooth oxygen data as originally perscribed
                     coarsen_time = ncvar[name]['coarsen']
-                    coarse_ints = np.arange(0, len(sensor)/coarsen_time, 1/coarsen_time).astype(int)
+                    coarse_ints = np.arange(0, len(sensor) / coarsen_time, 1 / coarsen_time).astype(int)
                     sensor_sub = sensor.with_columns(pl.lit(coarse_ints).alias("coarse_ints"))
                     sensor_sub_grouped = sensor_sub.with_column(
                         pl.col('time').to_physical()
@@ -519,4 +519,6 @@ def _parse_sensor_config(filename):
     return active_device_dicts
 
 
-__all__ = ['raw_to_rawnc', 'merge_rawnc', 'raw_to_timeseries']
+merge_rawnc = merge_parquet
+
+__all__ = ['raw_to_rawnc', 'merge_parquet', 'raw_to_timeseries']

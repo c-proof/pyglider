@@ -10,7 +10,7 @@ by optional steps to create profiles or depth-time grids.
 
 ```python
 seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
-seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
+seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='sub')
 outname = seaexplorer.raw_to_timeseries(rawncdir, tsdir, deploymentyaml, kind='sub')
 # optional...
 ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)

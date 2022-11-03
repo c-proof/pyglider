@@ -16,7 +16,7 @@ rawncdir = str(example_dir / 'example-seaexplorer/realtime_rawnc/') + '/'
 deploymentyaml = str(example_dir / 'example-seaexplorer/deploymentRealtime.yml')
 l0tsdir = str(example_dir / 'example-seaexplorer/L0-timeseries-test/') + '/'
 seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
-seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
+seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='sub')
 outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir,
                                           deploymentyaml, kind='sub')
 output = xr.open_dataset(outname)
