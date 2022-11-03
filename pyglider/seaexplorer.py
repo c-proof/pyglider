@@ -350,10 +350,12 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                 _log.debug('sensorname %s', sensorname)
                 val = convert(sensor.select(sensorname).to_numpy()[:, 0])
                 if 'coarsen' in ncvar[name]:
-                    # smooth oxygen data as originally perscribed
+                    # coarsen oxygen data as originally perscribed
                     coarsen_time = ncvar[name]['coarsen']
+                    # create a boolean mask of coarsened timesteps. Use this mask to create an array of samples to keep
                     coarse_ints = np.arange(0, len(sensor) / coarsen_time, 1 / coarsen_time).astype(int)
                     sensor_sub = sensor.with_columns(pl.lit(coarse_ints).alias("coarse_ints"))
+                    # Subsample the variable data keeping only the samples from the coarsened timeseries
                     sensor_sub_grouped = sensor_sub.with_column(
                         pl.col('time').to_physical()
                     ).groupby(
