@@ -16,7 +16,7 @@ rawncdir = str(example_dir / 'example-seaexplorer/realtime_rawnc/') + '/'
 deploymentyaml = str(example_dir / 'example-seaexplorer/deploymentRealtime.yml')
 l0tsdir = str(example_dir / 'example-seaexplorer/L0-timeseries-test/') + '/'
 seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
-seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
+seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='sub')
 outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir,
                                           deploymentyaml, kind='sub')
 output = xr.open_dataset(outname)
@@ -39,7 +39,7 @@ def test_example_seaexplorer(var):
     # Test that each variable and its coordinates match
     assert output[var].attrs == test_data[var].attrs
     if var not in ['time']:
-        np.testing.assert_allclose(output[var].values, test_data[var].values)
+        np.testing.assert_allclose(output[var].values, test_data[var].values, rtol=1e-5)
     else:
         dt0 = output[var].values - np.datetime64('2000-01-01')
         dt1 = test_data[var].values - np.datetime64('2000-01-01')
@@ -98,7 +98,7 @@ def test_example_slocum(var):
     assert output_slocum[var].attrs == test_data_slocum[var].attrs
     if var not in ['time']:
         np.testing.assert_allclose(output_slocum[var].values,
-                                   test_data_slocum[var].values)
+                                   test_data_slocum[var].values, rtol=1e-6)
     else:
         dt0 = output_slocum[var].values - np.datetime64('2000-01-01')
         dt1 = test_data_slocum[var].values - np.datetime64('2000-01-01')
@@ -163,7 +163,7 @@ def test_example_slocum_littleendian(var):
     assert output_slocum_le[var].attrs == test_data_slocum_le[var].attrs
     if var not in ['time']:
         np.testing.assert_allclose(output_slocum_le[var].values,
-                                   test_data_slocum_le[var].values)
+                                   test_data_slocum_le[var].values, rtol=1e-6)
     else:
         dt0 = output_slocum_le[var].values - np.datetime64('2000-01-01')
         dt1 = test_data_slocum_le[var].values - np.datetime64('2000-01-01')
