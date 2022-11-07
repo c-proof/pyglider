@@ -41,5 +41,5 @@ pyglider/pyglider
 - Processing steps closely follow the work by SOCIB
 <https://github.com/socib/glider_toolbox>
 - Rutger's description of the Slocum binary files is very helpful: <https://github.com/kerfoot/spt/wiki/Slocum-Glider-Data-File-Primer>
-- The somewhat arcane metadata format for NGDAC is here: <https://github.com/ioos/ioosngdac/wiki/NGDAC-NetCDF-File-Format-Version-2>
+- The metadata format for NGDAC is here: <https://ioos.github.io/ioosngdac>
 
