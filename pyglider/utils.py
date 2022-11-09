@@ -67,8 +67,10 @@ def get_glider_depth(ds):
     attr = {'source': 'pressure', 'long_name': 'glider depth',
             'standard_name': 'depth', 'units': 'm',
             'comment': 'from science pressure and interpolated',
+            'instrument': 'instrument_ctd',
             'observation_type': 'calulated',
             'accuracy': '1', 'precision': '2', 'resolution': '0.02',
+            'platform': 'platform',
             'valid_min': '0', 'valid_max': '2000',
             'reference_datum': 'surface', 'positive': 'down'}
     ds['depth'].attrs = attr
