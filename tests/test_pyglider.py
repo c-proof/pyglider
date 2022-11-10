@@ -17,7 +17,7 @@ rawncdir = str(example_dir / 'example-seaexplorer/realtime_rawnc/') + '/'
 deploymentyaml = str(example_dir / 'example-seaexplorer/deploymentRealtime.yml')
 l0tsdir = str(example_dir / 'example-seaexplorer/L0-timeseries-test/') + '/'
 seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
-seaexplorer.merge_rawnc(rawncdir, rawncdir, deploymentyaml, kind='sub')
+seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='sub')
 outname = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir,
                                           deploymentyaml, kind='sub')
 outname = pgutils.get_profiles(outname)
@@ -41,7 +41,7 @@ def test_example_seaexplorer(var):
     # Test that each variable and its coordinates match
     assert output[var].attrs == test_data[var].attrs
     if var not in ['time']:
-        np.testing.assert_allclose(output[var].values, test_data[var].values, rtol=1e-6)
+        np.testing.assert_allclose(output[var].values, test_data[var].values, rtol=1e-5)
     else:
         dt0 = output[var].values - np.datetime64('2000-01-01')
         dt1 = test_data[var].values - np.datetime64('2000-01-01')
