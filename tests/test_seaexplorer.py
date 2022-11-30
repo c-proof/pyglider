@@ -1,7 +1,6 @@
-import xarray as xr
+import polars as pl
 import pytest
 from pathlib import Path
-import sys
 import os
 os.system('rm tests/data/realtime_rawnc/*')
 library_dir = Path(__file__).parent.parent.absolute()
@@ -13,7 +12,7 @@ import pyglider.seaexplorer as seaexplorer
 def test__outputname():
     fnout, filenum = seaexplorer._outputname('tests/data/realtime_raw/sea035.12.pld1.sub.36',
                                              'tests/data/realtime_rawnc/')
-    assert fnout == 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.nc'
+    assert fnout == 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.parquet'
     assert filenum == 36
 
 
@@ -44,7 +43,7 @@ def test_raw_to_rawnc():
 def test__needsupdating():
     ftype = 'pld1'
     fin = 'tests/data/realtime_raw/sea035.12.pld1.sub.36'
-    fout = 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.nc'
+    fout = 'tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.parquet'
     result_badpath = seaexplorer._needsupdating(ftype, fin, 'baz')
     result_goodpath = seaexplorer._needsupdating(ftype, fin, fout)
     assert result_badpath is True
@@ -52,12 +51,12 @@ def test__needsupdating():
 
 
 def test_merge_rawnc():
-    result_default = seaexplorer.merge_rawnc(
+    result_default = seaexplorer.merge_parquet(
             'tests/data/realtime_rawnc/',
             'tests/data/realtime_rawnc/',
             example_dir / 'example-seaexplorer/deploymentRealtime.yml')
 
-    result_sub = seaexplorer.merge_rawnc(
+    result_sub = seaexplorer.merge_parquet(
             'tests/data/realtime_rawnc/',
             'tests/data/realtime_rawnc/',
             example_dir / 'example-seaexplorer/deploymentRealtime.yml',
@@ -68,11 +67,11 @@ def test_merge_rawnc():
 
 def test__interp_gli_to_pld():
     # function should interpolate values from the glider dataset to sampling frequency of payload dataset
-    glider = xr.open_dataset('tests/data/realtime_rawnc/sea035.0012.gli.sub.0036.nc')
-    ds = xr.open_dataset('tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.nc')
-    val = glider.Pitch
+    glider = pl.read_parquet('tests/data/realtime_rawnc/sea035.0012.gli.sub.0036.parquet')
+    ds = pl.read_parquet('tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.parquet')
+    val = glider.select("Pitch").to_numpy()[:, 0]
     pitch_interp = seaexplorer._interp_gli_to_pld(glider, ds, val, None)
-    assert len(pitch_interp) == len(ds.time)
+    assert len(pitch_interp) == ds.shape[0]
 
 
 def test_raw_to_timeseries():

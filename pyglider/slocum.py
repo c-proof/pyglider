@@ -845,7 +845,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     attr = {}
     name = 'time'
     for atts in ncvar[name].keys():
-        if atts != 'coordinates':
+        if (atts != 'coordinates') & (atts != 'units') & (atts != 'calendar'):
             attr[atts] = ncvar[name][atts]
     sensors = [time_base]
 
@@ -909,10 +909,12 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     ds = ds.assign_coords(longitude=ds.longitude)
     ds = ds.assign_coords(latitude=ds.latitude)
     ds = ds.assign_coords(depth=ds.depth)
+
     # screen out-of-range times; these won't convert:
     ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.NaN)
-    ds['time'] = (ds.time.values.astype('timedelta64[s]') +
-                  np.datetime64('1970-01-01T00:00:00'))
+    ds['time'] = (('time'), ds.time.values.astype('timedelta64[s]') +
+                  np.datetime64('1970-01-01T00:00:00'), attr)
+
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
     start = ds['time'].values[0]
     end = ds['time'].values[-1]
