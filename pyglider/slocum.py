@@ -789,7 +789,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
 
 
 def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
-                         search='*.[D|E]BD',
+                         search='*.[D|E]BD', time_base='sci_water_temp',
                          profile_filt_time=100, profile_min_time=300):
     """
     Convert directly from binary files to netcdf timeseries file.  Requires
@@ -847,13 +847,28 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     for atts in ncvar[name].keys():
         if (atts != 'coordinates') & (atts != 'units') & (atts != 'calendar'):
             attr[atts] = ncvar[name][atts]
-    if 'sci_m_present_time' in dbd.parameterNames['sci']:
-        time_base = 'sci_m_present_time'
-    elif 'm_present_time' in dbd.parameterNames['eng']:
-        time_base = 'm_present_time'
-    ds[name] = (('time'), dbd.get(time_base)[0], attr)
+    sensors = [time_base]
 
-    for name in thenames:
+    for nn, name in enumerate(thenames):
+        sensorname = ncvar[name]['source']
+        if not sensorname == time_base:
+            sensors.append(sensorname)
+        else:
+            baseind = nn
+
+    # get the data, with `time_base` as the time source that
+    # all other variables are synced to:
+    data = dbd.get_sync(*sensors)
+    # get the time:
+    time = data.pop(0)
+    ds['time'] = (('time'), time, attr)
+    # get the time_base data:
+    basedata = data.pop(0)
+    # slot the time_base variable into the right place in the
+    # data list:
+    data.insert(baseind, basedata)
+
+    for nn, name in enumerate(thenames):
         _log.info('working on %s', name)
         if 'method' in ncvar[name].keys():
             continue
@@ -867,23 +882,16 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         _log.info('names: %s %s', name, sensorname)
         if sensorname in dbd.parameterNames['sci']:
             _log.debug('Sci sensorname %s', sensorname)
-            time, time, val = dbd.get_sync(time_base, sensorname)
+            val = data[nn]
             val = utils._zero_screen(val)
             val = convert(val)
         elif sensorname in dbd.parameterNames['eng']:
             _log.debug('Eng sensorname %s', sensorname)
-            time, time, val = dbd.get_sync(time_base, sensorname)
+            val = data[nn]
             val = convert(val)
             ncvar['method'] = 'linear fill'
         else:
             ValueError(f'{sensorname} not in science or eng parameter names')
-        if len(time) < ds.sizes['time']:
-            _log.info(f'{sensorname} does not have as many entries '
-                      'as other variables.')
-            # sometimes one of the sensors has more or less data:
-            dsfix = xr.DataArray(val, dims='time',
-                                 coords={'time': time})
-            val = dsfix.reindex_like(ds).values
 
         # make the attributes:
         ncvar[name].pop('coordinates', None)
@@ -902,8 +910,11 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     ds = ds.assign_coords(latitude=ds.latitude)
     ds = ds.assign_coords(depth=ds.depth)
 
+    # screen out-of-range times; these won't convert:
+    ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.NaN)
     ds['time'] = (('time'), ds.time.values.astype('timedelta64[s]') +
                   np.datetime64('1970-01-01T00:00:00'), attr)
+
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
     start = ds['time'].values[0]
     end = ds['time'].values[-1]
