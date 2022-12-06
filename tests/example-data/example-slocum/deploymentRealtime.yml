@@ -97,7 +97,7 @@ netcdf_variables:
     units:        degrees_north
     axis:         Y
     coordinates:   time depth latitude longitude
-#    conversion:   nmea2deg
+    conversion:   nmea2deg
     comment:     "Estimated between surface fixes"
     observation_type: measured
     platform:     platform
@@ -113,7 +113,7 @@ netcdf_variables:
     units:        degrees_east
     axis:         X
     coordinates:  time depth latitude longitude
-#    conversion:   nmea2deg
+    conversion:   nmea2deg
     comment:     "Estimated between surface fixes"
     observation_type: measured
     platform:     platform
