@@ -67,16 +67,24 @@ deploymentyaml_slocum = str(example_dir / 'example-slocum/deploymentRealtime.yml
 l1tsdir = str(example_dir / 'example-slocum/L0-timeseries-test/') + '/'
 scisuffix = 'tbd'
 glidersuffix = 'sbd'
+do_direct = True
 
-slocum.binary_to_rawnc(
-    binarydir, rawdir_slocum, cacdir, sensorlist, deploymentyaml_slocum,
-    incremental=True, scisuffix=scisuffix, glidersuffix=glidersuffix)
+if do_direct:
+    # turn *.sbd and *.tbd into timeseries netcdf files
+    outname_slocum = slocum.binary_to_timeseries(
+        binarydir, cacdir, l1tsdir, deploymentyaml_slocum, search='*.[s|t]bd',
+        profile_filt_time=20, profile_min_time=20)
+else:
+    slocum.binary_to_rawnc(
+        binarydir, rawdir_slocum, cacdir, sensorlist, deploymentyaml_slocum,
+        incremental=False, scisuffix=scisuffix, glidersuffix=glidersuffix)
 
-slocum.merge_rawnc(rawdir_slocum, rawdir_slocum, deploymentyaml_slocum,
-                   scisuffix=scisuffix, glidersuffix=glidersuffix)
-outname_slocum = slocum.raw_to_timeseries(
-    rawdir_slocum, l1tsdir, deploymentyaml_slocum,
-    profile_filt_time=100, profile_min_time=300)
+    slocum.merge_rawnc(rawdir_slocum, rawdir_slocum, deploymentyaml_slocum,
+                       scisuffix=scisuffix, glidersuffix=glidersuffix)
+    outname_slocum = slocum.raw_to_timeseries(
+        rawdir_slocum, l1tsdir, deploymentyaml_slocum,
+        profile_filt_time=100, profile_min_time=300)
+
 output_slocum = xr.open_dataset(outname_slocum)
 # Open test data file
 test_data_slocum = xr.open_dataset(
