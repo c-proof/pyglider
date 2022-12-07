@@ -13,6 +13,7 @@ dependencies:
   - scipy
   - bitstring
   - pytest
+  - pytest-cov
   - pooch
   - matplotlib
   - polars
