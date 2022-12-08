@@ -320,18 +320,18 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     if 'timebase' in ncvar:
         vals = sensor.select([ncvar['timebase']['source']]).to_numpy()[:, 0]
         indctd = np.where(~np.isnan(vals))[0]
-    elif 'GPCTD_TEMPERATURE' in list(sensor.variables):
+    elif 'GPCTD_TEMPERATURE' in sensor.columns:
         _log.warning('No timebase specified. Using GPCTD_TEMPERATURE as time'
                      'base')
-        indctd = np.where(~np.isnan(sensor.GPCTD_TEMPERATURE))[0]
-    elif 'LEGATO_TEMPERATURE' in list(sensor.variables):
+        indctd = np.where(~np.isnan(sensor.select("GPCTD_TEMPERATURE").to_numpy()[:, 0]))[0]
+    elif 'LEGATO_TEMPERATURE' in sensor.columns:
         _log.warning('No timebase specified. Using LEGATO_TEMPERATURE as time'
                      'base')
-        indctd = np.where(~np.isnan(sensor.LEGATO_TEMPERATURE))[0]
+        indctd = np.where(~np.isnan(sensor.select("LEGATO_TEMPERATURE").to_numpy()[:, 0]))[0]
     else:
         _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time'
                      'base')
-        indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
+        indctd = np.where(~np.isnan(sensor.select("NAV_DEPTH").to_numpy()[:, 0]))[0]
     ds['time'] = (('time'), sensor.select('time').to_numpy()[indctd, 0], attr)
     thenames = list(ncvar.keys())
     for i in ['time', 'timebase', 'keep_variables']:
