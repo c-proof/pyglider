@@ -288,7 +288,7 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
 
 
 def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
-                      profile_filt_time=100, profile_min_time=300):
+                      profile_filt_time=100, profile_min_time=300, interpolate=False):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -366,7 +366,14 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                     )[:-1, :]
                     val2 = sensor_sub_grouped.select(sensorname).to_numpy()[:, 0]
                     val = _interp_gli_to_pld(sensor_sub_grouped, sensor, val2, indctd)
-                val = val[indctd]
+                if interpolate and not np.isnan(val).all():
+                    time_original = sensor.select('time').to_numpy()[:, 0]
+                    time_var = time_original[np.where(~np.isnan(val))[0]]
+                    var_non_nan = val[np.where(~np.isnan(val))[0]]
+                    time_timebase = sensor.select('time').to_numpy()[indctd, 0]
+                    val = np.interp(time_timebase.astype(np.float), time_var.astype(np.float), var_non_nan)
+                else:
+                    val = val[indctd]
 
                 ncvar['method'] = 'linear fill'
             else:
