@@ -334,7 +334,11 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
         indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
     ds['time'] = (('time'), sensor.select('time').to_numpy()[indctd, 0], attr)
     thenames = list(ncvar.keys())
-    for i in ['time', 'timebase', 'keep_variables']:
+    # Check yaml to see if interpolate has been set to True
+    if "interpolate" in thenames:
+        if ncvar["interpolate"]:
+            interpolate = True
+    for i in ['time', 'timebase', 'keep_variables', 'interpolate']:
         if i in thenames:
             thenames.remove(i)
     for name in thenames:
