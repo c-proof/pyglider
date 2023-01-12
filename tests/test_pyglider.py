@@ -87,12 +87,12 @@ def test_example_seaexplorer_interp_nrt(var):
 
 rawdir = str(example_dir / 'example-seaexplorer-raw/delayed_raw/') + '/'
 rawncdir = str(example_dir / 'example-seaexplorer-raw/delayed_rawnc/') + '/'
-deploymentyaml = str(example_dir / 'example-seaexplorer-raw/deployment.yml')
+deploymentyaml_raw = str(example_dir / 'example-seaexplorer-raw/deployment.yml')
 l0tsdir = str(example_dir / 'example-seaexplorer-raw/L0-timeseries-test/') + '/'
-seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
-seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='raw')
+seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml_raw)
+seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml_raw, kind='raw')
 outname_raw = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir,
-                                          deploymentyaml, kind='raw')
+                                          deploymentyaml_raw, kind='raw')
 output_raw = xr.open_dataset(outname_raw)
 # Open test data file
 test_data_raw = xr.open_dataset(
@@ -121,6 +121,33 @@ def test_example_seaexplorer_metadata_raw():
     test_data_raw.attrs.pop('date_issued')
     assert output_raw.attrs == test_data_raw.attrs
 
+
+# Test nan interpolation on raw data.
+
+# Test that interpolation over nans in raw data results in a greater or equal number of non-nan values
+with open(deploymentyaml_raw) as fin:
+    deployment_raw = yaml.safe_load(fin)
+interp_yaml = str(example_dir / 'example-seaexplorer-raw/deploymentRealtimeInterp.yml')
+deployment_raw['netcdf_variables']["interpolate"] = True
+with open(interp_yaml, "w") as fout:
+    yaml.dump(deployment_raw, fout)
+l0tsdir_interp_raw = str(example_dir / 'example-seaexplorer-raw/L0-timeseries-test-interp/') + '/'
+
+outname_interp_raw = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir_interp_raw, interp_yaml, kind='raw')
+output_interp_raw = xr.open_dataset(outname_interp_raw)
+
+@pytest.mark.parametrize("var", variables)
+def test_example_seaexplorer_interp_raw(var):
+    assert output_interp_raw[var].attrs == test_data_raw[var].attrs
+    if var not in ['time']:
+        assert np.count_nonzero(~np.isnan(output_interp_raw[var].values)) >= \
+               np.count_nonzero(~np.isnan(test_data_raw[var].values))
+    else:
+        dt0 = output_interp_raw[var].values - np.datetime64('2000-01-01')
+        dt1 = test_data_raw[var].values - np.datetime64('2000-01-01')
+        assert np.allclose(
+            np.array(dt0, dtype='float64'),
+            np.array(dt1, dtype='float64'))
 
 
 # Create an L0 timeseries from slocum data and test that the resulting netcdf is
