@@ -21,7 +21,7 @@ setup(name="pyglider",
       license='Apache',
       extras_require={
         "code_style": ["flake8<3.8.0,>=3.7.0", "black", "pre-commit==1.17.0"],
-        "testing": ["pytest"],
+        "testing": ["pytest", "pytest-cov"],
         "docs": ["pydata-sphinx-theme", "numpydoc", "autoapi", "myst-parser",
                  "sphinx"]
       },

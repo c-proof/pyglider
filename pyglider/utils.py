@@ -68,8 +68,10 @@ def get_glider_depth(ds):
     attr = {'source': 'pressure', 'long_name': 'glider depth',
             'standard_name': 'depth', 'units': 'm',
             'comment': 'from science pressure and interpolated',
+            'instrument': 'instrument_ctd',
             'observation_type': 'calulated',
             'accuracy': '1', 'precision': '2', 'resolution': '0.02',
+            'platform': 'platform',
             'valid_min': '0', 'valid_max': '2000',
             'reference_datum': 'surface', 'positive': 'down'}
     ds['depth'].attrs = attr
@@ -108,10 +110,11 @@ def get_profiles(nc, min_dp=10.0, filt_time=100, profile_min_time=300):
 
     min_nsamples = int(profile_min_time / dt)
     _log.info('Filt Len  %d, dt %f, min_n %d', filt_length, dt, min_nsamples)
-
-    p = np.convolve(ds.pressure.values[good],
-                    np.ones(filt_length) / filt_length, 'same')
-    _log.info('ffilt, {filt_length}')
+    if filt_length > 1:
+        p = np.convolve(ds.pressure.values[good],
+                        np.ones(filt_length) / filt_length, 'same')
+    else:
+        p = ds.pressure.values[good]
     decim = int(filt_length / 3)
     if decim < 2:
         decim = 2

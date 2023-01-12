@@ -111,10 +111,12 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
 
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
-                if 'units' in dss.profile_time.attrs:
-                    dss.profile_time.attrs.pop('units')
                 timeunits = 'seconds since 1970-01-01T00:00:00Z'
-                dss.to_netcdf(outname, encoding={'time': {'units': timeunits}})
+                timecalendar = 'gregorian'
+                dss.to_netcdf(outname, encoding={'time': {'units': timeunits,
+                                                          'calendar': timecalendar},
+                                                          'profile_time': 
+                                                         {'units': timeunits}})
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
