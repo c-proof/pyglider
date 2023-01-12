@@ -83,6 +83,46 @@ def test_example_seaexplorer_interp_nrt(var):
             np.array(dt1, dtype='float64'))
 
 
+# Test raw (full resolution) seaexplorer data.
+
+rawdir = str(example_dir / 'example-seaexplorer-raw/delayed_raw/') + '/'
+rawncdir = str(example_dir / 'example-seaexplorer-raw/delayed_rawnc/') + '/'
+deploymentyaml = str(example_dir / 'example-seaexplorer-raw/deployment.yml')
+l0tsdir = str(example_dir / 'example-seaexplorer-raw/L0-timeseries-test/') + '/'
+seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
+seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='raw')
+outname_raw = seaexplorer.raw_to_L0timeseries(rawncdir, l0tsdir,
+                                          deploymentyaml, kind='raw')
+output_raw = xr.open_dataset(outname_raw)
+# Open test data file
+test_data_raw = xr.open_dataset(
+    library_dir /
+    'tests/results/example-seaexplorer-raw/L0-timeseries/dfo-bb046-20200908.nc')
+
+@pytest.mark.parametrize("var", variables)
+def test_example_seaexplorer_raw(var):
+    # Test that each variable and its coordinates match
+    assert output_raw[var].attrs == test_data_raw[var].attrs
+    if var not in ['time']:
+        np.testing.assert_allclose(output_raw[var].values, test_data_raw[var].values, rtol=1e-5)
+    else:
+        dt0 = output_raw[var].values - np.datetime64('2000-01-01')
+        dt1 = test_data_raw[var].values - np.datetime64('2000-01-01')
+        assert np.allclose(
+            np.array(dt0, dtype='float64'),
+            np.array(dt1, dtype='float64'))
+
+
+def test_example_seaexplorer_metadata_raw():
+    # Test that attributes match. Have to remove creation and issue dates first
+    output_raw.attrs.pop('date_created')
+    output_raw.attrs.pop('date_issued')
+    test_data_raw.attrs.pop('date_created')
+    test_data_raw.attrs.pop('date_issued')
+    assert output_raw.attrs == test_data_raw.attrs
+
+
+
 # Create an L0 timeseries from slocum data and test that the resulting netcdf is
 # identical to the test data
 cacdir = str(example_dir / 'example-slocum/cac/') + '/'
