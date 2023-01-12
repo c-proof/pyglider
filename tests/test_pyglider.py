@@ -84,11 +84,10 @@ else:
     slocum.merge_rawnc(rawdir_slocum, rawdir_slocum, deploymentyaml_slocum,
                        scisuffix=scisuffix, glidersuffix=glidersuffix)
     outname_slocum = slocum.raw_to_timeseries(
-        rawdir_slocum, l1tsdir, deploymentyaml_slocum,
-        profile_filt_time=100, profile_min_time=300)
+        rawdir_slocum, l1tsdir, deploymentyaml_slocum)
 
 
-outname_slocum = pgutils.get_profiles(outname_slocum, filt_time=100, profile_min_time=300)
+outname_slocum = pgutils.get_profiles(outname_slocum, filt_time=20, profile_min_time=20)
 
 output_slocum = xr.open_dataset(outname_slocum)
 # Open test data file
@@ -152,8 +151,7 @@ slocum.binary_to_rawnc(
 slocum.merge_rawnc(rawdir_slocum, rawdir_slocum, deploymentyaml_slocum,
                    scisuffix=scisuffix, glidersuffix=glidersuffix)
 outname_slocum_le = slocum.raw_to_timeseries(
-    rawdir_slocum, l1tsdir, deploymentyaml_slocum,
-    profile_filt_time=400, profile_min_time=100)
+    rawdir_slocum, l1tsdir, deploymentyaml_slocum)
 outname_slocum_le = pgutils.get_profiles(outname_slocum_le, filt_time=400, profile_min_time=100)
 
 output_slocum_le = xr.open_dataset(outname_slocum_le)
