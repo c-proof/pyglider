@@ -287,6 +287,20 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
     return val
 
 
+def _remove_fill_values(df, fill_value=9999):
+    """
+    For input dataframe df, this function converts all Float values equaling fill_values to null. Columns of other
+    datatypes are not affected.
+    """
+    df = df.with_columns(
+        pl.when(pl.col(pl.Float64) == fill_value)
+        .then(None)
+        .otherwise(pl.col(pl.Float64))
+        .keep_name()
+    )
+    return df
+
+
 def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                       profile_filt_time=100, profile_min_time=300):
     """
@@ -303,6 +317,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     gli = pl.read_parquet(f'{indir}/{id}-rawgli.parquet')
     _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.parquet')
     sensor = pl.read_parquet(f'{indir}/{id}-{kind}pld.parquet')
+    sensor = _remove_fill_values(sensor)
 
     # build a new data set based on info in `deploymentyaml.`
     # We will use ctd as the interpolant
