@@ -1,7 +1,9 @@
 import polars as pl
+import numpy as np
 import pytest
 from pathlib import Path
 import os
+import yaml
 os.system('rm tests/data/realtime_rawnc/*')
 library_dir = Path(__file__).parent.parent.absolute()
 example_dir = library_dir / 'tests/example-data/'
@@ -63,6 +65,14 @@ def test_merge_rawnc():
             kind='sub')
     assert result_default is False
     assert result_sub is True
+    
+    
+def test__remove_fill_values():
+    # This should convert values equallling 9999 in the original df to nan
+    df_in = pl.read_parquet('tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.parquet')
+    df_out = seaexplorer._remove_fill_values(df_in)
+    assert (df_in.select("GPCTD_DOF").to_numpy()[:, 0] == 9999).all()
+    assert np.isnan(df_out.select("GPCTD_DOF").to_numpy()[:, 0]).all()
 
 
 def test__interp_gli_to_pld():
@@ -88,3 +98,26 @@ def test_raw_to_timeseries():
     assert 'No such file or directory' in str(missing_file_exc)
     assert result_sub == 'tests/data/l0-profiles/dfo-eva035-20190718.nc'
 
+
+def test_missing_bad_timebase():
+    # Prepare yaml files with bad timebase and no timebase
+    with open(example_dir / 'example-seaexplorer/deploymentRealtime.yml') as fin:
+        deployment = yaml.safe_load(fin)
+    deployment['netcdf_variables']['timebase']['source'] = "non existing sensor"
+    with open(example_dir / 'example-seaexplorer/bad_timebase.yml', "w") as fin:
+        yaml.dump(deployment, fin)
+    deployment['netcdf_variables'].pop('timebase')
+    with open(example_dir / 'example-seaexplorer/no_timebase.yml', "w") as fin:
+        yaml.dump(deployment, fin)
+    with pytest.raises(ValueError) as bad_timebase_exc:
+        result_bad_timebase = seaexplorer.raw_to_timeseries('tests/data/realtime_rawnc/',
+                                                            'tests/data/l0-profiles/',
+                                                            example_dir / 'example-seaexplorer/bad_timebase.yml',
+                                                            kind='sub')
+    with pytest.raises(ValueError) as no_timebase_exc:
+        result_no_timebase = seaexplorer.raw_to_timeseries('tests/data/realtime_rawnc/',
+                                                            'tests/data/l0-profiles/',
+                                                            example_dir / 'example-seaexplorer/no_timebase.yml',
+                                                            kind='sub')
+    assert "sensor not found in pld1 columns" in str(bad_timebase_exc)
+    assert "Must specify timebase" in str(no_timebase_exc)
