@@ -1,4 +1,5 @@
 import polars as pl
+import numpy as np
 import pytest
 from pathlib import Path
 import os
@@ -64,6 +65,14 @@ def test_merge_rawnc():
             kind='sub')
     assert result_default is False
     assert result_sub is True
+    
+    
+def test__remove_fill_values():
+    # This should convert values equallling 9999 in the original df to nan
+    df_in = pl.read_parquet('tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.parquet')
+    df_out = seaexplorer._remove_fill_values(df_in)
+    assert (df_in.select("GPCTD_DOF").to_numpy()[:, 0] == 9999).all()
+    assert np.isnan(df_out.select("GPCTD_DOF").to_numpy()[:, 0]).all()
 
 
 def test__interp_gli_to_pld():
