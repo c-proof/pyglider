@@ -789,8 +789,9 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
 
 
 def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
-                         search='*.[D|E]BD', time_base='sci_water_temp',
-                         profile_filt_time=100, profile_min_time=300):
+                         search='*.[D|E]BD', fnamesuffix='',
+                         time_base='sci_water_temp', profile_filt_time=100,
+                         profile_min_time=300):
     """
     Convert directly from binary files to netcdf timeseries file.  Requires
     dbdreader to be installed.
@@ -934,7 +935,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         os.mkdir(outdir)
     except:
         pass
-    outname = (outdir + '/' + ds.attrs['deployment_name'] + '.nc')
+    outname = (outdir + '/' + ds.attrs['deployment_name'] + fnamesuffix + '.nc')
     _log.info('writing %s', outname)
     ds.to_netcdf(outname, 'w',
                  encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
