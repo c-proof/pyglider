@@ -288,7 +288,8 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
 
 
 def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
-                      profile_filt_time=100, profile_min_time=300):
+                      profile_filt_time=100, profile_min_time=300,
+                      fnamesuffix=''):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -455,7 +456,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     except:
         pass
     id0 = ds.attrs['deployment_name']
-    outname = outdir + id0 + '.nc'
+    outname = outdir + id0 + fnamesuffix + '.nc'
     _log.info('writing %s', outname)
     if 'units' in ds.time.attrs.keys():
         ds.time.attrs.pop('units')
