@@ -375,7 +375,14 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                     time_var = time_original[np.where(~np.isnan(val))[0]]
                     var_non_nan = val[np.where(~np.isnan(val))[0]]
                     time_timebase = sensor.select('time').to_numpy()[indctd, 0]
-                    val = np.interp(time_timebase.astype(np.float), time_var.astype(np.float), var_non_nan)
+                    if val.dtype == "<M8[us]":
+                        # for datetime, must convert to numerical, interpolate, then convert back
+                        us_since_1970 = (var_non_nan - np.datetime64("1970-01-01")).astype(int)
+                        val_int = np.interp(time_timebase.astype(float), time_var.astype(float), us_since_1970)
+                        val_us = val_int.astype("timedelta64[us]")
+                        val = np.datetime64("1970-01-01") + val_us
+                    else:
+                        val = np.interp(time_timebase.astype(float), time_var.astype(float), var_non_nan)
                 else:
                     val = val[indctd]
 
