@@ -127,7 +127,7 @@ def test_example_seaexplorer_metadata_raw():
 # Test that interpolation over nans in raw data results in a greater or equal number of non-nan values
 with open(deploymentyaml_raw) as fin:
     deployment_raw = yaml.safe_load(fin)
-interp_yaml = str(example_dir / 'example-seaexplorer-raw/deploymentRealtimeInterp.yml')
+interp_yaml = str(example_dir / 'example-seaexplorer-raw/deploymentDelayedInterp.yml')
 deployment_raw['netcdf_variables']["interpolate"] = True
 with open(interp_yaml, "w") as fout:
     yaml.dump(deployment_raw, fout)
