@@ -287,8 +287,22 @@ def _interp_pld_to_pld(pld, ds, val, indctd):
     return val
 
 
+def _remove_fill_values(df, fill_value=9999):
+    """
+    For input dataframe df, this function converts all Float values equaling fill_values to null. Columns of other
+    datatypes are not affected.
+    """
+    df = df.with_columns(
+        pl.when(pl.col(pl.Float64) == fill_value)
+        .then(None)
+        .otherwise(pl.col(pl.Float64))
+        .keep_name()
+    )
+    return df
+
+
 def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
-                      profile_filt_time=100, profile_min_time=300, interpolate=False):
+                      profile_filt_time=100, profile_min_time=300, interpolate=False, fnamesuffix=''):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -303,6 +317,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     gli = pl.read_parquet(f'{indir}/{id}-rawgli.parquet')
     _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.parquet')
     sensor = pl.read_parquet(f'{indir}/{id}-{kind}pld.parquet')
+    sensor = _remove_fill_values(sensor)
 
     # build a new data set based on info in `deploymentyaml.`
     # We will use ctd as the interpolant
@@ -313,25 +328,14 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
         if atts != 'coordinates':
             attr[atts] = ncvar[name][atts]
 
-    # If present, use the timebase specified in ncva: timebase in the
-    # deployment yaml. Otherwise, the ctd will be our timebase.
-    # It oversamples the nav data, but mildly undersamples the optics and
-    # oxygen....
-    if 'timebase' in ncvar:
-        vals = sensor.select([ncvar['timebase']['source']]).to_numpy()[:, 0]
-        indctd = np.where(~np.isnan(vals))[0]
-    elif 'GPCTD_TEMPERATURE' in list(sensor.variables):
-        _log.warning('No timebase specified. Using GPCTD_TEMPERATURE as time'
-                     'base')
-        indctd = np.where(~np.isnan(sensor.GPCTD_TEMPERATURE))[0]
-    elif 'LEGATO_TEMPERATURE' in list(sensor.variables):
-        _log.warning('No timebase specified. Using LEGATO_TEMPERATURE as time'
-                     'base')
-        indctd = np.where(~np.isnan(sensor.LEGATO_TEMPERATURE))[0]
-    else:
-        _log.warning('No gpctd or legato data found. Using NAV_DEPTH as time'
-                     'base')
-        indctd = np.where(~np.isnan(sensor.NAV_DEPTH))[0]
+    # If present, use the timebase specified in ncvar: timebase in the
+    # deployment yaml.
+    if 'timebase' not in ncvar:
+        raise ValueError("Must specify timebase:source in netcdf_variables section of deployment yaml")
+    if ncvar['timebase']['source'] not in sensor.columns:
+        raise ValueError(f"timebase source: {ncvar['timebase']['source']} not found in pld1 columns")
+    vals = sensor.select([ncvar['timebase']['source']]).to_numpy()[:, 0]
+    indctd = np.where(~np.isnan(vals))[0]
     ds['time'] = (('time'), sensor.select('time').to_numpy()[indctd, 0], attr)
     thenames = list(ncvar.keys())
     # Check yaml to see if interpolate has been set to True
@@ -473,7 +477,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     except:
         pass
     id0 = ds.attrs['deployment_name']
-    outname = outdir + id0 + '.nc'
+    outname = outdir + id0 + fnamesuffix + '.nc'
     _log.info('writing %s', outname)
     if 'units' in ds.time.attrs.keys():
         ds.time.attrs.pop('units')

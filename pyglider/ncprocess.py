@@ -111,19 +111,19 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
 
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
-                if 'units' in dss.profile_time.attrs:
-                    dss.profile_time.attrs.pop('units')
                 timeunits = 'seconds since 1970-01-01T00:00:00Z'
                 timecalendar = 'gregorian'
                 dss.to_netcdf(outname, encoding={'time': {'units': timeunits,
-                                                          'calendar': timecalendar}})
+                                                          'calendar': timecalendar},
+                                                          'profile_time':
+                                                         {'units': timeunits}})
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 
-def make_gridfiles(inname, outdir, deploymentyaml, dz=1):
+def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
@@ -241,7 +241,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, dz=1):
                             'water_velocity_northward'])
     dsout.attrs = ds.attrs
 
-    outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid.nc'
+    outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid' + fnamesuffix + '.nc'
     _log.info('Writing %s', outname)
     timeunits = 'seconds since 1970-01-01T00:00:00Z'
     dsout.to_netcdf(outname, encoding={'time': {'units': timeunits}})
