@@ -791,7 +791,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
 def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
                          search='*.[D|E]BD', fnamesuffix='',
                          time_base='sci_water_temp', profile_filt_time=100,
-                         profile_min_time=300):
+                         profile_min_time=300, maxgap=300):
     """
     Convert directly from binary files to netcdf timeseries file.  Requires
     dbdreader to be installed.
@@ -884,6 +884,16 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         if sensorname in dbd.parameterNames['sci']:
             _log.debug('Sci sensorname %s', sensorname)
             val = data[nn]
+
+            # interpolate only over those gaps that are smaller than 'maxgap'
+            _t, _ = dbd.get(ncvar[name]['source'])
+
+            try:
+                tg_ind = utils.find_gaps(_t,time,maxgap) 
+                val[tg_ind] = np.nan            
+            except ValueError:
+                print(f"Issue with interpolation over gaps for '{sensors[i]}'.")
+
             val = utils._zero_screen(val)
             val = convert(val)
         elif sensorname in dbd.parameterNames['eng']:
