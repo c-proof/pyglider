@@ -887,12 +887,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
             # interpolate only over those gaps that are smaller than 'maxgap'
             _t, _ = dbd.get(ncvar[name]['source'])
-
-            try:
-                tg_ind = utils.find_gaps(_t,time,maxgap) 
-                val[tg_ind] = np.nan            
-            except ValueError:
-                print(f"Issue with interpolation over gaps for '{sensors[i]}'.")
+            tg_ind = utils.find_gaps(_t,time,maxgap) 
+            val[tg_ind] = np.nan            
 
             val = utils._zero_screen(val)
             val = convert(val)
