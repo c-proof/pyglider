@@ -388,9 +388,9 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                     else:
                         val = np.interp(time_timebase.astype(float), time_var.astype(float), var_non_nan)
 
-                        # interpolate only over those gaps that are smaller than 'maxgap'                        
-                        tg_ind = utils.find_gaps(time_var.astype(float),time_timebase.astype(float),maxgap)
-                        val[tg_ind] = np.nan
+                    # interpolate only over those gaps that are smaller than 'maxgap'                        
+                    tg_ind = utils.find_gaps(time_var.astype(float),time_timebase.astype(float),maxgap)
+                    val[tg_ind] = np.nan
                 else:
                     val = val[indctd]
 
