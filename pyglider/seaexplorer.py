@@ -128,34 +128,34 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                     # Try to read the file with polars. If the file is corrupted (rare), file read will fail and file
                     # is appended to badfiles
                     try:
-                        out = pl.read_csv(f, sep=';')
+                        out = pl.read_csv(f, separator=';', infer_schema_length=1000)
                     except:
                         _log.warning(f'Could not read {f}')
                         badfiles.append(f)
                         continue
                     # Parse the datetime from nav files (called Timestamp) and pld1 files (called PLD_REALTIMECLOCK)
                     if "Timestamp" in out.columns:
-                        out = out.with_column(
-                            pl.col("Timestamp").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S"))
+                        out = out.with_columns(
+                            pl.col("Timestamp").str.strptime(pl.Datetime, format="%d/%m/%Y %H:%M:%S"))
                         out = out.rename({"Timestamp": "time"})
                     else:
-                        out = out.with_column(
-                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S.%3f"))
+                        out = out.with_columns(
+                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, format="%d/%m/%Y %H:%M:%S.%3f"))
                         out = out.rename({"PLD_REALTIMECLOCK": "time"})
                     for col_name in out.columns:
                         if "time" not in col_name.lower():
-                            out = out.with_column(pl.col(col_name).cast(pl.Float64))
+                            out = out.with_columns(pl.col(col_name).cast(pl.Float64))
                     # If AD2CP data present, convert timestamps to datetime
                     if 'AD2CP_TIME' in out.columns:
                         # Set datestamps with date 00000 to None
-                        out = out.with_column(
-                            pl.col('AD2CP_TIME').str.strptime(pl.Datetime, fmt="%m%d%y %H:%M:%S", strict=False))
+                        out = out.with_columns(
+                            pl.col('AD2CP_TIME').str.strptime(pl.Datetime, format="%m%d%y %H:%M:%S", strict=False))
 
                     # subsetting for heavily oversampled raw data:
                     if rawsub == 'raw' and dropna_subset is not None:
                         # This check is the polars equivalent of pandas dropna. See docstring note on dropna
-                        out = out.with_column(out.select(pl.col(dropna_subset).is_null().cast(pl.Int64))
-                                              .sum(axis=1).alias("null_count")).filter(
+                        out = out.with_columns(out.select(pl.col(dropna_subset).is_null().cast(pl.Int64))
+                                               .sum(axis=1).alias("null_count")).filter(
                             pl.col("null_count") <= dropna_thresh) \
                             .drop("null_count")
 
@@ -265,7 +265,7 @@ def merge_parquet(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
 def _interp_gli_to_pld(gli, ds, val, indctd):
     gli_ind = ~np.isnan(val)
     # switch for if we are comparing two polars dataframes or a polars dataframe and a xarray dataset
-    if type(ds) is pl.internals.dataframe.frame.DataFrame:
+    if type(ds) is pl.dataframe.frame.DataFrame:
         valout = np.interp(ds["time"],
                            gli.filter(gli_ind)["time"],
                            val[gli_ind])
@@ -364,12 +364,12 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                     coarse_ints = np.arange(0, len(sensor) / coarsen_time, 1 / coarsen_time).astype(int)
                     sensor_sub = sensor.with_columns(pl.lit(coarse_ints).alias("coarse_ints"))
                     # Subsample the variable data keeping only the samples from the coarsened timeseries
-                    sensor_sub_grouped = sensor_sub.with_column(
+                    sensor_sub_grouped = sensor_sub.with_columns(
                         pl.col('time').to_physical()
                     ).groupby(
                         by=pl.col('coarse_ints'),
                         maintain_order=True
-                    ).mean().with_column(
+                    ).mean().with_columns(
                         pl.col('time').cast(pl.Datetime('ms'))
                     )[:-1, :]
                     val2 = sensor_sub_grouped.select(sensorname).to_numpy()[:, 0]
