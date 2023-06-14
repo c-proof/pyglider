@@ -14,7 +14,7 @@ dependencies:
   - pytest
   - pytest-cov
   - pooch
-  - polars > 0.17
+  - polars>=0.17
   - pip:
     - dbdreader
 
