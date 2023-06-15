@@ -859,7 +859,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
     # get the data, with `time_base` as the time source that
     # all other variables are synced to:
-    data = dbd.get_sync(*sensors)
+    data = list(dbd.get_sync(*sensors))
     # get the time:
     time = data.pop(0)
     ds['time'] = (('time'), time, attr)
