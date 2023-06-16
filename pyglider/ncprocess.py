@@ -67,11 +67,11 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
 
                     dss['v'] = dss.water_velocity_northward.mean()
                     dss['v'].attrs = profile_meta['v']
-                elif ('water_velocity_eastward' not in dss.keys()) and (profile_meta.get('u')) and ('_FillValue' in profile_meta['u']):
-                    dss['u'] = profile_meta['u']['_FillValue']
+                elif 'u' in profile_meta:
+                    dss['u'] = profile_meta['u'].get('_FillValue', np.NaN)
                     dss['u'].attrs = profile_meta['u']
 
-                    dss['v'] = profile_meta['v']['_FillValue']
+                    dss['u'] = profile_meta['v'].get('_FillValue', np.NaN)
                     dss['v'].attrs = profile_meta['v']
 
                 dss['profile_id'] = np.array(p*1.0)
