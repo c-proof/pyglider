@@ -71,7 +71,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                     dss['u'] = profile_meta['u'].get('_FillValue', np.NaN)
                     dss['u'].attrs = profile_meta['u']
 
-                    dss['u'] = profile_meta['v'].get('_FillValue', np.NaN)
+                    dss['v'] = profile_meta['v'].get('_FillValue', np.NaN)
                     dss['v'].attrs = profile_meta['v']
 
                 dss['profile_id'] = np.array(p*1.0)
