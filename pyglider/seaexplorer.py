@@ -128,7 +128,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                     # Try to read the file with polars. If the file is corrupted (rare), file read will fail and file
                     # is appended to badfiles
                     try:
-                        out = pl.read_csv(f, sep=';')
+                        out = pl.read_csv(f, separator=';')
                     except:
                         _log.warning(f'Could not read {f}')
                         badfiles.append(f)
