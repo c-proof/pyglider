@@ -22,23 +22,25 @@ def test_raw_to_rawnc():
     # Default settings on a clean folder
     result_default = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
                                               'tests/data/realtime_rawnc/', None)
+    assert result_default is True
     # Test the reprocess flag works
     result_reprocess = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
                                                 'tests/data/realtime_rawnc/',
                                                 None, incremental=False)
+    assert result_reprocess is True
+
     # Check that reprocessing not preformed by default
     result_no_new_files = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
                                                    'tests/data/realtime_rawnc/',
                                                    None)
+    assert result_no_new_files is False
+
     # Reject all payload files with fewer than 10000 lines
     result_strict = seaexplorer.raw_to_rawnc('tests/data/realtime_raw/',
                                              'tests/data/realtime_rawnc/',
                                              None,
                                              incremental=False,
                                              min_samples_in_file=10000)
-    assert result_default is True
-    assert result_reprocess is True
-    assert result_no_new_files is False
     assert result_strict is False
 
 
@@ -65,8 +67,8 @@ def test_merge_rawnc():
             kind='sub')
     assert result_default is False
     assert result_sub is True
-    
-    
+
+
 def test__remove_fill_values():
     # This should convert values equallling 9999 in the original df to nan
     df_in = pl.read_parquet('tests/data/realtime_rawnc/sea035.0012.pld1.sub.0036.parquet')
