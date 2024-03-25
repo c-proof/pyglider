@@ -13,3 +13,4 @@ autoapi
 numpydoc
 myst-parser
 dbdreader
+polars>0.16
