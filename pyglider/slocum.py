@@ -8,12 +8,13 @@ try:
     import dbdreader
     have_dbdreader = True
 except ImportError:
-    have_dbdreader = True
+    have_dbdreader = False
 import glob
 import logging
 import numpy as np
 import os
 import time
+import pandas as pd
 import xarray as xr
 import xml.etree.ElementTree as ET
 import yaml
@@ -919,8 +920,17 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
     # screen out-of-range times; these won't convert:
     ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.NaN)
-    ds['time'] = (('time'), ds.time.values.astype('timedelta64[s]') +
-                  np.datetime64('1970-01-01T00:00:00'), attr)
+    # Avoid conversion warning
+    # UserWarning: Converting non-nanosecond precision datetime values
+    # to nanosecond precision. This behavior can eventually be relaxed
+    # in xarray, as it is an artifact from pandas which is now beginning
+    # to support non-nanosecond precision values. This warning is caused
+    # by passing non-nanosecond np.datetime64 or np.timedelta64 values
+    # to the DataArray or Variable constructor; it can be silenced by
+    # converting the values to nanosecond precision ahead of time.
+    #ds['time'] = (('time'), ds.time.values.astype('timedelta64[s]') +
+    #              np.datetime64('1970-01-01T00:00:00'), attr)
+    ds['time'] = (('time'), pd.to_datetime(ds['time'].values * 1000000000), attr)
 
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
     start = ds['time'].values[0]
@@ -943,8 +953,17 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         pass
     outname = (outdir + '/' + ds.attrs['deployment_name'] + fnamesuffix + '.nc')
     _log.info('writing %s', outname)
+    # Avoid warning
+    # UserWarning: Times can't be serialized faithfully to int64 with requested
+    # units 'seconds since 1970-01-01T00:00:00+00:00'. Resolution of 'nanoseconds'
+    # needed. Serializing times to floating point instead. Set encoding['dtype']
+    # to integer dtype to serialize to int64. Set encoding['dtype'] to floating
+    # point dtype to silence this warning.
     ds.to_netcdf(outname, 'w',
-                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
+                 encoding={'time': {
+                     'dtype': 'float',
+                     'units': 'seconds since 1970-01-01T00:00:00Z'
+                 }})
 
     return outname
 
