@@ -71,7 +71,7 @@ def get_glider_depth(ds):
             'observation_type': 'calulated',
             'accuracy': '1', 'precision': '2', 'resolution': '0.02',
             'platform': 'platform',
-            'valid_min': '0', 'valid_max': '2000',
+            'valid_min': 0.0, 'valid_max': 2000.0, '_FillValue': -999.0,
             'reference_datum': 'surface', 'positive': 'down'}
     ds['depth'].attrs = attr
     return ds
@@ -300,8 +300,9 @@ def get_derived_eos_raw(ds):
         ('method', 'get_derived_eos_raw'),
         ('observation_type', 'calulated'),
         ('instrument', 'instrument_ctd'),
-        ('valid_max', '40.0'),
-        ('valid_min', '0.0'),
+        ('valid_max', 40.0),
+        ('valid_min', 0.0),
+        ('_FillValue', -999.0),
         ('accuracy', '0.01'),
         ('precision', '0.01'),
         ('resolution', '0.001')])
@@ -338,8 +339,9 @@ def get_derived_eos_raw(ds):
         ('sources', 'salinity temperature pressure'),
         ('instrument', 'instrument_ctd'),
         ('method', 'get_derived_eos_raw'),
-        ('valid_min', '1000.0'),
-        ('valid_max', '1040.0'),
+        ('valid_min', 1000.0),
+        ('valid_max', 1040.0),
+        ('_FillValue', -999.0),
         ('accuracy', '0.01'),
         ('precision', '0.01'),
         ('resolution', '0.001')
@@ -446,7 +448,15 @@ def fill_metadata(ds, metadata, sensor_data):
     ds.attrs['geospatial_lon_min'] = np.min(ds.longitude.values[good])
     ds.attrs['geospatial_lat_units'] = 'degrees_north'
     ds.attrs['geospatial_lon_units'] = 'degrees_east'
-    ds.attrs['netcdf_version'] = '4.0'  # TODO get this somehow...
+    # Borrow code from xarray
+    # https://github.com/pydata/xarray/blob/main/xarray/util/print_versions.py
+    ds.attrs['netcdf_version'] = '4.0'
+    try:
+        import netCDF4
+        libnetcdf_version = netCDF4.__netcdf4libversion__
+        ds.attrs['netcdf_version'] = libnetcdf_version
+    except:
+        pass
     ds.attrs['history'] = 'CPROOF glider toolbox version: pre-tag'
     for k, v in metadata.items():
         ds.attrs[k] = v

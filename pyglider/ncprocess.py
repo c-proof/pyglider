@@ -74,8 +74,10 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                     dss['v'] = profile_meta['v'].get('_FillValue', np.NaN)
                     dss['v'].attrs = profile_meta['v']
 
-                dss['profile_id'] = np.array(p*1.0)
+                dss['profile_id'] = np.array(p, dtype=np.int32)
                 dss['profile_id'].attrs = profile_meta['profile_id']
+                dss['profile_id'].attrs['valid_min'] = np.array(dss['profile_id'].attrs['valid_min'], dtype=np.int32)
+                dss['profile_id'].attrs['valid_max'] = np.array(dss['profile_id'].attrs['valid_max'], dtype=np.int32)
                 dss['profile_time'] = dss.time.mean()
                 dss['profile_time'].attrs = profile_meta['profile_time']
                 dss['profile_lon'] = dss.longitude.mean()
@@ -85,7 +87,8 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
 
                 dss['lat'] = dss['latitude']
                 dss['lon'] = dss['longitude']
-                dss['platform'] = np.NaN
+
+                dss['platform'] = -999
                 comment = (meta['glider_model'] + ' operated by ' +
                            meta['institution'])
                 dss['platform'].attrs['comment'] = comment
@@ -96,6 +99,8 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                     meta['glider_model'] + dss['platform'].attrs['id'])
                 dss['platform'].attrs['type'] = 'platform'
                 dss['platform'].attrs['wmo_id'] = meta['wmo_id']
+                dss['platform'].attrs['_FillValue'] = -999
+                dss['platform'].encoding['dtype'] = "int32"
 
                 dss['lat_uv'] = np.NaN
                 dss['lat_uv'].attrs = profile_meta['lat_uv']
@@ -104,12 +109,13 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 dss['time_uv'] = np.NaN
                 dss['time_uv'].attrs = profile_meta['time_uv']
 
-                dss['instrument_ctd'] = np.NaN
+                dss['instrument_ctd'] = -999
                 dss['instrument_ctd'].attrs = profile_meta['instrument_ctd']
+                dss['instrument_ctd'].encoding['dtype'] = "int32"
 
                 dss.attrs['date_modified'] = str(np.datetime64('now')) + 'Z'
 
-                # ancillary variables::
+                # ancillary variables
                 to_fill = ['temperature', 'pressure', 'conductivity',
                            'salinity', 'density', 'lon', 'lat', 'depth']
                 for name in to_fill:
@@ -119,12 +125,25 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 _log.info('Writing %s', outname)
                 timeunits = 'seconds since 1970-01-01T00:00:00Z'
                 timecalendar = 'gregorian'
+                # Set datatype to float to avoid warning
+                # UserWarning: Times can't be serialized faithfully to
+                # int64 with requested units 'seconds since 1970-01-01T00:00:00+00:00'.
+                # Resolution of 'nanoseconds' needed. Serializing times
+                # to floating point instead. Set encoding['dtype'] to integer
+                # dtype to serialize to int64. Set encoding['dtype'] to floating point
+                # dtype to silence this warning.
                 dss.to_netcdf(outname, encoding={'time': {'units': timeunits,
-                                                          'calendar': timecalendar},
-                                                          'profile_time':
-                                                         {'units': timeunits}})
+                                                          'calendar': timecalendar,
+                                                          'dtype': 'float'
+                                                         },
+                                                 'profile_time':
+                                                         {'units': timeunits,
+                                                          'dtype': 'float'
+                                                         }
+                                                }
+                             )
 
-                # add traj_strlen using bare ntcdf to make IOOS happy
+                # add traj_strlen using bare netcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
