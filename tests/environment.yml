@@ -17,4 +17,4 @@ dependencies:
   - matplotlib
   - polars
   - pip:
-    - dbdreader<0.4.15
+    - dbdreader

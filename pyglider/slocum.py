@@ -760,7 +760,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
     ds = ds.assign_coords(depth=ds.depth)
 
     ds['time'] = (ds.time.values.astype('timedelta64[s]') +
-                  np.datetime64('1970-01-01T00:00:00'))
+                  np.datetime64('1970-01-01T00:00:00')).astype('datetime64[ns]')
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
     start = ds['time'].values[0]
     end = ds['time'].values[-1]
@@ -887,8 +887,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
             # interpolate only over those gaps that are smaller than 'maxgap'
             _t, _ = dbd.get(ncvar[name]['source'])
-            tg_ind = utils.find_gaps(_t,time,maxgap) 
-            val[tg_ind] = np.nan            
+            tg_ind = utils.find_gaps(_t,time,maxgap)
+            val[tg_ind] = np.nan
 
             val = utils._zero_screen(val)
             val = convert(val)
@@ -919,8 +919,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
     # screen out-of-range times; these won't convert:
     ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.NaN)
-    ds['time'] = (('time'), ds.time.values.astype('timedelta64[s]') +
-                  np.datetime64('1970-01-01T00:00:00'), attr)
+    ds['time'] = (('time'), (ds.time.values.astype('timedelta64[s]') +
+                  np.datetime64('1970-01-01T00:00:00')).astype('datetime64[ns]'), attr)
 
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
     start = ds['time'].values[0]

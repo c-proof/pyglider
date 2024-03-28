@@ -337,7 +337,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
         raise ValueError(f"timebase source: {ncvar['timebase']['source']} not found in pld1 columns")
     vals = sensor.select([ncvar['timebase']['source']]).to_numpy()[:, 0]
     indctd = np.where(~np.isnan(vals))[0]
-    ds['time'] = (('time'), sensor.select('time').to_numpy()[indctd, 0], attr)
+    ds['time'] = (('time'), sensor.select('time').to_numpy()[indctd, 0].astype('datetime64[ns]'), attr)
     thenames = list(ncvar.keys())
     # Check yaml to see if interpolate has been set to True
     if "interpolate" in thenames:
@@ -368,7 +368,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                     sensor_sub_grouped = sensor_sub.with_columns(
                         pl.col('time').to_physical()
                     ).group_by(
-                        by=pl.col('coarse_ints'),
+                        pl.col('coarse_ints'),
                         maintain_order=True
                     ).mean().with_columns(
                         pl.col('time').cast(pl.Datetime('ms'))
@@ -492,8 +492,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
     ds.to_netcdf(outname, 'w',
-                 encoding={'time': {'units':
-                                        'seconds since 1970-01-01T00:00:00Z'}})
+                 encoding={'time': {'units': 'milliseconds since 1970-01-01T00:00:00Z'}})
     return outname
 
 
