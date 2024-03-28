@@ -496,57 +496,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     return outname
 
 
-# alias:
+# aliases:
 raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
-
-
-def _parse_sensor_config(filename):
-    """
-    Reads the sensor config file of a SeaExplorer and extracts the active
-    sensors and their calibration data.
-
-    Parameters
-    ----------
-    filename: path to seapayload.cfg file
-
-    Returns
-    -------
-
-    Dictionary of devices and their metadata as dictionaries of key_value pairs
-    """
-    # filename =
-    # "/home/callum/Documents/data-flow/data-in/SEA063_M22/2_PLD/configs/seapayload.cfg"
-    file = open(filename, 'r').read().split('\n')
-    devices = []
-    device_id = 'dummy_value'
-    device_dicts = {}
-    dict_for_device = {}
-    for line in file:
-        # Strip trailing whitespace
-        line = line.strip(" ")
-        # Look for key:value pairs
-        if '=' in line and ">" not in line:
-            # Split only on first = or AD2CP will break the parser
-            key, value = line.split("=", 1)
-            # Look for non-empty device declarations
-            if key == "device" and value != "":
-                devices.append(value)
-            else:
-                dict_for_device[key] = value
-        # Look for pattern [devicename]
-        elif line[1:-1] in devices:
-            # add previous device to the device dict
-            device_dicts[device_id] = dict_for_device
-            device_id = line[1:-1]
-            dict_for_device = {}
-    # Append the final device to the dict
-    device_dicts[device_id] = dict_for_device
-
-    active_device_dicts = {k: device_dicts[k] for k in
-                           (device_dicts.keys() & {*devices})}
-    return active_device_dicts
-
-
 merge_rawnc = merge_parquet
 
 __all__ = ['raw_to_rawnc', 'merge_parquet', 'raw_to_timeseries']
