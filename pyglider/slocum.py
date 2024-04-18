@@ -1064,7 +1064,7 @@ def parse_logfiles(files):
 
     # now parse them
     out = xr.Dataset(
-        coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[s]'))})
+        coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[ns]'))})
     out['ampH'] = ('surfacing', np.zeros(ntimes) * np.NaN)
     out['lon'] = ('surfacing', np.zeros(ntimes) * np.NaN)
     out['lat'] = ('surfacing', np.zeros(ntimes) * np.NaN)
@@ -1073,7 +1073,7 @@ def parse_logfiles(files):
         timestring = times[i][11:-13]
         try:
             out['time'][i] = np.datetime64(
-                datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'))
+                datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'), 'ns')
             st = amph[i].index('=')
             en = amph[i][st:].index(' ') + st
             out['ampH'][i] = float(amph[i][(st+1):en])
