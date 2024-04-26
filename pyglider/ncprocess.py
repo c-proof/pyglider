@@ -122,7 +122,9 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 dss.to_netcdf(outname, encoding={'time': {'units': timeunits,
                                                           'calendar': timecalendar},
                                                           'profile_time':
-                                                         {'units': timeunits}})
+                                                         {'units': timeunits,
+                                                         '_FillValue': -99999}}
+                                                         )
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
