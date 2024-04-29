@@ -944,7 +944,9 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     outname = (outdir + '/' + ds.attrs['deployment_name'] + fnamesuffix + '.nc')
     _log.info('writing %s', outname)
     ds.to_netcdf(outname, 'w',
-                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z', '_FillValue': -999999}})
+                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
+                                    '_FillValue': -999999,
+                                    'dtype': 'int64'}})
 
     return outname
 

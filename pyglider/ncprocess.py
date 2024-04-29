@@ -114,16 +114,17 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                            'salinity', 'density', 'lon', 'lat', 'depth']
                 for name in to_fill:
                     dss[name].attrs['ancillary_variables'] = name + '_qc'
-
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
                 timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
                 timecalendar = 'gregorian'
                 dss.to_netcdf(outname, encoding={'time': {'units': timeunits,
-                                                          'calendar': timecalendar},
+                                                          'calendar': timecalendar,
+                                                          'dtype': 'float64'},
                                                           'profile_time':
                                                          {'units': timeunits,
-                                                         '_FillValue': -99999}}
+                                                         '_FillValue': -99999.0,
+                                                         'dtype': 'float64'}}
                                                          )
 
                 # add traj_strlen using bare ntcdf to make IOOS happy

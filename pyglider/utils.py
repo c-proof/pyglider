@@ -69,9 +69,10 @@ def get_glider_depth(ds):
             'comment': 'from science pressure and interpolated',
             'instrument': 'instrument_ctd',
             'observation_type': 'calulated',
-            'accuracy': '1', 'precision': '2', 'resolution': '0.02',
+            'accuracy': 1.0,
+            'precision': 2.0, 'resolution': 0.02,
             'platform': 'platform',
-            'valid_min': '0', 'valid_max': '2000',
+            'valid_min': 0.0, 'valid_max': 2000.0,
             'reference_datum': 'surface', 'positive': 'down'}
     ds['depth'].attrs = attr
     return ds
@@ -300,11 +301,11 @@ def get_derived_eos_raw(ds):
         ('method', 'get_derived_eos_raw'),
         ('observation_type', 'calulated'),
         ('instrument', 'instrument_ctd'),
-        ('valid_max', '40.0'),
-        ('valid_min', '0.0'),
-        ('accuracy', '0.01'),
-        ('precision', '0.01'),
-        ('resolution', '0.001')])
+        ('valid_max', 40.0),
+        ('valid_min', 0.0),
+        ('accuracy', 0.01),
+        ('precision', 0.01),
+        ('resolution', 0.001)])
     attrs = fill_required_attrs(attrs)
     ds['salinity'].attrs = attrs
     sa = gsw.SA_from_SP(ds['salinity'], ds['pressure'], ds['longitude'],
@@ -320,9 +321,9 @@ def get_derived_eos_raw(ds):
         ('method', 'get_derived_eos_raw'),
         ('observation_type', 'calulated'),
         ('instrument', 'instrument_ctd'),
-        ('accuracy', '0.01'),
-        ('precision', '0.01'),
-        ('resolution', '0.001')
+        ('accuracy', 0.01),
+        ('precision', 0.01),
+        ('resolution', 0.001)
         ])
     attrs = fill_required_attrs(attrs)
     ds['potential_density'].attrs = attrs
@@ -338,11 +339,11 @@ def get_derived_eos_raw(ds):
         ('sources', 'salinity temperature pressure'),
         ('instrument', 'instrument_ctd'),
         ('method', 'get_derived_eos_raw'),
-        ('valid_min', '1000.0'),
-        ('valid_max', '1040.0'),
-        ('accuracy', '0.01'),
-        ('precision', '0.01'),
-        ('resolution', '0.001')
+        ('valid_min', 990.0),
+        ('valid_max', 1040.0),
+        ('accuracy', 0.01),
+        ('precision', 0.01),
+        ('resolution', 0.001)
         ])
     attrs = fill_required_attrs(attrs)
     ds['density'].attrs = attrs
@@ -357,9 +358,9 @@ def get_derived_eos_raw(ds):
         ('observation_type', 'calulated'),
         ('method', 'get_derived_eos_raw'),
         ('instrument', 'instrument_ctd'),
-        ('accuracy', '0.002'),
-        ('precision', '0.001'),
-        ('resolution', '0.0001')
+        ('accuracy', 0.002),
+        ('precision', 0.001),
+        ('resolution', 0.0001)
     ])
     attrs = fill_required_attrs(attrs)
     ds['potential_temperature'].attrs = attrs
@@ -576,16 +577,16 @@ def find_gaps(sample_time, timebase, maxgap):
     # figure out which sample each time in time base belongs to:
     time_index = np.searchsorted(sample_time, timebase, side='right')
     time_index = np.clip(time_index, 0, len(sample_time)-1)
-    
+
     # figure out the space between sample pairs
     dt = np.concatenate(([0], np.diff(sample_time)))
     # get the gap size for each timebase data point:
     ddt = dt[time_index]
-    
-    # get the indices of timebase that are too large and account for the 
-    # degenerate case when a timebase point falls directly on a sample time. 
+
+    # get the indices of timebase that are too large and account for the
+    # degenerate case when a timebase point falls directly on a sample time.
     index = ~np.logical_or((ddt <= maxgap),(np.isin(timebase,sample_time)))
-      
+
     return index
 
 def _parse_gliderxml_pos(fname):
