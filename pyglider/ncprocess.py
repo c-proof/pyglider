@@ -38,7 +38,6 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
     with open(deploymentyaml) as fin:
         deployment = yaml.safe_load(fin)
     meta = deployment['metadata']
-
     with xr.open_dataset(inname) as ds:
         _log.info('Extracting profiles: opening %s', inname)
         profiles = np.unique(ds.profile_index)
@@ -78,6 +77,12 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 dss['profile_id'].attrs = profile_meta['profile_id']
                 dss['profile_time'] = dss.time.mean()
                 dss['profile_time'].attrs = profile_meta['profile_time']
+                # remove units so they can be encoded later:
+                try:
+                    del dss.profile_time.attrs['units']
+                    del dss.profile_time.attrs['calendar']
+                except ValueError:
+                    pass
                 dss['profile_lon'] = dss.longitude.mean()
                 dss['profile_lon'].attrs = profile_meta['profile_lon']
                 dss['profile_lat'] = dss.latitude.mean()
@@ -87,7 +92,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 dss['lon'] = dss['longitude']
                 dss['platform'] = np.NaN
                 comment = (meta['glider_model'] + ' operated by ' +
-                           meta['institution'])
+                        meta['institution'])
                 dss['platform'].attrs['comment'] = comment
                 dss['platform'].attrs['id'] = (
                     meta['glider_name'] + meta['glider_serial'])
@@ -111,7 +116,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
 
                 # ancillary variables::
                 to_fill = ['temperature', 'pressure', 'conductivity',
-                           'salinity', 'density', 'lon', 'lat', 'depth']
+                        'salinity', 'density', 'lon', 'lat', 'depth']
                 for name in to_fill:
                     dss[name].attrs['ancillary_variables'] = name + '_qc'
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
@@ -130,7 +135,6 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
-
 
 def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1):
     """
