@@ -81,7 +81,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 try:
                     del dss.profile_time.attrs['units']
                     del dss.profile_time.attrs['calendar']
-                except ValueError:
+                except KeyError:
                     pass
                 dss['profile_lon'] = dss.longitude.mean()
                 dss['profile_lon'].attrs = profile_meta['profile_lon']
@@ -123,6 +123,11 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 _log.info('Writing %s', outname)
                 timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
                 timecalendar = 'gregorian'
+                try:
+                    del dss.profile_time.attrs['_FillValue']
+                    del dss.profile_time.attrs['units']
+                except KeyError:
+                    pass
                 dss.to_netcdf(outname, encoding={'time': {'units': timeunits,
                                                           'calendar': timecalendar,
                                                           'dtype': 'float64'},
@@ -136,7 +141,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
-def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1):
+def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01'):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
@@ -172,6 +177,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1):
     profile_meta = deployment['profile_variables']
 
     ds = xr.open_dataset(inname, decode_times=True)
+    ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
     _log.info(f'Working on: {inname}')
     _log.debug(str(ds))
     _log.debug(str(ds.time[0]))
