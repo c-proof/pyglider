@@ -56,9 +56,13 @@ def get_glider_depth(ds):
 
     """
     good = np.where(~np.isnan(ds.pressure))[0]
-    ds['depth'] = ds.pressure * 0.
-    ds['depth'].values = -gsw.z_from_p(ds.pressure.values,
-                                       ds.latitude.values)
+    ds['depth'] = ds.pressure
+    try:
+        meanlat = ds.latitude.mean(skipna=True)
+        ds['depth'].values = -gsw.z_from_p(ds.pressure.values,
+            ds.latitude.fillna(meanlat).values)
+    except AttributeError:
+        pass
     # now we really want to know where it is, so interpolate:
     if len(good) > 0:
         ds['depth'].values = np.interp(

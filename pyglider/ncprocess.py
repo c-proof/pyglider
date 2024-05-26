@@ -187,7 +187,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
                                         and (p > 0))]
     profile_bins = np.hstack((np.array(profiles) - 0.5, [profiles[-1]+0.5]))
-
+    _log.debug(profile_bins)
     Nprofiles = len(profiles)
     _log.info(f'Nprofiles {Nprofiles}')
     depth_bins = np.arange(0, 1100.1, dz)

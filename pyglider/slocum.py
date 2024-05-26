@@ -857,12 +857,15 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         else:
             baseind = nn
 
+    print(*sensors)
     # get the data, with `time_base` as the time source that
     # all other variables are synced to:
     data = list(dbd.get_sync(*sensors))
     # get the time:
     time = data.pop(0)
     ds['time'] = (('time'), time, attr)
+    ds['latitude'] = 0 * ds.time
+    ds['longitude'] = 0 * ds.time
     # get the time_base data:
     basedata = data.pop(0)
     # slot the time_base variable into the right place in the
@@ -905,6 +908,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         attrs = ncvar[name]
         attrs = utils.fill_required_attrs(attrs)
         ds[name] = (('time'), val, attrs)
+
 
     _log.info(f'Getting glider depths, {ds}')
     _log.debug(f'HERE, {ds.pressure[0:100]}')
