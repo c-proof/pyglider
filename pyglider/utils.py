@@ -312,8 +312,9 @@ def get_derived_eos_raw(ds):
         ('resolution', 0.001)])
     attrs = fill_required_attrs(attrs)
     ds['salinity'].attrs = attrs
-    sa = gsw.SA_from_SP(ds['salinity'], ds['pressure'], ds['longitude'],
-                        ds['latitude'])
+    long = ds.longitude.fillna(ds.longitude.mean(skipna=True))
+    lat = ds.latitude.fillna(ds.latitude.mean(skipna=True))
+    sa = gsw.SA_from_SP(ds['salinity'], ds['pressure'], long, lat)
     ct = gsw.CT_from_t(sa, ds['temperature'], ds['pressure'])
     ds['potential_density'] = (('time'), 1000 + gsw.density.sigma0(sa, ct).values)
     attrs = collections.OrderedDict([
