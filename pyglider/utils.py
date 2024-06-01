@@ -574,6 +574,7 @@ def gappy_fill_vertical(data):
             data[:, j][ind[0]:ind[-1]] = np.interp(int, ind, data[ind, j])
     return data
 
+
 def find_gaps(sample_time, timebase, maxgap):
     """
     Return an index into *timebase* where True are times in gaps of *sample_time* larger
@@ -590,9 +591,10 @@ def find_gaps(sample_time, timebase, maxgap):
 
     # get the indices of timebase that are too large and account for the
     # degenerate case when a timebase point falls directly on a sample time.
-    index = ~np.logical_or((ddt <= maxgap),(np.isin(timebase,sample_time)))
+    index = ~np.logical_or((ddt <= maxgap), (np.isin(timebase,sample_time)))
 
     return index
+
 
 def _parse_gliderxml_pos(fname):
     """
