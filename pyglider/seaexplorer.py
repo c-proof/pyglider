@@ -303,7 +303,8 @@ def _remove_fill_values(df, fill_value=9999):
 
 
 def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
-                      profile_filt_time=100, profile_min_time=300, maxgap=300, interpolate=False, fnamesuffix=''):
+                      profile_filt_time=100, profile_min_time=300,
+                      maxgap=10, interpolate=False, fnamesuffix=''):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -390,7 +391,9 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                         val = np.interp(time_timebase.astype(float), time_var.astype(float), var_non_nan)
 
                     # interpolate only over those gaps that are smaller than 'maxgap'
-                    tg_ind = utils.find_gaps(time_var.astype(float),time_timebase.astype(float),maxgap)
+                    # apparently maxgap is to be in somethng like seconds, and this data is in ms.  Certainly
+                    # the default of 0.3 s was not intended.  Changing default to 10 s:
+                    tg_ind = utils.find_gaps(time_var.astype(float), time_timebase.astype(float), maxgap*1000)
                     val[tg_ind] = np.nan
                 else:
                     val = val[indctd]
