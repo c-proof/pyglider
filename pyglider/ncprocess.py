@@ -67,10 +67,10 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                     dss['v'] = dss.water_velocity_northward.mean()
                     dss['v'].attrs = profile_meta['v']
                 elif 'u' in profile_meta:
-                    dss['u'] = profile_meta['u'].get('_FillValue', np.NaN)
+                    dss['u'] = profile_meta['u'].get('_FillValue', np.nan)
                     dss['u'].attrs = profile_meta['u']
 
-                    dss['v'] = profile_meta['v'].get('_FillValue', np.NaN)
+                    dss['v'] = profile_meta['v'].get('_FillValue', np.nan)
                     dss['v'].attrs = profile_meta['v']
 
                 dss['profile_id'] = np.array(p*1.0)
@@ -90,7 +90,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
 
                 dss['lat'] = dss['latitude']
                 dss['lon'] = dss['longitude']
-                dss['platform'] = np.NaN
+                dss['platform'] = np.nan
                 comment = (meta['glider_model'] + ' operated by ' +
                         meta['institution'])
                 dss['platform'].attrs['comment'] = comment
@@ -102,14 +102,14 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 dss['platform'].attrs['type'] = 'platform'
                 dss['platform'].attrs['wmo_id'] = meta['wmo_id']
 
-                dss['lat_uv'] = np.NaN
+                dss['lat_uv'] = np.nan
                 dss['lat_uv'].attrs = profile_meta['lat_uv']
-                dss['lon_uv'] = np.NaN
+                dss['lon_uv'] = np.nan
                 dss['lon_uv'].attrs = profile_meta['lon_uv']
-                dss['time_uv'] = np.NaN
+                dss['time_uv'] = np.nan
                 dss['time_uv'].attrs = profile_meta['time_uv']
 
-                dss['instrument_ctd'] = np.NaN
+                dss['instrument_ctd'] = np.nan
                 dss['instrument_ctd'].attrs = profile_meta['instrument_ctd']
 
                 dss.attrs['date_modified'] = str(np.datetime64('now')) + 'Z'
