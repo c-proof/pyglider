@@ -821,9 +821,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         Suffix for the output timeseries file
 
     time_base : str, default 'sci_water_temp'
-        The parameter (sensor name) to be used as the time base by the
-        dbdreader MultiDBD.get_sync() method. Note that this means that all
-        parameters will be interpolated onto this time base.
+        The sensor name to be used as the time base for all the sensors in this file.  Sensors that have a different time
+        base are linearly interpolated onto this time base.  
 
         If this value is 'union', then the processing is handled differently,
         to allow for 'unioning' the engineering and science timeseries. This
