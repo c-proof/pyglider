@@ -345,8 +345,8 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
     _log.debug('Diagnostic check passed.  Endian is %s', endian)
 
     nsensors = int(meta['sensors_per_cycle'])
-    currentValues = np.zeros(int(meta['sensors_per_cycle'])) + np.nan
-    data = np.zeros((DINKUMCHUNKSIZE, nsensors)) + np.nan
+    currentValues = np.zeros(int(meta['sensors_per_cycle'])) + np.NaN
+    data = np.zeros((DINKUMCHUNKSIZE, nsensors)) + np.NaN
     # Then there's a data cycle with every sensor marked as updated, giving
     # us our initial values.
     # 01 means updated with 'same value', 10 means updated with a new value,
@@ -370,7 +370,7 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
         binaryData.bytealign()
         for i, code in enumerate(updatedCode):
             if code == '00':  # No new value
-                currentValues[i] = np.nan
+                currentValues[i] = np.NaN
             elif code == '01':  # Same value as before.
                 continue
             elif code == '10':  # New value.
@@ -404,7 +404,7 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
             if ndata % DINKUMCHUNKSIZE == 0:
                 # need to allocate more data!
                 data = np.concatenate(
-                    (data, np.nan + np.zeros((DINKUMCHUNKSIZE, nsensors))),
+                    (data, np.NaN + np.zeros((DINKUMCHUNKSIZE, nsensors))),
                     axis=0)
         elif d == 'X':
             # End of file cycle tag. We made it through.
@@ -496,7 +496,7 @@ def add_times_flight_sci(fdata, sdata=None):
             sdata['m_present_time_sci'] = np.interp(
                 sdata['sci_m_present_time'], tf, pt, np.nan, np.nan)
         else:
-            sdata['m_present_time_sci'] = np.nan * sdata['sci_m_present_time']
+            sdata['m_present_time_sci'] = np.NaN * sdata['sci_m_present_time']
 
     return fdata, sdata
 
@@ -733,7 +733,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
             _log.debug('EBD sensorname %s', sensorname)
             val = ebd[sensorname]
             val = utils._zero_screen(val)
-    #        val[val==0] = np.nan
+    #        val[val==0] = np.NaN
             val = convert(val)
         else:
             _log.debug('DBD sensorname %s', sensorname)
@@ -802,25 +802,25 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
     Parameters
     ----------
-    indir : string
+    indir : str
         Directory with binary files from the glider.
 
-    cachedir : string
+    cachedir : str
         Directory with glider cache files (cac files)
 
-    outdir : string
+    outdir : str
         Directory to put the merged timeseries files.
 
-    deploymentyaml : string
+    deploymentyaml : str
         YAML text file with deployment information for this glider.
 
-    search : string
+    search : str
         todo - dbdreader
 
-    fnamesuffix : string
+    fnamesuffix : str
         Suffix for the output timeseries file
 
-    time_base : string
+    time_base : str, default 'sci_water_temp'
         The parameter (sensor name) to be used as the time base by the
         dbdreader MultiDBD.get_sync() method. Note that this means that all
         parameters will be interpolated onto this time base.
@@ -850,7 +850,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
     Returns
     -------
-    outname : string
+    outname : str
         name of the new merged netcdf file.
     """
 
@@ -889,8 +889,26 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             sensors.insert(0, sensorname)
     _log.debug(f'sensors: {[i for i in sensors]}')
 
-    time_base_union = time_base == 'union'
-    if time_base_union:  
+    time_base_sensor = time_base != 'union'
+    
+    if time_base_sensor:  
+        # check that time_base is valid
+        try:
+            baseind
+        except NameError:
+            ValueError("time_base must be either a valid sensor name or 'union'")
+
+        # get the data, with `time_base` as the time source that
+        # all other variables are synced to:
+        data = list(dbd.get_sync(*sensors))
+        # get the time:
+        time = data.pop(0)
+        # get the time_base data:
+        basedata = data.pop(0)
+        # slot the time_base variable into the right place in the
+        # data list:
+        data.insert(baseind, basedata)
+    else:
         # get the data, across all eng/sci timestamps
         # return_nans=True so data arrays are of exactly two lengths (eng/sci)
         data_list = [(t, v) for (t,v) in dbd.get(*sensors, return_nans=True)]
@@ -908,25 +926,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         # get indices on sci timestamps in time 
         # because interp below, eng not needed
         sci_indices = np.searchsorted(time, sci_time)
-    else:
-        # check that time_base is valid
-        try:
-            baseind
-        except NameError:
-            ValueError("time_base must be either 'union' or a valid sensor name")
 
-        # get the data, with `time_base` as the time source that
-        # all other variables are synced to:
-        data = list(dbd.get_sync(*sensors))
-        # get the time:
-        time = data.pop(0)
-        # get the time_base data:
-        basedata = data.pop(0)
-        # slot the time_base variable into the right place in the
-        # data list:
-        data.insert(baseind, basedata)
-
-    _log.debug(f'unioned time array length: {len(time)}')
+    _log.debug(f'time array length: {len(time)}')
     ds['time'] = (('time'), time, attr)
     ds['latitude'] = 0 * ds.time
     ds['longitude'] = 0 * ds.time
@@ -945,15 +946,15 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         _log.info('names: %s %s', name, sensorname)
         if sensorname in dbd.parameterNames['sci']:
             _log.debug('Sci sensorname %s', sensorname)
-            if time_base_union:
-                val = np.full(len(time), np.nan)
-                val[sci_indices] = data[nn]
-            else:
+            if time_base_sensor:
                 val = data[nn]
                 # interpolate only over those gaps that are smaller than 'maxgap'
                 _t, _ = dbd.get(ncvar[name]['source'])
                 tg_ind = utils.find_gaps(_t,time,maxgap)
                 val[tg_ind] = np.nan
+            else:
+                val = np.full(len(time), np.nan)
+                val[sci_indices] = data[nn]                
 
             val = utils._zero_screen(val)
             val = convert(val)
@@ -961,7 +962,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             _log.debug('Eng sensorname %s', sensorname)
             val = data[nn]
             val = convert(val)
-            if time_base_union:
+            if not time_base_sensor:
                 # always interpolate engineering variables
                 good = ~np.isnan(val)
                 val = np.interp(time, data_time[nn][good], val[good], 
@@ -1134,9 +1135,9 @@ def parse_logfiles(files):
     # now parse them
     out = xr.Dataset(
         coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[ns]'))})
-    out['ampH'] = ('surfacing', np.zeros(ntimes) * np.nan)
-    out['lon'] = ('surfacing', np.zeros(ntimes) * np.nan)
-    out['lat'] = ('surfacing', np.zeros(ntimes) * np.nan)
+    out['ampH'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['lon'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['lat'] = ('surfacing', np.zeros(ntimes) * np.NaN)
 
     for i in range(ntimes):
         timestring = times[i][11:-13]
