@@ -16,7 +16,7 @@ import os
 import time
 import xarray as xr
 import xml.etree.ElementTree as ET
-import yaml
+from collections.abc import Iterable
 
 import pyglider.utils as utils
 
@@ -621,8 +621,8 @@ def merge_rawnc(indir, outdir, deploymentyaml,
 
     scisuffix = scisuffix.lower()
     glidersuffix = glidersuffix.lower()
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     metadata = deployment['metadata']
     id = metadata['glider_name'] + metadata['glider_serial']
 
@@ -684,8 +684,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
         name of the new merged netcdf file.
     """
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']
@@ -807,8 +806,13 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     outdir : string
         Directory to put the merged timeseries files.
 
-    deploymentyaml : str
-        YAML text file with deployment information for this glider.
+    deploymentyaml : str or list
+        Name of YAML text file with deployment information for this glider.
+
+        If a list, then the YAML files are read in order, and any top-level dictionaries
+        are overwritten from the previous YAMLs.  The advantage of this is that it allows
+        metadata that is common to multiple ways of processing the data come from the
+        first file, and then subsequent files change "netcdf_variables" if desired.
 
     profile_filt_time : float
         time in seconds over which to smooth the pressure time series for
@@ -827,8 +831,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     if not have_dbdreader:
         raise ImportError('Cannot import dbdreader')
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']
     thenames = list(ncvar.keys())

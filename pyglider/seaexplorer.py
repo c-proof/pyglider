@@ -128,7 +128,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                     # Try to read the file with polars. If the file is corrupted (rare), file read will fail and file
                     # is appended to badfiles
                     try:
-                        out = pl.read_csv(f, separator=';')
+                        out = pl.read_csv(f, sep=';')
                     except Exception as e:
                         _log.warning(f'Exception reading {f}: {e}')
                         _log.warning(f'Could not read {f}')
@@ -137,11 +137,11 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                     # Parse the datetime from nav files (called Timestamp) and pld1 files (called PLD_REALTIMECLOCK)
                     if "Timestamp" in out.columns:
                         out = out.with_columns(
-                            pl.col("Timestamp").str.strptime(pl.Datetime, format="%d/%m/%Y %H:%M:%S"))
+                            pl.col("Timestamp").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S"))
                         out = out.rename({"Timestamp": "time"})
                     else:
                         out = out.with_columns(
-                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, format="%d/%m/%Y %H:%M:%S.%3f"))
+                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S.%3f"))
                         out = out.rename({"PLD_REALTIMECLOCK": "time"})
                     for col_name in out.columns:
                         if "time" not in col_name.lower():
@@ -150,7 +150,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                     if 'AD2CP_TIME' in out.columns:
                         # Set datestamps with date 00000 to None
                         out = out.with_columns(
-                            pl.col('AD2CP_TIME').str.strptime(pl.Datetime, format="%m%d%y %H:%M:%S", strict=False))
+                            pl.col('AD2CP_TIME').str.strptime(pl.Datetime, fmt="%m%d%y %H:%M:%S", strict=False))
 
                     # subsetting for heavily oversampled raw data:
                     if rawsub == 'raw' and dropna_subset is not None:
@@ -232,8 +232,8 @@ def merge_parquet(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         Only add new files....
     """
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     metadata = deployment['metadata']
     id = metadata['glider_name']
     outgli = outdir + '/' + id + '-rawgli.parquet'
@@ -297,7 +297,6 @@ def _remove_fill_values(df, fill_value=9999):
         pl.when(pl.col(pl.Float64) == fill_value)
         .then(None)
         .otherwise(pl.col(pl.Float64))
-        .name.keep()
     )
     return df
 
@@ -309,8 +308,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     A little different than above, for the 4-file version of the data set.
     """
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']

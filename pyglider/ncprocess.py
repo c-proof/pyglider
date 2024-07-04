@@ -35,8 +35,8 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
     except FileExistsError:
         pass
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     meta = deployment['metadata']
     with xr.open_dataset(inname) as ds:
         _log.info('Extracting profiles: opening %s', inname)
@@ -172,8 +172,8 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     except FileExistsError:
         pass
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     profile_meta = deployment['profile_variables']
 
     ds = xr.open_dataset(inname, decode_times=True)

@@ -7,6 +7,8 @@ import numpy as np
 from scipy.signal import argrelextrema
 import gsw
 import logging
+import yaml
+
 
 _log = logging.getLogger(__name__)
 
@@ -672,6 +674,24 @@ def example_gridplot(filename, outname,
             if ylim:
                 ax.set_ylim(ylim)
         fig.savefig(outname, dpi=dpi)
+
+
+def _get_deployment(deploymentyaml):
+    """
+    Take the list of files in *deploymentyaml* and parse them
+    for deployment information, with subsequent files overwriting
+    previous files.
+    """
+    if isinstance(deploymentyaml, str):
+        deploymentyaml = [deploymentyaml,]
+    deployment = {}
+    for nn, d in enumerate(deploymentyaml):
+        with open(d) as fin:
+            deployment_ = yaml.safe_load(fin)
+            for k in deployment_:
+                deployment[k] = deployment_[k]
+
+    return deployment
 
 
 __all__ = ['get_distance_over_ground', 'get_glider_depth', 'get_profiles_new',
