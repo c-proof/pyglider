@@ -137,11 +137,11 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                     # Parse the datetime from nav files (called Timestamp) and pld1 files (called PLD_REALTIMECLOCK)
                     if "Timestamp" in out.columns:
                         out = out.with_columns(
-                            pl.col("Timestamp").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S"))
+                            pl.col("Timestamp").str.strptime(pl.Datetime, format="%d/%m/%Y %H:%M:%S"))
                         out = out.rename({"Timestamp": "time"})
                     else:
                         out = out.with_columns(
-                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, fmt="%d/%m/%Y %H:%M:%S.%3f"))
+                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, format="%d/%m/%Y %H:%M:%S.%3f"))
                         out = out.rename({"PLD_REALTIMECLOCK": "time"})
                     for col_name in out.columns:
                         if "time" not in col_name.lower():
@@ -150,7 +150,7 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                     if 'AD2CP_TIME' in out.columns:
                         # Set datestamps with date 00000 to None
                         out = out.with_columns(
-                            pl.col('AD2CP_TIME').str.strptime(pl.Datetime, fmt="%m%d%y %H:%M:%S", strict=False))
+                            pl.col('AD2CP_TIME').str.strptime(pl.Datetime, format="%m%d%y %H:%M:%S", strict=False))
 
                     # subsetting for heavily oversampled raw data:
                     if rawsub == 'raw' and dropna_subset is not None:
