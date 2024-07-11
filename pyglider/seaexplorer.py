@@ -297,7 +297,7 @@ def _remove_fill_values(df, fill_value=9999):
         pl.when(pl.col(pl.Float64) == fill_value)
         .then(None)
         .otherwise(pl.col(pl.Float64))
-        .keep_name()
+        .name.keep()
     )
     return df
 
