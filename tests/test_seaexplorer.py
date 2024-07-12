@@ -103,13 +103,13 @@ def test_raw_to_timeseries():
 
 def test_missing_bad_timebase():
     # Prepare yaml files with bad timebase and no timebase
-    with open(str(example_dir / 'example-seaexplorer/deploymentRealtime.yml')) as fin:
+    with open(example_dir / 'example-seaexplorer/deploymentRealtime.yml') as fin:
         deployment = yaml.safe_load(fin)
     deployment['netcdf_variables']['timebase']['source'] = "non existing sensor"
-    with open(str(example_dir / 'example-seaexplorer/bad_timebase.yml'), "w") as fin:
+    with open(example_dir / 'example-seaexplorer/bad_timebase.yml', "w") as fin:
         yaml.dump(deployment, fin)
     deployment['netcdf_variables'].pop('timebase')
-    with open(str(example_dir / 'example-seaexplorer/no_timebase.yml'), "w") as fin:
+    with open(example_dir / 'example-seaexplorer/no_timebase.yml', "w") as fin:
         yaml.dump(deployment, fin)
     with pytest.raises(ValueError) as bad_timebase_exc:
         result_bad_timebase = seaexplorer.raw_to_timeseries('tests/data/realtime_rawnc/',
