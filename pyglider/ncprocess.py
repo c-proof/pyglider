@@ -75,6 +75,10 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 
                     dss['v'] = profile_meta['v'].get('_FillValue', np.NaN)
                     dss['v'].attrs = profile_meta['v']
+                else:
+                    dss['u'] = np.NaN
+                    dss['v'] = np.NaN
+
 
                 dss['profile_id'] = np.int32(p)
                 dss['profile_id'].attrs = profile_meta['profile_id']

@@ -1092,5 +1092,94 @@ def parse_logfiles(files):
     return out
 
 
+def parse_logfiles_maybe(files):
+    """
+    Parse time, lat, lon, and amph_total from glider logfiles.
+
+    Parameters
+    ----------
+    files : list of strings or Paths
+        List of logfiles to parse.  Should be sorted.
+
+    Returns
+    -------
+    out : xarray
+        xarray data set with fields time, lon, lat, ampH indexed by surfacing.
+        More could be added.
+    """
+
+    times = [''] * 10000
+    gps = [''] * 10000
+    amph = [''] * 10000
+    surfacereason = ''
+    missionnum = [''] * 10000
+    abortsegment = 0
+    abortcause = 0
+
+    ntimes = 0
+    for fn in files:
+        found_time = False
+
+        with open(fn, 'r') as fin:
+            for l in fin:
+                if 'Curr Time:' in l:
+                    times[ntimes] = l
+                    ntimes += 1
+                    found_time=True
+                elif found_time and 'GPS Location' in l:
+                    gps[ntimes - 1] = l
+                elif found_time and "sensor:m_coulomb_amphr_total" in l:
+                    amph[ntimes-1] = l
+                elif found_time and "Because:" in l:
+                    surfacereason = l
+                elif found_time and "MissionNum" in l:
+                    missionnum[ntimes-1] = l
+                elif found_time and "abort segment:" in l:
+                    abortsegment = l
+                elif found_time and "abort cause:" in l:
+                    abortcause = l
+
+    amph = amph[:ntimes]
+    gps = gps[:ntimes]
+    times = times[:ntimes]
+    missionnum = missionnum[:ntimes]
+
+    # now parse them
+    out = xr.Dataset(coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[ns]'))})
+    out['ampH'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['lon'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['lat'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['missionnum'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out.attrs['surfacereason'] = surfacereason
+    # ABORT HISTORY: last abort segment: hal_1002-2024-183-0-0 (0171.0000)
+    out.attrs['abortsegment'] = float(abortsegment[-11:-2])
+    out.attrs['abortcause'] = abortcause
+
+    for i in range(ntimes):
+        timestring = times[i][11:-13]
+        out['time'][i] = np.datetime64(datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'), 'ns')
+        try:
+            if '=' in amph[i]:
+                st = amph[i].index('=')
+                en = amph[i][st:].index(' ') + st
+                out['ampH'][i] = float(amph[i][(st+1):en])
+
+            #        GPS Location:  4912.737 N -12357.253 E measured    110.757 secs ago
+            sp = gps[i].split()
+            out['lat'][i] = utils.nmea2deg(float(sp[2]))
+            out['lon'][i] = utils.nmea2deg(float(sp[4]))
+
+            # MissionName:calvert.mi MissionNum:hal_1002-2024-183-4-41 (0175.0041)
+            if len(missionnum[i]) > 12:
+                out['missionnum'][i] = float(missionnum[i][-11:-2])
+        except:
+            pass
+
+    return out
+
+
+
+
+
 __all__ = ['binary_to_rawnc', 'merge_rawnc', 'raw_to_timeseries',
            'parse_gliderState', 'parse_logfiles']
