@@ -127,18 +127,19 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 
                 dss.attrs['date_modified'] = str(np.datetime64('now')) + 'Z'
 
-                # ancillary variables::
-                if True:
-                    to_fill = ['temperature', 'pressure', 'conductivity',
-                            'salinity', 'density', 'lon', 'lat', 'depth']
-                    for name in to_fill:
-                        qcname = name + '_qc'
-                        dss[name].attrs['ancillary_variables'] = qcname
-                        if qcname not in dss.keys():
+                # ancillary variables: link and create with values of 2.  If
+                # we dont' want them all 2, then create these variables in the
+                # time series
+                to_fill = ['temperature', 'pressure', 'conductivity',
+                        'salinity', 'density', 'lon', 'lat', 'depth']
+                for name in to_fill:
+                    qcname = name + '_qc'
+                    dss[name].attrs['ancillary_variables'] = qcname
+                    if qcname not in dss.keys():
 
-                            dss[qcname] = ('time', 2 * np.ones(len(dss[name]), np.int8))
-                            dss[qcname].attrs = utils.fill_required_qcattrs({}, name)
-                            # 2 is "not eval"
+                        dss[qcname] = ('time', 2 * np.ones(len(dss[name]), np.int8))
+                        dss[qcname].attrs = utils.fill_required_qcattrs({}, name)
+                        # 2 is "not eval"
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
                 timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
