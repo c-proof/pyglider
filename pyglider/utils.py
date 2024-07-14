@@ -398,6 +398,22 @@ def fill_required_attrs(attrs):
     return attrs
 
 
+def fill_required_qcattrs(attrs, varname):
+    required = {
+        "units": "1",
+        "flag_values": np.array([1, 2, 3, 4, 9], dtype=np.int8),
+        "valid_min": np.int8(1),
+        "valid_max": np.int8(9),
+        "flag_meanings": "PASS NOT_EVALUATED SUSPECT FAIL MISSING",
+        "standard_name": "quality_flag",
+        "long_name": "Initial flag for {varname}"
+    }
+    for k in required.keys():
+        if not (k in attrs.keys()):
+            attrs[k] = required[k]
+    return attrs
+
+
 def get_file_id(ds):
     """
     Make a file id for a Dataset
@@ -458,9 +474,10 @@ def fill_metadata(ds, metadata, sensor_data):
     ds.attrs['history'] = 'CPROOF glider toolbox version: pre-tag'
     for k, v in metadata.items():
         ds.attrs[k] = v
-    ds.attrs['featureType'] = 'timeseries'
+    ds.attrs['featureType'] = 'trajectory'
     ds.attrs['cdm_data_type'] = 'Trajectory'
-    ds.attrs['Conventions'] = 'CF-1.6'
+    ds.attrs['Conventions'] = 'CF-1.8'
+    ds.attrs['standard_name_vocabulary'] = 'CF STandard Name Table v72'
     ds.attrs['date_created'] = str(np.datetime64('now')) + 'Z'
     ds.attrs['date_issued'] = str(np.datetime64('now')) + 'Z'
     ds.attrs['date_modified'] = " "

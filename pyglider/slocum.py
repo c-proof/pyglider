@@ -716,7 +716,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
         if atts != 'coordinates':
             attr[atts] = ncvar[name][atts]
     ds[name] = (('time'), ebd[name].values, attr)
-
     for name in thenames:
         _log.info('working on %s', name)
         if 'method' in ncvar[name].keys():
@@ -868,8 +867,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     # get the time:
     time = data.pop(0)
     ds['time'] = (('time'), time, attr)
-    ds['latitude'] = 0 * ds.time
-    ds['longitude'] = 0 * ds.time
+    ds['latitude'] = (('time'), np.zeros(len(time)))
+    ds['longitude'] = (('time'), np.zeros(len(time)))
     # get the time_base data:
     basedata = data.pop(0)
     # slot the time_base variable into the right place in the
@@ -908,7 +907,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             ValueError(f'{sensorname} not in science or eng parameter names')
 
         # make the attributes:
-        ncvar[name].pop('coordinates', None)
+        ncvar[name]['coordinates'] = 'time'
         attrs = ncvar[name]
         attrs = utils.fill_required_attrs(attrs)
         ds[name] = (('time'), val, attrs)
@@ -921,9 +920,6 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     ds = utils.get_distance_over_ground(ds)
 
     ds = utils.get_derived_eos_raw(ds)
-    ds = ds.assign_coords(longitude=ds.longitude)
-    ds = ds.assign_coords(latitude=ds.latitude)
-    ds = ds.assign_coords(depth=ds.depth)
 
     # screen out-of-range times; these won't convert:
     ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.NaN)
@@ -953,8 +949,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     _log.info('writing %s', outname)
     ds.to_netcdf(outname, 'w',
                  encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
-                                    '_FillValue': -999999,
-                                    'dtype': 'int64'}})
+                                    '_FillValue': np.NaN,
+                                    'dtype': 'float64'}})
 
     return outname
 
