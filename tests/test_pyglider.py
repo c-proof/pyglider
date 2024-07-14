@@ -25,7 +25,7 @@ output = xr.open_dataset(outname)
 # Open test data file
 test_data = xr.open_dataset(
     library_dir /
-    'tests/results/example-seaexplorer/L0-timeseries/dfo-eva035-20190718.nc')
+    'tests/expected/example-seaexplorer/L0-timeseries/dfo-eva035-20190718.nc')
 variables = list(output.variables)
 
 
@@ -97,7 +97,7 @@ output_raw = xr.open_dataset(outname_raw)
 # Open test data file
 test_data_raw = xr.open_dataset(
     library_dir /
-    'tests/results/example-seaexplorer-raw/L0-timeseries/dfo-bb046-20200908.nc')
+    'tests/expected/example-seaexplorer-raw/L0-timeseries/dfo-bb046-20200908.nc')
 
 @pytest.mark.parametrize("var", variables)
 def test_example_seaexplorer_raw(var):
