@@ -14,7 +14,7 @@ import scipy.stats as stats
 _log = logging.getLogger(__name__)
 
 
-def extract_timeseries_profiles(inname, outdir, deploymentyaml):
+def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
     """
     Extract and save each profile from a timeseries netCDF.
 
@@ -29,6 +29,9 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
     deploymentyaml : str or Path
         location of deployment yaml file for the netCDF file.  This should
         be the same yaml file that was used to make the timeseries file.
+
+    force : bool, default False
+        Force an overwite even if profile netcdf already exists
     """
     try:
         os.mkdir(outdir)
@@ -48,7 +51,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
             dss = ds.isel(time=ind)
             outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
             _log.info('Checking %s', outname)
-            if not os.path.exists(outname):
+            if force or (not os.path.exists(outname)):
                 # this is the id for the whole file, not just this profile..
                 dss['trajectory'] = utils.get_file_id(ds).encode()
                 trajlen = len(utils.get_file_id(ds).encode())
@@ -73,8 +76,13 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                     dss['v'] = profile_meta['v'].get('_FillValue', np.NaN)
                     dss['v'].attrs = profile_meta['v']
 
-                dss['profile_id'] = np.array(p*1.0)
+                dss['profile_id'] = np.int32(p)
                 dss['profile_id'].attrs = profile_meta['profile_id']
+                if '_FillValue' not in dss['profile_id'].attrs:
+                    dss['profile_id'].attrs['_FillValue'] = -1
+                dss['profile_id'].attrs['valid_min'] = np.int32(dss['profile_id'].attrs['valid_min'])
+                dss['profile_id'].attrs['valid_max'] = np.int32(dss['profile_id'].attrs['valid_max'])
+
                 dss['profile_time'] = dss.time.mean()
                 dss['profile_time'].attrs = profile_meta['profile_time']
                 # remove units so they can be encoded later:
@@ -90,9 +98,9 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
 
                 dss['lat'] = dss['latitude']
                 dss['lon'] = dss['longitude']
-                dss['platform'] = np.NaN
+                dss['platform'] = np.int32(1)
                 comment = (meta['glider_model'] + ' operated by ' +
-                        meta['institution'])
+                           meta['institution'])
                 dss['platform'].attrs['comment'] = comment
                 dss['platform'].attrs['id'] = (
                     meta['glider_name'] + meta['glider_serial'])
@@ -101,6 +109,9 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                     meta['glider_model'] + dss['platform'].attrs['id'])
                 dss['platform'].attrs['type'] = 'platform'
                 dss['platform'].attrs['wmo_id'] = meta['wmo_id']
+                if '_FillValue' not in dss['platform'].attrs:
+                    dss['platform'].attrs['_FillValue'] = -1
+
 
                 dss['lat_uv'] = np.NaN
                 dss['lat_uv'].attrs = profile_meta['lat_uv']
@@ -109,16 +120,26 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                 dss['time_uv'] = np.NaN
                 dss['time_uv'].attrs = profile_meta['time_uv']
 
-                dss['instrument_ctd'] = np.NaN
+                dss['instrument_ctd'] = np.int32(1.0)
                 dss['instrument_ctd'].attrs = profile_meta['instrument_ctd']
+                if '_FillValue' not in dss['instrument_ctd'].attrs:
+                    dss['instrument_ctd'].attrs['_FillValue'] = -1
 
                 dss.attrs['date_modified'] = str(np.datetime64('now')) + 'Z'
 
-                # ancillary variables::
+                # ancillary variables: link and create with values of 2.  If
+                # we dont' want them all 2, then create these variables in the
+                # time series
                 to_fill = ['temperature', 'pressure', 'conductivity',
                         'salinity', 'density', 'lon', 'lat', 'depth']
                 for name in to_fill:
-                    dss[name].attrs['ancillary_variables'] = name + '_qc'
+                    qcname = name + '_qc'
+                    dss[name].attrs['ancillary_variables'] = qcname
+                    if qcname not in dss.keys():
+
+                        dss[qcname] = ('time', 2 * np.ones(len(dss[name]), np.int8))
+                        dss[qcname].attrs = utils.fill_required_qcattrs({}, name)
+                        # 2 is "not eval"
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
                 timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
@@ -134,7 +155,9 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml):
                                                           'profile_time':
                                                          {'units': timeunits,
                                                          '_FillValue': -99999.0,
-                                                         'dtype': 'float64'}}
+                                                         'dtype': 'float64'},
+                }
+
                                                          )
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
