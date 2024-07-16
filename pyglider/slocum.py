@@ -922,9 +922,9 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         sci_time = np.int64(utils._time_to_datetime64(data_time[sci1]))
         time = np.union1d(eng_time, sci_time)
         
-        # get indices on sci timestamps in time 
-        # because interp below, eng not needed
+        # get indices on sci and eng timestamps in time 
         sci_indices = np.searchsorted(time, sci_time)
+        eng_indices = np.searchsorted(time, eng_time)
 
     _log.debug(f'time array length: {len(time)}')
     ds['time'] = (('time'), time, attr)
@@ -949,7 +949,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
                 val = data[nn]
                 # interpolate only over those gaps that are smaller than 'maxgap'
                 _t, _ = dbd.get(ncvar[name]['source'])
-                tg_ind = utils.find_gaps(_t,time,maxgap)
+                tg_ind = utils.find_gaps(_t, time, maxgap)
                 val[tg_ind] = np.nan
             else:
                 val = np.full(len(time), np.nan)
@@ -959,14 +959,14 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             val = convert(val)
         elif sensorname in dbd.parameterNames['eng']:
             _log.debug('Eng sensorname %s', sensorname)
-            val = data[nn]
+            if time_base_sensor:
+                val = data[nn]
+                ncvar['method'] = 'linear fill'
+            else:
+                val = np.full(len(time), np.nan)
+                val[eng_indices] = data[nn]
+            
             val = convert(val)
-            if not time_base_sensor:
-                # always interpolate engineering variables
-                good = ~np.isnan(val)
-                val = np.interp(time, data_time[nn][good], val[good], 
-                                left=np.nan, right=np.nan)
-            ncvar['method'] = 'linear fill'
         else:
             ValueError(f'{sensorname} not in science or eng parameter names')
 
