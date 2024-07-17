@@ -923,12 +923,14 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
     # screen out-of-range times; these won't convert:
     ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.NaN)
-    ds['time'] = (('time'), (ds.time.values.astype('timedelta64[s]') +
-                  np.datetime64('1970-01-01T00:00:00')).astype('datetime64[ns]'), attr)
+    # convert time to datetime64:
+    ds['time'] = (ds.time*1e9).astype('datetime64[ns]')
+    ds['time'].attrs = attr
 
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
-    start = ds['time'].values[0]
-    end = ds['time'].values[-1]
+
+    start = ds.time.values[0]
+    end = ds.time.values[0]
     _log.debug('Long')
     _log.debug(ds.longitude.values[-2000:])
     ds.attrs['deployment_start'] = str(start)
@@ -947,6 +949,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         pass
     outname = (outdir + '/' + ds.attrs['deployment_name'] + fnamesuffix + '.nc')
     _log.info('writing %s', outname)
+    # convert time back to float64 seconds for ERDDAP etc happiness, as they won't take ns
+    # as a unit:
     ds.to_netcdf(outname, 'w',
                  encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
                                     '_FillValue': np.NaN,
