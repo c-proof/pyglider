@@ -232,8 +232,8 @@ def merge_parquet(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         Only add new files....
     """
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     metadata = deployment['metadata']
     id = metadata['glider_name']
     outgli = outdir + '/' + id + '-rawgli.parquet'
@@ -309,8 +309,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     A little different than above, for the 4-file version of the data set.
     """
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']
