@@ -917,17 +917,16 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         data_time, data = zip(*data_list)
         _log.debug(f'data array lengths: {[len(i) for i in data]}')
 
-        # get and union the times, after rounding to nearest second
-        # assumes exactly 2 unique sets of times: eng and sci
-        eng1 = np.where([i in dbd.parameterNames['eng'] for i in sensors])[0][0]
-        sci1 = np.where([i in dbd.parameterNames['sci'] for i in sensors])[0][0]
-        eng_time = np.int64(utils._time_to_datetime64(data_time[eng1]))
-        sci_time = np.int64(utils._time_to_datetime64(data_time[sci1]))
-        time = np.union1d(eng_time, sci_time)
-        
-        # get indices on sci and eng timestamps in time 
-        sci_indices = np.searchsorted(time, sci_time)
-        eng_indices = np.searchsorted(time, eng_time)
+        # get and union the times
+        # assumes exactly 2 unique sets of times from dbdreader: eng and sci
+        eng0 = np.where([i in dbd.parameterNames['eng'] for i in sensors])[0][0]
+        sci0 = np.where([i in dbd.parameterNames['sci'] for i in sensors])[0][0]
+        engtime = data_time[eng0]
+        scitime = data_time[sci0]
+        time = np.union1d(engtime, scitime)        
+        # get indices of sci and eng timestamps in time 
+        sci_indices = np.searchsorted(time, scitime)
+        eng_indices = np.searchsorted(time, engtime)
 
     _log.debug(f'time array length: {len(time)}')
     ds['time'] = (('time'), time, attr)
