@@ -824,23 +824,19 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         Suffix for the output timeseries file
 
     time_base : str, default 'sci_water_temp'
-        The sensor name to be used as the time base for all the sensors in this file.  Sensors that have a different time
+        The sensor name to be used as the time base for all the sensors in this file.  
+        Sensors that have a different time
         base are linearly interpolated onto this time base.  
 
-        If this value is 'union', then the processing is handled differently,
-        to allow for 'unioning' the engineering and science timeseries. This
-        may be useful if for instance you want a full time series, and science
-        variables are only sampled on dives.
-
-        For a value of 'union', the dbdreader MultiDBD.get() method is used
-        rather than get_sync to read the parameters specified in
-        deploymentyaml. The argument return_nans (of MultiDBD.get()) is set to
-        True, so that there are two 'time bases' for the extracted data: one
-        for engineering variables (from m_present_time), and one for science
-        variables (from sci_m_present_time). These times are rounded to the
-        nearest second, and then merged. These values are the time index of
-        the output file. In this case, only the engineering variables (e.g.,
-        lat/lon, pitch, roll, m_depth) are interpolated.
+        If this value is 'union', then all timestamps are returned in the output. 
+        The engineering times (from m_present_time)
+        and the science times (from sci_m_present_time) are merged, 
+        and these merged values make up the time index of the output netcdf file.         
+        This may be useful if for instance you want the full time series, 
+        and science sensors are only sampled on dives.
+        In this method, all timestamps and sensor values are returned, 
+        with nan's for those timestamps where no new value is available.         
+        No sensor values are interpolated.
 
     profile_filt_time : float
         time in seconds over which to smooth the pressure time series for
