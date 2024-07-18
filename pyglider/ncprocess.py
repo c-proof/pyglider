@@ -146,7 +146,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                         # 2 is "not eval"
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
-                timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
+                timeunits = 'seconds since 1970-01-01T00:00:00Z'
                 timecalendar = 'gregorian'
                 try:
                     del dss.profile_time.attrs['_FillValue']
