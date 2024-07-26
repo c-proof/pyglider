@@ -219,11 +219,17 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     _log.info(f'Nprofiles {Nprofiles}')
     depth_bins = np.arange(0, 1100.1, dz)
     depths = depth_bins[:-1] + 0.5
-
+    xdimname = 'time'
     dsout = xr.Dataset(
         coords={'depth': ('depth', depths),
-                'profile': ('time', profiles)})
-    print('Booo', ds.time, ds.temperature)
+                'profile': (xdimname, profiles)})
+    dsout['depth'].attrs = {'units': 'm',
+                            'long_name': 'Depth',
+                            'standard_name': 'depth',
+                            'positive': 'down',
+                            'coverage_content_type': 'coordinate',
+                            'comment': 'center of depth bins'}
+
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
     for td in ('time_1970', 'longitude', 'latitude'):
@@ -241,12 +247,12 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
     _log.info(f'Done times! {len(dat)}')
     dsout['profile_time_start'] = (
-        ('time'), dat, profile_meta['profile_time_start'])
+        (xdimname), dat, profile_meta['profile_time_start'])
     dsout['profile_time_end'] = (
-        ('time'), dat, profile_meta['profile_time_end'])
+        (xdimname), dat, profile_meta['profile_time_end'])
 
     for k in ds.keys():
-        if k in ['time', 'longitude', 'latitude', 'depth'] or 'time' in k:
+        if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
             continue
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
@@ -263,7 +269,6 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
                                               "scipy.stats.gmean")
         else:
             average_method = "mean"
-
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
                 ds['profile_index'].values[good],
                 ds['depth'].values[good],
@@ -271,7 +276,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
                 bins=[profile_bins, depth_bins])
 
         _log.debug(f'dat{np.shape(dat)}')
-        dsout[k] = (('depth', 'time'), dat.T, ds[k].attrs)
+        dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
 
         # fill gaps in data:
         dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)
@@ -287,12 +292,45 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
         dsout = dsout.drop(['water_velocity_eastward',
                             'water_velocity_northward'])
     dsout.attrs = ds.attrs
+    print('ATTRS', ds.attrs)
+    dsout.attrs.pop('cdm_data_type')
+    # fix to be ISO parsable:
+    if len(dsout.attrs['deployment_start']) > 18:
+        dsout.attrs['deployment_start'] = dsout.attrs['deployment_start'][:19]
+        dsout.attrs['deployment_end'] = dsout.attrs['deployment_end'][:19]
+        dsout.attrs['time_coverage_start'] = dsout.attrs['time_coverage_start'][:19]
+        dsout.attrs['time_coverage_end'] = dsout.attrs['time_coverage_end'][:19]
+    # fix standard_name so they don't overlap!
+    try:
+        dsout['waypoint_latitude'].attrs.pop('standard_name')
+        dsout['waypoint_longitude'].attrs.pop('standard_name')
+        dsout['profile_time_start'].attrs.pop('standard_name')
+        dsout['profile_time_end'].attrs.pop('standard_name')
+    except:
+        pass
+    # set some attributes for cf guidance
+    # see H.6.2. Profiles along a single trajectory
+    # https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/aphs06.html
+    dsout.attrs['featureType'] = 'trajectoryProfile'
+    dsout['profile'].attrs['cf_role'] = 'profile_id'
+    dsout['mission_number'] = int(1)
+    dsout['mission_number'].attrs['cf_role'] = 'trajectory_id'
+    dsout = dsout.set_coords(['latitude', 'longitude', 'time'])
+    for k in dsout:
+        if k in ['profile', 'depth', 'latitude', 'longitude', 'time', 'mission_number']:
+            dsout[k].attrs['coverage_content_type'] = 'coordinate'
+        else:
+            dsout[k].attrs['coverage_content_type'] = 'physicalMeasurement'
+
+    # print('CDM:', dsout['cdm_data_type'])
 
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid' + fnamesuffix + '.nc'
     _log.info('Writing %s', outname)
-    dsout.to_netcdf(outname,
-                    encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
-                                       'dtype': 'float64'}})
+    # timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
+    dsout.to_netcdf(outname, encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
+                                    '_FillValue': np.NaN,
+                                    'calendar': 'gregorian',
+                                    'dtype': 'float64'}})
     _log.info('Done gridding')
 
     return outname
