@@ -495,7 +495,8 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
     ds.to_netcdf(outname, 'w',
-                 encoding={'time': {'units': 'milliseconds since 1970-01-01T00:00:00Z'}})
+                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
+                                    'dtype': 'float64'}})
     return outname
 
 
