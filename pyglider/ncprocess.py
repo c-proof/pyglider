@@ -292,7 +292,6 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
         dsout = dsout.drop(['water_velocity_eastward',
                             'water_velocity_northward'])
     dsout.attrs = ds.attrs
-    print('ATTRS', ds.attrs)
     dsout.attrs.pop('cdm_data_type')
     # fix to be ISO parsable:
     if len(dsout.attrs['deployment_start']) > 18:
@@ -322,15 +321,16 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
         else:
             dsout[k].attrs['coverage_content_type'] = 'physicalMeasurement'
 
-    # print('CDM:', dsout['cdm_data_type'])
 
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid' + fnamesuffix + '.nc'
     _log.info('Writing %s', outname)
     # timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
-    dsout.to_netcdf(outname, encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
-                                    '_FillValue': np.NaN,
-                                    'calendar': 'gregorian',
-                                    'dtype': 'float64'}})
+    dsout.to_netcdf(
+        outname,
+        encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
+                           '_FillValue': np.NaN,
+                           'calendar': 'gregorian',
+                           'dtype': 'float64'}})
     _log.info('Done gridding')
 
     return outname
