@@ -290,8 +290,9 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
 
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid' + fnamesuffix + '.nc'
     _log.info('Writing %s', outname)
-    # timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
-    dsout.to_netcdf(outname)
+    dsout.to_netcdf(outname,
+                    encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
+                                       'dtype': 'float64'}})
     _log.info('Done gridding')
 
     return outname
