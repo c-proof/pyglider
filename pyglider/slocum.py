@@ -933,8 +933,9 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     end = ds.time.values[0]
     _log.debug('Long')
     _log.debug(ds.longitude.values[-2000:])
-    ds.attrs['deployment_start'] = str(start)
-    ds.attrs['deployment_end'] = str(end)
+    # make sure this is ISO readable....
+    ds.attrs['deployment_start'] = str(start)[:18]
+    ds.attrs['deployment_end'] = str(end)[:18]
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 
