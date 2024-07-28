@@ -7,6 +7,7 @@ import numpy as np
 from scipy.signal import argrelextrema
 import gsw
 import logging
+from pathlib import Path
 import yaml
 
 
@@ -709,6 +710,40 @@ def _get_deployment(deploymentyaml):
                 deployment[k] = deployment_[k]
 
     return deployment
+
+
+def _any_newer(dirname, filename):
+    """
+    Check if any files in dirname are newer than filename
+    """
+    filename = Path(filename)
+    dirname = Path(dirname)
+    print(filename, filename.exists())
+    if not filename.exists():
+        return True
+
+    mod_time = filename.stat().st_mtime
+    is_newer = False
+    for file_path in dirname.iterdir():
+        if file_path.is_file():
+            if file_path.stat().st_mtime > mod_time:
+                is_newer = True
+                break
+
+    return is_newer
+
+
+def _get_glider_name_slocum(current_directory):
+    glider = current_directory.parts[-2]
+    mission = current_directory.parts[-1]
+    print(f'Glider {glider} and mission: {mission}')
+    slocum_glider = glider[4:]
+    if slocum_glider[-4:-3].isnumeric():
+        slocum_glider = slocum_glider[:-4] + '_' + slocum_glider[-4:]
+    else:
+        slocum_glider = slocum_glider[:-3] + '_' + slocum_glider[-3:]
+
+    return glider, mission, slocum_glider
 
 
 __all__ = ['get_distance_over_ground', 'get_glider_depth', 'get_profiles_new',
