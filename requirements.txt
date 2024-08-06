@@ -3,7 +3,7 @@ dbdreader
 dask
 gsw
 netcdf4
-numpy<2
+numpy
 pooch
 scipy
 xarray
