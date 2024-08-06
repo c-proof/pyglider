@@ -9,7 +9,7 @@ jobs:
         os: ["ubuntu-latest"]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: mamba setup enviroment
         uses: mamba-org/setup-micromamba@v1.9.0
         with:
@@ -36,4 +36,4 @@ jobs:
         shell: micromamba-shell {0}
         run: which python; pytest --cov --cov-report xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
