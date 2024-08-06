@@ -3,8 +3,8 @@ dbdreader
 dask
 gsw
 netcdf4
-numpy
+numpy<2
 pooch
 scipy
 xarray
-polars>0.16
+polars>=1.1

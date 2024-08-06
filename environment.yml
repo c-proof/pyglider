@@ -3,15 +3,15 @@ channels:
   - conda-forge
 dependencies:
   - python>=3.10
-  - numpy
+  - numpy<2
   - pip
   - xarray
   - dask
   - netcdf4
   - gsw
+  - polars>=1.1
   - scipy
   - bitstring
   - pooch
   - pip:
     - dbdreader
-    - polars
