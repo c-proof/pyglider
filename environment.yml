@@ -9,9 +9,9 @@ dependencies:
   - dask
   - netcdf4
   - gsw
+  - polars>=1.1
   - scipy
   - bitstring
   - pooch
   - pip:
     - dbdreader
-    - polars

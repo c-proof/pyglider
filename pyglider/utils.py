@@ -92,8 +92,8 @@ def get_profiles(ds, min_dp=10.0, inversion=3., filt_length=7,
     make two variables: profile_direction and profile_index; this version
     is good for lots of data.  Less good for sparse data
     """
-    profile = ds.pressure.values * np.NaN
-    direction = ds.pressure.values * np.NaN
+    profile = ds.pressure.values * np.nan
+    direction = ds.pressure.values * np.nan
     pronum = 1
     lastpronum = 0
 
@@ -500,7 +500,7 @@ def fill_metadata(ds, metadata, sensor_data):
 
 
 def _zero_screen(val):
-    val[val == 0] = np.NaN
+    val[val == 0] = np.nan
     return val
 
 

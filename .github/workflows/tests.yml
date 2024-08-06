@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v2
       - name: Cache conda
@@ -25,7 +25,7 @@ jobs:
           environment-file: tests/environment.yml
           python-version: ${{ matrix.python-version }}
           channel-priority: strict
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+          use-only-tar-bz2: false # IMPORTANT: This needs to be set for caching to work properly!
       - name: Conda info
         shell: bash -l {0}
         run: conda info; conda list
