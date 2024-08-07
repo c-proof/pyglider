@@ -100,8 +100,8 @@ netcdf_variables:
     observation_type: measured
     platform:     platform
     reference:    WGS84
-    valid_max:    "90.0"
-    valid_min:    "-90.0"
+    valid_max:    90.0
+    valid_min:    -90.0
     coordinate_reference_frame:  urn:ogc:crs:EPSG::4326
 
   longitude:
@@ -116,8 +116,8 @@ netcdf_variables:
     observation_type: measured
     platform:     platform
     reference:    WGS84
-    valid_max:    "180.0"
-    valid_min:    "-180.0"
+    valid_max:    180.0
+    valid_min:    -180.0
     coordinate_reference_frame:  urn:ogc:crs:EPSG::4326
 
   heading:
@@ -149,12 +149,12 @@ netcdf_variables:
     units:        S m-1
     coordinates:  time depth latitude longitude
     instrument:    instrument_ctd
-    valid_min:    "0."
-    valid_max:    "10."
+    valid_min:    0
+    valid_max:    10
     observation_type: "measured"
-    accuracy:      "0.0003"
-    precision:     "0.0001"
-    resolution:     "0.00002"
+    accuracy:      0.0003
+    precision:     0.0001
+    resolution:    0.00002
 
   temperature:
     source:       GPCTD_TEMPERATURE
@@ -163,12 +163,12 @@ netcdf_variables:
     units:        Celsius
     coordinates:  time depth latitude longitude
     instrument:   instrument_ctd
-    valid_min:    "-5"
-    valid_max:    "50"
+    valid_min:    -5
+    valid_max:    50
     observation_type: "measured"
-    accuracy:      "0.002"
-    precision:     "0.001"
-    resolution:    "0.0002"
+    accuracy:      0.002
+    precision:     0.001
+    resolution:    0.0002
 
   pressure:
     source:       GPCTD_PRESSURE
@@ -176,15 +176,15 @@ netcdf_variables:
     standard_name:  sea_water_pressure
     units:        dbar
     coordinates:  time depth latitude longitude
-    valid_min:    "0"
-    valid_max:    "2000"
+    valid_min:    0
+    valid_max:    2000
     positive:      "down"
     reference_datum:  "sea-surface"
     instrument:     "instrument_ctd"
     observation_type: "measured"
-    accuracy:         "1"
-    precision:        "2"
-    resolution:       "0.02"
+    accuracy:         1
+    precision:        2
+    resolution:       0.02
     comment:          "ctd pressure sensor"
 
 # optics:
@@ -244,8 +244,8 @@ profile_variables:
   profile_id:
     comment: Sequential profile number within the trajectory.  This value is unique in each file that is part of a single trajectory/deployment.
     long_name: 'Profile ID'
-    valid_max: '2147483647'
-    valid_min: '1'
+    valid_max: 2147483647
+    valid_min: 1
 
   profile_time:
     comment:           Timestamp corresponding to the mid-point of the profile
@@ -275,8 +275,8 @@ profile_variables:
     platform:          platform
     standard_name:     latitude
     units:             degrees_north
-    valid_max:         "90.0"
-    valid_min:         "-90.0"
+    valid_max:         90.0
+    valid_min:         -90.0
 
   profile_lon:
     comment:           Value is interpolated to provide an estimate of the latitude at the mid-point of the profile
@@ -285,8 +285,8 @@ profile_variables:
     platform:          platform
     standard_name:     longitude
     units:             degrees_east
-    valid_max:         "180.0"
-    valid_min:         "-180.0"
+    valid_max:         180.0
+    valid_min:         -180.0
 
   u:
     comment:  The depth-averaged current is an estimate of the net current measured while the glider is underwater.  The value is calculated over the entire underwater segment, which may consist of 1 or more dives.
@@ -295,8 +295,8 @@ profile_variables:
     platform:          platform
     standard_name:     eastward_sea_water_velocity
     units:             m s-1
-    valid_max:         "10.0"
-    valid_min:         "-10.0"
+    valid_max:         10.0
+    valid_min:         -10.0
 
   v:
     comment:  The depth-averaged current is an estimate of the net current measured while the glider is underwater.  The value is calculated over the entire underwater segment, which may consist of 1 or more dives.
@@ -305,8 +305,8 @@ profile_variables:
     platform:          platform
     standard_name:     northward_sea_water_velocity
     units:             m s-1
-    valid_max:         "10.0"
-    valid_min:         "-10.0"
+    valid_max:         10.0
+    valid_min:         -10.0
 
   lon_uv:
     comment:           Not computed
@@ -315,8 +315,8 @@ profile_variables:
     platform:          platform
     standard_name:     longitude
     units:             degrees_east
-    valid_max:         "180.0"
-    valid_min:         "-180.0"
+    valid_max:         180.0
+    valid_min:         -180.0
 
   lat_uv:
     comment:           Not computed
@@ -325,8 +325,8 @@ profile_variables:
     platform:          platform
     standard_name:     latitude
     units:             degrees_north
-    valid_max:         "90.0"
-    valid_min:         "-90.0"
+    valid_max:         90.0
+    valid_min:         -90.0
 
   time_uv:
     comment:       Not computed

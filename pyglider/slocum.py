@@ -16,7 +16,7 @@ import os
 import time
 import xarray as xr
 import xml.etree.ElementTree as ET
-import yaml
+from collections.abc import Iterable
 
 import pyglider.utils as utils
 
@@ -621,8 +621,8 @@ def merge_rawnc(indir, outdir, deploymentyaml,
 
     scisuffix = scisuffix.lower()
     glidersuffix = glidersuffix.lower()
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     metadata = deployment['metadata']
     id = metadata['glider_name'] + metadata['glider_serial']
 
@@ -684,8 +684,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
         name of the new merged netcdf file.
     """
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']
@@ -717,7 +716,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
         if atts != 'coordinates':
             attr[atts] = ncvar[name][atts]
     ds[name] = (('time'), ebd[name].values, attr)
-
     for name in thenames:
         _log.info('working on %s', name)
         if 'method' in ncvar[name].keys():
@@ -760,7 +758,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
     ds = ds.assign_coords(depth=ds.depth)
 
     ds['time'] = (ds.time.values.astype('timedelta64[s]') +
-                  np.datetime64('1970-01-01T00:00:00'))
+                  np.datetime64('1970-01-01T00:00:00')).astype('datetime64[ns]')
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
     start = ds['time'].values[0]
     end = ds['time'].values[-1]
@@ -787,8 +785,9 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
 
 
 def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
-                         search='*.[D|E]BD', time_base='sci_water_temp',
-                         profile_filt_time=100, profile_min_time=300):
+                         search='*.[D|E]BD', fnamesuffix='',
+                         time_base='sci_water_temp', profile_filt_time=100,
+                         profile_min_time=300, maxgap=300):
     """
     Convert directly from binary files to netcdf timeseries file.  Requires
     dbdreader to be installed.
@@ -804,8 +803,13 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     outdir : string
         Directory to put the merged timeseries files.
 
-    deploymentyaml : str
-        YAML text file with deployment information for this glider.
+    deploymentyaml : str or list
+        Name of YAML text file with deployment information for this glider.
+
+        If a list, then the YAML files are read in order, and any top-level dictionaries
+        are overwritten from the previous YAMLs.  The advantage of this is that it allows
+        metadata that is common to multiple ways of processing the data come from the
+        first file, and then subsequent files change "netcdf_variables" if desired.
 
     profile_filt_time : float
         time in seconds over which to smooth the pressure time series for
@@ -824,8 +828,8 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     if not have_dbdreader:
         raise ImportError('Cannot import dbdreader')
 
-    with open(deploymentyaml) as fin:
-        deployment = yaml.safe_load(fin)
+    deployment = utils._get_deployment(deploymentyaml)
+
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']
     thenames = list(ncvar.keys())
@@ -854,12 +858,15 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         else:
             baseind = nn
 
+    print(*sensors)
     # get the data, with `time_base` as the time source that
     # all other variables are synced to:
-    data = dbd.get_sync(*sensors)
+    data = list(dbd.get_sync(*sensors))
     # get the time:
     time = data.pop(0)
     ds['time'] = (('time'), time, attr)
+    ds['latitude'] = (('time'), np.zeros(len(time)))
+    ds['longitude'] = (('time'), np.zeros(len(time)))
     # get the time_base data:
     basedata = data.pop(0)
     # slot the time_base variable into the right place in the
@@ -881,6 +888,12 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         if sensorname in dbd.parameterNames['sci']:
             _log.debug('Sci sensorname %s', sensorname)
             val = data[nn]
+
+            # interpolate only over those gaps that are smaller than 'maxgap'
+            _t, _ = dbd.get(ncvar[name]['source'])
+            tg_ind = utils.find_gaps(_t,time,maxgap)
+            val[tg_ind] = np.nan
+
             val = utils._zero_screen(val)
             val = convert(val)
         elif sensorname in dbd.parameterNames['eng']:
@@ -892,10 +905,11 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             ValueError(f'{sensorname} not in science or eng parameter names')
 
         # make the attributes:
-        ncvar[name].pop('coordinates', None)
+        ncvar[name]['coordinates'] = 'time'
         attrs = ncvar[name]
         attrs = utils.fill_required_attrs(attrs)
         ds[name] = (('time'), val, attrs)
+
 
     _log.info(f'Getting glider depths, {ds}')
     _log.debug(f'HERE, {ds.pressure[0:100]}')
@@ -904,22 +918,22 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     ds = utils.get_distance_over_ground(ds)
 
     ds = utils.get_derived_eos_raw(ds)
-    ds = ds.assign_coords(longitude=ds.longitude)
-    ds = ds.assign_coords(latitude=ds.latitude)
-    ds = ds.assign_coords(depth=ds.depth)
 
     # screen out-of-range times; these won't convert:
     ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.NaN)
-    ds['time'] = (('time'), ds.time.values.astype('timedelta64[s]') +
-                  np.datetime64('1970-01-01T00:00:00'), attr)
+    # convert time to datetime64:
+    ds['time'] = (ds.time*1e9).astype('datetime64[ns]')
+    ds['time'].attrs = attr
 
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
-    start = ds['time'].values[0]
-    end = ds['time'].values[-1]
+
+    start = ds.time.values[0]
+    end = ds.time.values[0]
     _log.debug('Long')
     _log.debug(ds.longitude.values[-2000:])
-    ds.attrs['deployment_start'] = str(start)
-    ds.attrs['deployment_end'] = str(end)
+    # make sure this is ISO readable....
+    ds.attrs['deployment_start'] = str(start)[:18]
+    ds.attrs['deployment_end'] = str(end)[:18]
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 
@@ -930,10 +944,14 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         os.mkdir(outdir)
     except:
         pass
-    outname = (outdir + '/' + ds.attrs['deployment_name'] + '.nc')
+    outname = (outdir + '/' + ds.attrs['deployment_name'] + fnamesuffix + '.nc')
     _log.info('writing %s', outname)
+    # convert time back to float64 seconds for ERDDAP etc happiness, as they won't take ns
+    # as a unit:
     ds.to_netcdf(outname, 'w',
-                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z'}})
+                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
+                                    '_FillValue': np.NaN,
+                                    'dtype': 'float64'}})
 
     return outname
 
@@ -1053,7 +1071,7 @@ def parse_logfiles(files):
 
     # now parse them
     out = xr.Dataset(
-        coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[s]'))})
+        coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[ns]'))})
     out['ampH'] = ('surfacing', np.zeros(ntimes) * np.NaN)
     out['lon'] = ('surfacing', np.zeros(ntimes) * np.NaN)
     out['lat'] = ('surfacing', np.zeros(ntimes) * np.NaN)
@@ -1062,7 +1080,7 @@ def parse_logfiles(files):
         timestring = times[i][11:-13]
         try:
             out['time'][i] = np.datetime64(
-                datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'))
+                datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'), 'ns')
             st = amph[i].index('=')
             en = amph[i][st:].index(' ') + st
             out['ampH'][i] = float(amph[i][(st+1):en])
@@ -1073,6 +1091,95 @@ def parse_logfiles(files):
             pass
 
     return out
+
+
+def parse_logfiles_maybe(files):
+    """
+    Parse time, lat, lon, and amph_total from glider logfiles.
+
+    Parameters
+    ----------
+    files : list of strings or Paths
+        List of logfiles to parse.  Should be sorted.
+
+    Returns
+    -------
+    out : xarray
+        xarray data set with fields time, lon, lat, ampH indexed by surfacing.
+        More could be added.
+    """
+
+    times = [''] * 10000
+    gps = [''] * 10000
+    amph = [''] * 10000
+    surfacereason = ''
+    missionnum = [''] * 10000
+    abortsegment = 0
+    abortcause = 0
+
+    ntimes = 0
+    for fn in files:
+        found_time = False
+
+        with open(fn, 'r') as fin:
+            for l in fin:
+                if 'Curr Time:' in l:
+                    times[ntimes] = l
+                    ntimes += 1
+                    found_time=True
+                elif found_time and 'GPS Location' in l:
+                    gps[ntimes - 1] = l
+                elif found_time and "sensor:m_coulomb_amphr_total" in l:
+                    amph[ntimes-1] = l
+                elif found_time and "Because:" in l:
+                    surfacereason = l
+                elif found_time and "MissionNum" in l:
+                    missionnum[ntimes-1] = l
+                elif found_time and "abort segment:" in l:
+                    abortsegment = l
+                elif found_time and "abort cause:" in l:
+                    abortcause = l
+
+    amph = amph[:ntimes]
+    gps = gps[:ntimes]
+    times = times[:ntimes]
+    missionnum = missionnum[:ntimes]
+
+    # now parse them
+    out = xr.Dataset(coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[ns]'))})
+    out['ampH'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['lon'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['lat'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['missionnum'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out.attrs['surfacereason'] = surfacereason
+    # ABORT HISTORY: last abort segment: hal_1002-2024-183-0-0 (0171.0000)
+    out.attrs['abortsegment'] = float(abortsegment[-11:-2])
+    out.attrs['abortcause'] = abortcause
+
+    for i in range(ntimes):
+        timestring = times[i][11:-13]
+        out['time'][i] = np.datetime64(datetime.strptime(timestring, '%a %b %d %H:%M:%S %Y'), 'ns')
+        try:
+            if '=' in amph[i]:
+                st = amph[i].index('=')
+                en = amph[i][st:].index(' ') + st
+                out['ampH'][i] = float(amph[i][(st+1):en])
+
+            #        GPS Location:  4912.737 N -12357.253 E measured    110.757 secs ago
+            sp = gps[i].split()
+            out['lat'][i] = utils.nmea2deg(float(sp[2]))
+            out['lon'][i] = utils.nmea2deg(float(sp[4]))
+
+            # MissionName:calvert.mi MissionNum:hal_1002-2024-183-4-41 (0175.0041)
+            if len(missionnum[i]) > 12:
+                out['missionnum'][i] = float(missionnum[i][-11:-2])
+        except:
+            pass
+
+    return out
+
+
+
 
 
 __all__ = ['binary_to_rawnc', 'merge_rawnc', 'raw_to_timeseries',

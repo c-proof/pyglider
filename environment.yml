@@ -1,9 +1,8 @@
 name: pyglider
 channels:
   - conda-forge
-  - defaults
 dependencies:
-  - python
+  - python>=3.10
   - numpy
   - pip
   - xarray
@@ -13,6 +12,6 @@ dependencies:
   - scipy
   - bitstring
   - pooch
-  - polars
   - pip:
     - dbdreader
+    - polars

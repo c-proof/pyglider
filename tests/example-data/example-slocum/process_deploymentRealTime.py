@@ -51,7 +51,7 @@ else:
         rawdir, l1tsdir, deploymentyaml,
         profile_filt_time=100, profile_min_time=300)
 
-if False:
+if True:
     # make profile netcdf files for ioos gdac...
     ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)
 
