@@ -70,14 +70,14 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     dss['v'] = dss.water_velocity_northward.mean()
                     dss['v'].attrs = profile_meta['v']
                 elif 'u' in profile_meta:
-                    dss['u'] = profile_meta['u'].get('_FillValue', np.NaN)
+                    dss['u'] = profile_meta['u'].get('_FillValue', np.nan)
                     dss['u'].attrs = profile_meta['u']
 
-                    dss['v'] = profile_meta['v'].get('_FillValue', np.NaN)
+                    dss['v'] = profile_meta['v'].get('_FillValue', np.nan)
                     dss['v'].attrs = profile_meta['v']
                 else:
-                    dss['u'] = np.NaN
-                    dss['v'] = np.NaN
+                    dss['u'] = np.nan
+                    dss['v'] = np.nan
 
 
                 dss['profile_id'] = np.int32(p)
@@ -117,11 +117,11 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     dss['platform'].attrs['_FillValue'] = -1
 
 
-                dss['lat_uv'] = np.NaN
+                dss['lat_uv'] = np.nan
                 dss['lat_uv'].attrs = profile_meta['lat_uv']
-                dss['lon_uv'] = np.NaN
+                dss['lon_uv'] = np.nan
                 dss['lon_uv'].attrs = profile_meta['lon_uv']
-                dss['time_uv'] = np.NaN
+                dss['time_uv'] = np.nan
                 dss['time_uv'].attrs = profile_meta['time_uv']
 
                 dss['instrument_ctd'] = np.int32(1.0)
@@ -328,7 +328,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     dsout.to_netcdf(
         outname,
         encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
-                           '_FillValue': np.NaN,
+                           '_FillValue': np.nan,
                            'calendar': 'gregorian',
                            'dtype': 'float64'}})
     _log.info('Done gridding')

@@ -453,7 +453,7 @@ def fill_metadata(ds, metadata, sensor_data):
 
 
 def _zero_screen(val):
-    val[val == 0] = np.NaN
+    val[val == 0] = np.nan
     return val
 
 
@@ -664,6 +664,6 @@ def _get_deployment(deploymentyaml):
     return deployment
 
 
-__all__ = ['get_distance_over_ground', 'get_glider_depth', 'get_profiles_new',
+__all__ = ['get_distance_over_ground', 'get_glider_depth', 'get_profiles',
            'get_derived_eos_raw', "fill_metadata", "nmea2deg",
            "gappy_fill_vertical", "oxygen_concentration_correction"]

@@ -7,4 +7,4 @@ numpy
 pooch
 scipy
 xarray
-polars>0.16
+polars>=1.1
