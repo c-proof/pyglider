@@ -11,6 +11,7 @@ dependencies:
   - gsw
   - scipy
   - bitstring
+  - polars>=1.1
   - pytest
   - pytest-cov
   - pooch
@@ -19,4 +20,3 @@ dependencies:
   - cc-plugin-glider
   - pip:
     - dbdreader
-    - polars

@@ -345,8 +345,8 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
     _log.debug('Diagnostic check passed.  Endian is %s', endian)
 
     nsensors = int(meta['sensors_per_cycle'])
-    currentValues = np.zeros(int(meta['sensors_per_cycle'])) + np.NaN
-    data = np.zeros((DINKUMCHUNKSIZE, nsensors)) + np.NaN
+    currentValues = np.zeros(int(meta['sensors_per_cycle'])) + np.nan
+    data = np.zeros((DINKUMCHUNKSIZE, nsensors)) + np.nan
     # Then there's a data cycle with every sensor marked as updated, giving
     # us our initial values.
     # 01 means updated with 'same value', 10 means updated with a new value,
@@ -370,7 +370,7 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
         binaryData.bytealign()
         for i, code in enumerate(updatedCode):
             if code == '00':  # No new value
-                currentValues[i] = np.NaN
+                currentValues[i] = np.nan
             elif code == '01':  # Same value as before.
                 continue
             elif code == '10':  # New value.
@@ -404,7 +404,7 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
             if ndata % DINKUMCHUNKSIZE == 0:
                 # need to allocate more data!
                 data = np.concatenate(
-                    (data, np.NaN + np.zeros((DINKUMCHUNKSIZE, nsensors))),
+                    (data, np.nan + np.zeros((DINKUMCHUNKSIZE, nsensors))),
                     axis=0)
         elif d == 'X':
             # End of file cycle tag. We made it through.
@@ -496,7 +496,7 @@ def add_times_flight_sci(fdata, sdata=None):
             sdata['m_present_time_sci'] = np.interp(
                 sdata['sci_m_present_time'], tf, pt, np.nan, np.nan)
         else:
-            sdata['m_present_time_sci'] = np.NaN * sdata['sci_m_present_time']
+            sdata['m_present_time_sci'] = np.nan * sdata['sci_m_present_time']
 
     return fdata, sdata
 
@@ -731,7 +731,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
             _log.debug('EBD sensorname %s', sensorname)
             val = ebd[sensorname]
             val = utils._zero_screen(val)
-    #        val[val==0] = np.NaN
+    #        val[val==0] = np.nan
             val = convert(val)
         else:
             _log.debug('DBD sensorname %s', sensorname)
@@ -984,7 +984,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     ds = utils.get_derived_eos_raw(ds)
 
     # screen out-of-range times; these won't convert:
-    ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.NaN)
+    ds['time'] = ds.time.where((ds.time>0) & (ds.time<6.4e9), np.nan)
     # convert time to datetime64:
     ds['time'] = (ds.time*1e9).astype('datetime64[ns]')
     ds['time'].attrs = attr
@@ -995,8 +995,9 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     end = ds.time.values[0]
     _log.debug('Long')
     _log.debug(ds.longitude.values[-2000:])
-    ds.attrs['deployment_start'] = str(start)
-    ds.attrs['deployment_end'] = str(end)
+    # make sure this is ISO readable....
+    ds.attrs['deployment_start'] = str(start)[:18]
+    ds.attrs['deployment_end'] = str(end)[:18]
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 
@@ -1015,7 +1016,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     # as a unit:
     ds.to_netcdf(outname, 'w',
                  encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
-                                    '_FillValue': np.NaN,
+                                    '_FillValue': np.nan,
                                     'dtype': 'float64'}})
 
     return outname
@@ -1133,9 +1134,9 @@ def parse_logfiles(files):
     # now parse them
     out = xr.Dataset(
         coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[ns]'))})
-    out['ampH'] = ('surfacing', np.zeros(ntimes) * np.NaN)
-    out['lon'] = ('surfacing', np.zeros(ntimes) * np.NaN)
-    out['lat'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['ampH'] = ('surfacing', np.zeros(ntimes) * np.nan)
+    out['lon'] = ('surfacing', np.zeros(ntimes) * np.nan)
+    out['lat'] = ('surfacing', np.zeros(ntimes) * np.nan)
 
     for i in range(ntimes):
         timestring = times[i][11:-13]
@@ -1208,10 +1209,10 @@ def parse_logfiles_maybe(files):
 
     # now parse them
     out = xr.Dataset(coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[ns]'))})
-    out['ampH'] = ('surfacing', np.zeros(ntimes) * np.NaN)
-    out['lon'] = ('surfacing', np.zeros(ntimes) * np.NaN)
-    out['lat'] = ('surfacing', np.zeros(ntimes) * np.NaN)
-    out['missionnum'] = ('surfacing', np.zeros(ntimes) * np.NaN)
+    out['ampH'] = ('surfacing', np.zeros(ntimes) * np.nan)
+    out['lon'] = ('surfacing', np.zeros(ntimes) * np.nan)
+    out['lat'] = ('surfacing', np.zeros(ntimes) * np.nan)
+    out['missionnum'] = ('surfacing', np.zeros(ntimes) * np.nan)
     out.attrs['surfacereason'] = surfacereason
     # ABORT HISTORY: last abort segment: hal_1002-2024-183-0-0 (0171.0000)
     out.attrs['abortsegment'] = float(abortsegment[-11:-2])
