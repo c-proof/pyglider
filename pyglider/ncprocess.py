@@ -312,7 +312,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     # https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/aphs06.html
     dsout.attrs['featureType'] = 'trajectoryProfile'
     dsout['profile'].attrs['cf_role'] = 'profile_id'
-    dsout['mission_number'] = int32(1)
+    dsout['mission_number'] = np.int32(1)
     dsout['mission_number'].attrs['cf_role'] = 'trajectory_id'
     dsout = dsout.set_coords(['latitude', 'longitude', 'time'])
     for k in dsout:

@@ -29,11 +29,15 @@ def get_distance_over_ground(ds):
     ds : `.xarray.Dataset`
         With ``distance_over_ground`` key.
     """
+
     good = ~np.isnan(ds.latitude + ds.longitude)
-    dist = gsw.distance(ds.longitude[good].values, ds.latitude[good].values)/1000
-    dist = np.roll(np.append(dist, 0), 1)
-    dist = np.cumsum(dist)
-    dist = np.interp(ds.time, ds.time[good], dist)
+    if np.any(good):
+        dist = gsw.distance(ds.longitude[good].values, ds.latitude[good].values)/1000
+        dist = np.roll(np.append(dist, 0), 1)
+        dist = np.cumsum(dist)
+        dist = np.interp(ds.time, ds.time[good], dist)
+    else:
+        dist = 0 * ds.latitude.values
     attr = {'long_name': 'distance over ground flown since mission start',
             'method': 'get_distance_over_ground',
             'units': 'km',
@@ -465,10 +469,17 @@ def fill_metadata(ds, metadata, sensor_data):
 
     """
     good = ~np.isnan(ds.latitude.values + ds.longitude.values)
-    ds.attrs['geospatial_lat_max'] = np.max(ds.latitude.values[good])
-    ds.attrs['geospatial_lat_min'] = np.min(ds.latitude.values[good])
-    ds.attrs['geospatial_lon_max'] = np.max(ds.longitude.values[good])
-    ds.attrs['geospatial_lon_min'] = np.min(ds.longitude.values[good])
+    if np.any(good):
+        ds.attrs['geospatial_lat_max'] = np.max(ds.latitude.values[good])
+        ds.attrs['geospatial_lat_min'] = np.min(ds.latitude.values[good])
+        ds.attrs['geospatial_lon_max'] = np.max(ds.longitude.values[good])
+        ds.attrs['geospatial_lon_min'] = np.min(ds.longitude.values[good])
+    else:
+        ds.attrs['geospatial_lat_max'] = np.nan
+        ds.attrs['geospatial_lat_min'] = np.nan
+        ds.attrs['geospatial_lon_max'] = np.nan
+        ds.attrs['geospatial_lon_min'] = np.nan
+
     ds.attrs['geospatial_lat_units'] = 'degrees_north'
     ds.attrs['geospatial_lon_units'] = 'degrees_east'
     ds.attrs['netcdf_version'] = '4.0'  # TODO get this somehow...
