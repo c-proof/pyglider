@@ -818,7 +818,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         first file, and then subsequent files change "netcdf_variables" if desired.
 
     search : str
-        todo - dbdreader
+        Search pattern for binary files
 
     fnamesuffix : str
         Suffix for the output timeseries file
@@ -828,15 +828,13 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         Sensors that have a different time
         base are linearly interpolated onto this time base.  
 
-        If this value is 'union', then all timestamps are returned in the output. 
-        The engineering times (from m_present_time)
-        and the science times (from sci_m_present_time) are merged, 
-        and these merged values make up the time index of the output netcdf file.         
+        If this value is 'union', then all sensors in this file and their 
+        respective time bases are extracted. 
+        The time bases are merged, and no sensor values are interpolated. 
+        In practice, this means that the output netcdf file will contain both 
+        the engineering and science timestamps from the glider. 
         This may be useful if for instance you want the full time series, 
         and science sensors are only sampled on dives.
-        In this method, all timestamps and sensor values are returned, 
-        with nan's for those timestamps where no new value is available.         
-        No sensor values are interpolated.
 
     profile_filt_time : float
         time in seconds over which to smooth the pressure time series for
@@ -914,13 +912,21 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         _log.debug(f'data array lengths: {[len(i) for i in data]}')
 
         # get and union the times
-        # assumes exactly 2 unique sets of times from dbdreader: eng and sci
-        eng0 = np.where([i in dbd.parameterNames['eng'] for i in sensors])[0][0]
-        sci0 = np.where([i in dbd.parameterNames['sci'] for i in sensors])[0][0]
-        engtime = data_time[eng0]
-        scitime = data_time[sci0]
-        time = np.union1d(engtime, scitime)        
-        # get indices of sci and eng timestamps in time 
+        # per dbdreader, assumes exactly 2 unique sets of times: eng and sci
+        engidx = np.where([i in dbd.parameterNames['eng'] for i in sensors])[0]
+        sciidx = np.where([i in dbd.parameterNames['sci'] for i in sensors])[0]
+        # in case there are no eng or sci variables/times
+        try:
+            engtime = data_time[engidx[0]]
+        except:
+            engtime = []
+        try:
+            scitime = data_time[sciidx[0]]
+        except:
+            scitime = []
+        time = np.union1d(engtime, scitime)
+
+        # get indices of sci and eng timestamps in time
         sci_indices = np.searchsorted(time, scitime)
         eng_indices = np.searchsorted(time, engtime)
 
@@ -976,7 +982,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
 
     _log.info(f'Getting glider depths, {ds}')
-    _log.debug(f'HERE, {ds.pressure[0:100]}')
+    # _log.debug(f'HERE, {ds.pressure[0:100]}')
 
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
