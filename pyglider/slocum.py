@@ -786,6 +786,10 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
     return outname
 
 
+# alias:
+raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
+
+
 def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
                          search='*.[D|E]BD', fnamesuffix='',
                          time_base='sci_water_temp', profile_filt_time=100,
@@ -797,13 +801,13 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
     Parameters
     ----------
-    indir : string
+    indir : str
         Directory with binary files from the glider.
 
-    cachedir : string
+    cachedir : str
         Directory with glider cache files (cac files)
 
-    outdir : string
+    outdir : str
         Directory to put the merged timeseries files.
 
     deploymentyaml : str or list
@@ -813,6 +817,25 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         are overwritten from the previous YAMLs.  The advantage of this is that it allows
         metadata that is common to multiple ways of processing the data come from the
         first file, and then subsequent files change "netcdf_variables" if desired.
+
+    search : str
+        Search pattern for binary files
+
+    fnamesuffix : str
+        Suffix for the output timeseries file
+
+    time_base : str, default 'sci_water_temp'
+        The sensor name to be used as the time base for all the sensors in this file.  
+        Sensors that have a different time
+        base are linearly interpolated onto this time base.  
+
+        If this value is 'union', then all sensors in this file and their 
+        respective time bases are extracted. 
+        The time bases are merged, and no sensor values are interpolated. 
+        In practice, this means that the output netcdf file will contain both 
+        the engineering and science timestamps from the glider. 
+        This may be useful if for instance you want the full time series, 
+        and science sensors are only sampled on dives.
 
     profile_filt_time : float
         time in seconds over which to smooth the pressure time series for
@@ -829,7 +852,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
     Returns
     -------
-    outname : string
+    outname : str
         name of the new merged netcdf file.
     """
 
@@ -860,29 +883,66 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     for atts in ncvar[name].keys():
         if (atts != 'coordinates') & (atts != 'units') & (atts != 'calendar'):
             attr[atts] = ncvar[name][atts]
-    sensors = [time_base]
 
+    sensors = []
     for nn, name in enumerate(thenames):
         sensorname = ncvar[name]['source']
         if not sensorname == time_base:
             sensors.append(sensorname)
         else:
             baseind = nn
+            sensors.insert(0, sensorname)
+    _log.debug(f'sensors: {[i for i in sensors]}')
 
-    print(*sensors)
-    # get the data, with `time_base` as the time source that
-    # all other variables are synced to:
-    data = list(dbd.get_sync(*sensors))
-    # get the time:
-    time = data.pop(0)
+    time_base_sensor = time_base != 'union'
+    
+    if time_base_sensor:  
+        # check that time_base is valid
+        try:
+            baseind
+        except NameError:
+            ValueError("time_base must be either a valid sensor name or 'union'")
+
+        # get the data, with `time_base` as the time source that
+        # all other variables are synced to:
+        data = list(dbd.get_sync(*sensors))
+        # get the time:
+        time = data.pop(0)
+        # get the time_base data:
+        basedata = data.pop(0)
+        # slot the time_base variable into the right place in the
+        # data list:
+        data.insert(baseind, basedata)
+    else:
+        # get the data, across all eng/sci timestamps
+        # return_nans=True so data arrays are of exactly two lengths (eng/sci)
+        data_list = [(t, v) for (t,v) in dbd.get(*sensors, return_nans=True)]
+        data_time, data = zip(*data_list)
+        _log.debug(f'data array lengths: {[len(i) for i in data]}')
+
+        # get and union the times
+        # per dbdreader, assumes exactly 2 unique sets of times: eng and sci
+        engidx = np.where([i in dbd.parameterNames['eng'] for i in sensors])[0]
+        sciidx = np.where([i in dbd.parameterNames['sci'] for i in sensors])[0]
+        # in case there are no eng or sci variables/times
+        try:
+            engtime = data_time[engidx[0]]
+        except:
+            engtime = []
+        try:
+            scitime = data_time[sciidx[0]]
+        except:
+            scitime = []
+        time = np.union1d(engtime, scitime)
+
+        # get indices of sci and eng timestamps in time
+        sci_indices = np.searchsorted(time, scitime)
+        eng_indices = np.searchsorted(time, engtime)
+
+    _log.debug(f'time array length: {len(time)}')
     ds['time'] = (('time'), time, attr)
     ds['latitude'] = (('time'), np.zeros(len(time)))
     ds['longitude'] = (('time'), np.zeros(len(time)))
-    # get the time_base data:
-    basedata = data.pop(0)
-    # slot the time_base variable into the right place in the
-    # data list:
-    data.insert(baseind, basedata)
 
     for nn, name in enumerate(thenames):
         _log.info('working on %s', name)
@@ -898,20 +958,28 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         _log.info('names: %s %s', name, sensorname)
         if sensorname in dbd.parameterNames['sci']:
             _log.debug('Sci sensorname %s', sensorname)
-            val = data[nn]
-
-            # interpolate only over those gaps that are smaller than 'maxgap'
-            _t, _ = dbd.get(ncvar[name]['source'])
-            tg_ind = utils.find_gaps(_t,time,maxgap)
-            val[tg_ind] = np.nan
+            if time_base_sensor:
+                val = data[nn]
+                # interpolate only over those gaps that are smaller than 'maxgap'
+                _t, _ = dbd.get(ncvar[name]['source'])
+                tg_ind = utils.find_gaps(_t, time, maxgap)
+                val[tg_ind] = np.nan
+            else:
+                val = np.full(len(time), np.nan)
+                val[sci_indices] = data[nn]                
 
             val = utils._zero_screen(val)
             val = convert(val)
         elif sensorname in dbd.parameterNames['eng']:
             _log.debug('Eng sensorname %s', sensorname)
-            val = data[nn]
+            if time_base_sensor:
+                val = data[nn]
+                ncvar['method'] = 'linear fill'
+            else:
+                val = np.full(len(time), np.nan)
+                val[eng_indices] = data[nn]
+            
             val = convert(val)
-            ncvar['method'] = 'linear fill'
         else:
             ValueError(f'{sensorname} not in science or eng parameter names')
 
@@ -923,7 +991,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
 
 
     _log.info(f'Getting glider depths, {ds}')
-    _log.debug(f'HERE, {ds.pressure[0:100]}')
+    # _log.debug(f'HERE, {ds.pressure[0:100]}')
 
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
@@ -967,10 +1035,6 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
                                     'dtype': 'float64'}})
 
     return outname
-
-
-# alias:
-raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
 
 
 def timeseries_get_profiles(inname, profile_filt_time=100,
@@ -1196,4 +1260,4 @@ def parse_logfiles_maybe(files):
 
 
 __all__ = ['binary_to_rawnc', 'merge_rawnc', 'raw_to_timeseries',
-           'parse_gliderState', 'parse_logfiles']
+           'binary_to_timeseries', 'parse_gliderState', 'parse_logfiles']
