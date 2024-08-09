@@ -793,7 +793,8 @@ raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
 def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
                          search='*.[D|E]BD', fnamesuffix='',
                          time_base='sci_water_temp', profile_filt_time=100,
-                         profile_min_time=300, maxgap=300):
+                         profile_min_time=300, maxgap=300,
+                         replace_attrs=None):
     """
     Convert directly from binary files to netcdf timeseries file.  Requires
     dbdreader to be installed.
@@ -844,6 +845,11 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     profile_min_time : float
         minimum time to consider a profile an actual profile (seconds)
 
+    replace_attrs : dict or None
+        replace global attributes in the metadata after reading the metadata
+        file in.  Helpful when processing runs with only a couple things that
+        change.
+
     Returns
     -------
     outname : str
@@ -854,6 +860,9 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         raise ImportError('Cannot import dbdreader')
 
     deployment = utils._get_deployment(deploymentyaml)
+    if replace_attrs:
+        for att in replace_attrs:
+            deployment['metadata'][att] = replace_attrs[att]
 
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']
