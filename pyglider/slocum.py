@@ -13,6 +13,7 @@ import glob
 import logging
 import numpy as np
 import os
+import re
 import time
 import xarray as xr
 import xml.etree.ElementTree as ET
@@ -1064,6 +1065,9 @@ def parse_logfiles(files):
     times = [''] * 10000
     gps = [''] * 10000
     amph = [''] * 10000
+    relcharge = np.zeros(10000) * np.nan
+    volts = np.zeros(10000) * np.nan
+
     ntimes = 0
     for fn in files:
         found_time = False
@@ -1078,16 +1082,28 @@ def parse_logfiles(files):
                     gps[ntimes - 1] = ll
                 if found_time and "sensor:m_coulomb_amphr_total" in ll:
                     amph[ntimes-1] = ll
+                if ll.startswith('   sensor:m_lithium_battery_relative_charge'):
+                        pattern = r'=(\d+\.\d+)'
+                        match = re.search(pattern, ll)
+                        relcharge[ntimes-1] = float(match.group(1))
+                if ll.startswith('   sensor:m_battery(volts)='):
+                        pattern = r'=(\d+\.\d+)'
+                        match = re.search(pattern, ll)
+                        volts[ntimes-1] = float(match.group(1))
     amph = amph[:ntimes]
     gps = gps[:ntimes]
     times = times[:ntimes]
-
+    volts = volts[:ntimes]
+    relcharge = relcharge[:ntimes]
     # now parse them
     out = xr.Dataset(
         coords={'time': ('surfacing', np.zeros(ntimes, dtype='datetime64[ns]'))})
     out['ampH'] = ('surfacing', np.zeros(ntimes) * np.nan)
     out['lon'] = ('surfacing', np.zeros(ntimes) * np.nan)
     out['lat'] = ('surfacing', np.zeros(ntimes) * np.nan)
+    # these don't need to be parsed:
+    out['volts'] = ('surfacing', volts[:ntimes])
+    out['relcharge'] = ('surfacing', relcharge[:ntimes])
 
     for i in range(ntimes):
         timestring = times[i][11:-13]
