@@ -815,13 +815,18 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         metadata that is common to multiple ways of processing the data come from the
         first file, and then subsequent files change "netcdf_variables" if desired.
 
-    profile_filt_time : float
+    profile_filt_time : float or None
         time in seconds over which to smooth the pressure time series for
         finding up and down profiles (note, doesn't filter the data that is
-        saved)
+        saved).  If None, then do not find profiles.
 
-    profile_min_time : float
-        minimum time to consider a profile an actual profile (seconds)
+    profile_min_time : float or None
+        minimum time to consider a profile an actual profile (seconds).  If None,
+        then do not find profiles.
+
+    maxgap : float
+        Longest gap in seconds to interpolate over when matching instrument
+        timeseries.
 
     replace_attrs : dict or None
         replace global attributes in the metadata after reading the metadata
@@ -870,7 +875,6 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
         else:
             baseind = nn
 
-    print(*sensors)
     # get the data, with `time_base` as the time source that
     # all other variables are synced to:
     data = list(dbd.get_sync(*sensors))
@@ -902,8 +906,9 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             val = data[nn]
 
             # interpolate only over those gaps that are smaller than 'maxgap'
+            # in seconds
             _t, _ = dbd.get(ncvar[name]['source'])
-            tg_ind = utils.find_gaps(_t,time,maxgap)
+            tg_ind = utils.find_gaps(_t, time, maxgap)
             val[tg_ind] = np.nan
 
             val = utils._zero_screen(val)
@@ -949,8 +954,9 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 
-    ds = utils.get_profiles_new(
-        ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
+    if (profile_filt_time is not None) and (profile_min_time is not None):
+        ds = utils.get_profiles_new(
+            ds, filt_time=profile_filt_time, profile_min_time=profile_min_time)
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 
