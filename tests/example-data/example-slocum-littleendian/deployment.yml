@@ -128,21 +128,21 @@ netcdf_variables:
     source:  m_heading
     long_name:    glider heading angle
     standard_name: platform_orientation
-    units:        rad
+    units:        degrees
     coordinates:  time depth latitude longitude
 
   pitch:
     source:  m_pitch
     long_name:    glider pitch angle
     standard_name: platform_pitch_angle
-    units:        rad
+    units:        degrees
     coordinates:  time depth latitude longitude
 
   roll:
     source:  m_roll
     long_name:    glider roll angle
     standard_name: platform_roll_angle
-    units:        rad
+    units:        degrees
     coordinates:  time depth latitude longitude
 
   # profile info:
