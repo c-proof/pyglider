@@ -97,6 +97,9 @@ def get_profiles(ds, min_dp=10.0, inversion=3., filt_length=7,
     make two variables: profile_direction and profile_index; this version
     is good for lots of data.  Less good for sparse data
     """
+    if 'pressure' not in ds:
+        _log.warning('No "pressure" variable in the data set; not searching for profiles')
+        return ds
     profile = ds.pressure.values * np.nan
     direction = ds.pressure.values * np.nan
     pronum = 1
@@ -161,6 +164,10 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
     profile_min_time : float, default=300
         Minimum time length of profile in s.
     """
+
+    if 'pressure' not in ds:
+        _log.warning('No "pressure" variable in the data set; not searching for profiles')
+        return ds
 
     profile = ds.pressure.values * 0
     direction = ds.pressure.values * 0
@@ -230,7 +237,6 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
             direction[ins] = -1
             pronum += 1
 
-    _log.debug('Doing this...')
     attrs = collections.OrderedDict([
         ('long_name', 'profile index'),
         ('units', '1'),
