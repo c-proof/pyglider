@@ -16,7 +16,8 @@ setup(name="pyglider",
         "gsw",
         "scipy",
         "bitstring",
-        "pooch"
+        "pooch",
+        "polars"
       ],
       license='Apache',
       extras_require={
@@ -25,5 +26,7 @@ setup(name="pyglider",
         "docs": ["pydata-sphinx-theme", "numpydoc", "autoapi", "myst-parser",
                  "sphinx"]
       },
-      zip_safe=True
+      zip_safe=True,
+      long_description=open('README.md').read(),
+      long_description_content_type='text/markdown',
       )
