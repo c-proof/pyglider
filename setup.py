@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 from pyglider._version import __version__
 
+
 setup(name="pyglider",
       version=__version__,
       description="Glider data to netCDF translation in python",
