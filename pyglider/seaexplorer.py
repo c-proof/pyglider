@@ -41,7 +41,7 @@ def _sort(ds):
 def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                  min_samples_in_file=5, dropna_subset=None, dropna_thresh=1):
     """
-    Convert seaexplorer text files to raw parquet files.
+    Convert seaexplorer text files to raw parquet pandas files.
 
     Parameters
     ----------
