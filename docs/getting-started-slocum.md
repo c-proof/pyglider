@@ -6,13 +6,7 @@ Slocum gliders have 4 types of files.  For telemetry data there is `*.sbd` files
 
 Slocums also have a sensor cache file `*.cac`, all of which have randomized names.  These are needed by the processing, and are usually stored in a separate cache directory.
 
-You can download and expand example data using `.get_example_data`:
-
-```python
-import pyglider.example_data as pexamp
-
-pexamp.get_example_data('./')
-```
+You can download example data at <https://cproof.uvic.ca/pyglider-example-data/example-data.zip>
 
 which will add a local directory `example-data` to your current directory.
 
@@ -33,8 +27,9 @@ The example script is relatively straight forward if there is no intermediate pr
 
 Data comes from an input directory, and is translated into a single CF-compliant  netCDF timeseries file using the package [dbdreader](https://dbdreader.readthedocs.io/en/latest/).  Finally individual profiles are saved and a 2-D 1-m grid in time-depth is saved.
 
-```{note} There is a version that does not require `dbdreader` to do the initial conversion from the Dinkum format to netCDF.  However it is quite slow, particularly for full-resolution datasets, and less robust.  We suggest using the `slocum.raw_to_timeseries`.
-```
+:::{note}
+There is a version that does not require `dbdreader` to do the initial conversion from the Dinkum format to netCDF.  However it is quite slow, particularly for full-resolution datasets, and less robust.  We suggest using the `slocum.raw_to_timeseries`.
+:::
 
 It is possible that between these steps the user will want to add any screening steps, or adjustments to the calibrations.  PyGlider does not provide those steps, but is designed so they are easy to add.
 
