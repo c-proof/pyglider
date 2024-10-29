@@ -8,6 +8,7 @@ Slocum gliders also have a sensor cache file `*.cac`, all of which have randomiz
 
 You can download example data at <https://cproof.uvic.ca/pyglider-example-data/example-data.zip> which will add a local directory `example-data` to your current directory.
 
+
 ## Make a deployment configuration file
 
 The processing routines all take a `deployment.yaml` file as an argument, and information from this is used to fill in metadata and to map sensor names to NetCDF variable names.  See {ref}`ExDeplSlocum`, below.
