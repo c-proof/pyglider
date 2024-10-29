@@ -2,13 +2,11 @@
 
 ## Gather data
 
-Slocum gliders have 4 types of files.  For telemetry data there is `*.sbd` files for sensor data, and `*.tbd` for the glider's attitude and position data.  These are called `*.dbd` and `*.ebd` respectively, when retrieved from the gliders' payload post deployment.  These need to be made available in a single directory for `pyglider` to process.
+Slocum gliders have 4 types of files.  For telemetry data there are `*.tbd` files for sensor data, and `*.sbd` for the glider's attitude and position data.  These are called `*.ebd` and `*.tbd` respectively, when retrieved from the gliders' payload post deployment.  Modern gliders have compressed version of these, eg `*.tcd`, `*.scd` that *pyglider* should be able to parse.  These data files need to be made available in a _single_ directory for *pyglider* to process.  Note that on the glider they are often separated into `science/logs` and `flight/logs`.
 
-Slocums also have a sensor cache file `*.cac`, all of which have randomized names.  These are needed by the processing, and are usually stored in a separate cache directory.
+Slocum gliders also have a sensor cache file `*.cac`, all of which have randomized names.  These are needed by the processing, and are usually stored in a separate cache directory.
 
-You can download example data at <https://cproof.uvic.ca/pyglider-example-data/example-data.zip>
-
-which will add a local directory `example-data` to your current directory.
+You can download example data at <https://cproof.uvic.ca/pyglider-example-data/example-data.zip> which will add a local directory `example-data` to your current directory.
 
 ## Make a deployment configuration file
 
