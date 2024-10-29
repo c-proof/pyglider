@@ -6,7 +6,7 @@ Slocum gliders have 4 types of files.  For telemetry data there are `*.tbd` file
 
 Slocum gliders also have a sensor cache file `*.cac`, all of which have randomized names.  These are needed by the processing, and are usually stored in a separate cache directory.
 
-You can download example data at <https://cproof.uvic.ca/pyglider-example-data/example-data.zip> which will add a local directory `example-data` to your current directory.
+You can download example data at <https://cproof.uvic.ca/pyglider-example-data/pyglider-example-data.zip> which will add a local directory `example-data` to your current directory.
 
 
 ## Make a deployment configuration file
