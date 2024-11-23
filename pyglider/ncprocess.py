@@ -79,14 +79,12 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     dss['u'] = np.nan
                     dss['v'] = np.nan
 
-
                 dss['profile_id'] = np.int32(p)
                 dss['profile_id'].attrs = profile_meta['profile_id']
                 if '_FillValue' not in dss['profile_id'].attrs:
                     dss['profile_id'].attrs['_FillValue'] = -1
                 dss['profile_id'].attrs['valid_min'] = np.int32(dss['profile_id'].attrs['valid_min'])
                 dss['profile_id'].attrs['valid_max'] = np.int32(dss['profile_id'].attrs['valid_max'])
-
                 dss['profile_time'] = dss.time.mean()
                 dss['profile_time'].attrs = profile_meta['profile_time']
                 # BUG: If 'units' does not exist, 'calendar' may fail to be removed
@@ -118,7 +116,6 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                 dss['platform'].attrs['wmo_id'] = meta['wmo_id']
                 if '_FillValue' not in dss['platform'].attrs:
                     dss['platform'].attrs['_FillValue'] = -1
-
 
                 dss['lat_uv'] = np.nan
                 dss['lat_uv'].attrs = profile_meta['lat_uv']

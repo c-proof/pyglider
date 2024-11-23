@@ -8,13 +8,14 @@ try:
     import dbdreader
     have_dbdreader = True
 except ImportError:
-    have_dbdreader = True
+    have_dbdreader = False
 import glob
 import logging
 import numpy as np
 import os
 import re
 import time
+import pandas as pd
 import xarray as xr
 import xml.etree.ElementTree as ET
 from collections.abc import Iterable
@@ -862,7 +863,7 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     # get the dbd file
     _log.info(f'{indir}/{search}')
     dbd = dbdreader.MultiDBD(pattern=f'{indir}/{search}',
-                             cacheDir=cachedir)
+                             cacheDir=cachedir, skip_initial_line=False)
 
     # build a new data set based on info in `deployment.`
     # We will use ebd.m_present_time as the interpolant if the
@@ -885,6 +886,22 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
     # get the data, with `time_base` as the time source that
     # all other variables are synced to:
     data = list(dbd.get_sync(*sensors))
+    fulldata = list(dbd.get(*sensors, return_nans=True))
+    for i in range(0, len(fulldata)):
+        print(sensors[i], len(fulldata[i][1]))
+    #    if sensors[i] == 'sci_echodroid_sv':
+    #        for j in range(0, len(fulldata[i][1])):
+    #            if not np.isnan(fulldata[i][1][j]):
+    #                print(pd.to_datetime(fulldata[i][0][j] * 1000000000),fulldata[i][1][j])
+    timea = fulldata[0][0]
+    timeb = fulldata[1][0]
+    timex = set()
+    timey = set()
+    # Load up the sets
+    for i in timea.data:
+        timex.add(i)
+    for i in timeb.data:
+        timey.add(i)
     # get the time:
     time = data.pop(0)
     ds['time'] = (('time'), time, attr)
@@ -912,6 +929,9 @@ def binary_to_timeseries(indir, cachedir, outdir, deploymentyaml, *,
             _log.debug('Sci sensorname %s', sensorname)
             val = data[nn]
 
+            if sensorname == 'sci_echodroid_sv':
+                pass
+            #breakpoint()
             # interpolate only over those gaps that are smaller than 'maxgap'
             # in seconds
             _t, _ = dbd.get(ncvar[name]['source'])
