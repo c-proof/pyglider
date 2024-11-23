@@ -7,3 +7,20 @@ dist
 
 *.png
 .DS_Store
+
+# Ignore test items
+tests/data/l0-profiles/
+tests/data/realtime_rawnc/
+tests/example-data/example-seaexplorer-raw/L0-timeseries-test-interp/
+tests/example-data/example-seaexplorer-raw/L0-timeseries-test/
+tests/example-data/example-seaexplorer-raw/delayed_rawnc/
+tests/example-data/example-seaexplorer-raw/deploymentDelayedInterp.yml
+tests/example-data/example-seaexplorer/L0-timeseries-test-interp/
+tests/example-data/example-seaexplorer/L0-timeseries-test/
+tests/example-data/example-seaexplorer/bad_timebase.yml
+tests/example-data/example-seaexplorer/deploymentRealtimeInterp.yml
+tests/example-data/example-seaexplorer/no_timebase.yml
+tests/example-data/example-seaexplorer/realtime_rawnc/
+tests/example-data/example-slocum/L0-profiles/
+tests/example-data/example-slocum/L0-timeseries/
+tests/example-data/report.json

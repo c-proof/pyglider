@@ -89,12 +89,15 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 
                 dss['profile_time'] = dss.time.mean()
                 dss['profile_time'].attrs = profile_meta['profile_time']
-                # remove units so they can be encoded later:
+                # BUG: If 'units' does not exist, 'calendar' may fail to be removed
+                # Remove attribute removal as this is cleaned up last.
+                '''
                 try:
                     del dss.profile_time.attrs['units']
                     del dss.profile_time.attrs['calendar']
                 except KeyError:
                     pass
+                '''
                 dss['profile_lon'] = dss.longitude.mean()
                 dss['profile_lon'].attrs = profile_meta['profile_lon']
                 dss['profile_lat'] = dss.latitude.mean()
@@ -146,25 +149,26 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                         # 2 is "not eval"
                 # outname = outdir + '/' + utils.get_file_id(dss) + '.nc'
                 _log.info('Writing %s', outname)
-                timeunits = 'seconds since 1970-01-01T00:00:00Z'
-                timecalendar = 'gregorian'
+
+                default_timeunits = 'seconds since 1990-01-01T00:00:00Z'
+                default_timecalendar = 'gregorian'
+
+                # BUG: If '_FillValue' does not exist, 'units' may fail to be removed
+                # Remove in favor of final scan of metadata
+                '''
                 try:
                     del dss.profile_time.attrs['_FillValue']
                     del dss.profile_time.attrs['units']
                 except KeyError:
                     pass
-                dss.to_netcdf(outname, encoding={'time': {'units': timeunits,
-                                                          'calendar': timecalendar,
-                                                          'dtype': 'float64'},
-                                                          'profile_time':
-                                                         {'units': timeunits,
-                                                         '_FillValue': -99999.0,
-                                                         'dtype': 'float64'},
-                }
+                '''
 
-                                                         )
+                (dss, encoding) = resync_metadata_and_encoding(
+                    dss, deployment, default_timeunits, default_timecalendar)
 
-                # add traj_strlen using bare ntcdf to make IOOS happy
+                dss.to_netcdf(outname, encoding=encoding)
+
+                # add traj_strlen using bare netcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
@@ -232,7 +236,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
 
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
-    for td in ('time_1970', 'longitude', 'latitude'):
+    for td in ('longitude', 'latitude', 'time_1970'):
         good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
         dat, xedges, binnumber = stats.binned_statistic(
                 ds['profile_index'].values[good],
@@ -246,6 +250,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     ds.drop('time_1970')
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
     _log.info(f'Done times! {len(dat)}')
+    # This code assumes time_1970 was handled last
     dsout['profile_time_start'] = (
         (xdimname), dat, profile_meta['profile_time_start'])
     dsout['profile_time_end'] = (
@@ -254,10 +259,11 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     for k in ds.keys():
         if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
             continue
-        _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
         if len(good) <= 0:
+            _log.warning(f'WARNING: Insufficent data for gridding {k}')
             continue
+        _log.info('Gridding %s', k)
         if "average_method" in ds[k].attrs:
             average_method = ds[k].attrs["average_method"]
             ds[k].attrs["processing"] = (
@@ -269,6 +275,7 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
                                               "scipy.stats.gmean")
         else:
             average_method = "mean"
+
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
                 ds['profile_index'].values[good],
                 ds['depth'].values[good],
@@ -336,9 +343,108 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     return outname
 
 
+def resync_metadata_and_encoding(dss, deployment, default_timeunits, default_timecalendar):
+    """
+    Makes a final pass through the deployment configuration file and
+    updates attributes if specified.  This also takes care of encoding
+    variables marked with standard_name="time".
+
+    Attributes that need to be encoded are "_FillValue, calendar and units."
+
+    Parameters
+    ----------
+    dss : `xarray.Dataset`
+        Dataset for which to check attributes.
+
+    deployment : `dict()`
+        Python dictionary of user provided metadata.
+
+    default_timeunits : `str`
+        The default value for the `units` attribute.
+
+    default_timecalendar : `str`
+        The default value for the `calendar` attribute.
+
+    Returns
+    -------
+    dss : `xarray.Dataset`
+        Adjusted attributes according to provided deployment file.
+
+    encoding : `dict()`
+        Python dictionary to pass to xarray for encoding datetime
+        variables.
+
+    """
+
+    encoding = {}
+
+    for meta_grp in deployment.keys():
+        if meta_grp == 'metadata':
+            # This maps to the global metadata
+            global_attrs = dss.attrs
+            for global_attr, global_value in deployment[meta_grp].items():
+                if global_attr in global_attrs:
+                    if global_attrs[global_attr] == global_value:
+                        continue
+                    else:
+                        global_attrs[global_attr] == global_value
+        else:
+            # Skip glider_devices
+            if meta_grp == 'glider_devices':
+                continue
+
+            # These groups refer to data variables
+            for mvar in deployment[meta_grp].keys():
+                if not mvar in dss.variables:
+                    _log.info(f"SKIPPING variable {mvar}")
+                    continue
+                dattrs = dss[mvar].attrs
+                for mattr, mvalue in deployment[meta_grp][mvar].items():
+                    if mattr in dattrs:
+                        if dattrs[mattr] == mvalue:
+                            continue
+                        else:
+                            dattrs[mattr] == mvalue
+
+            # Scan variables with dtype datetime64 ('<M8') or datetime64[ns] ('<M8[ns]')
+            datetime_dtype = np.datetime64().dtype
+            datetime_ns_dtype = np.datetime64().astype('datetime64[ns]').dtype
+            encoding_attributes = ['_FillValue', 'calendar', 'units']
+            for dvrb in dss.variables:
+                # Update encoding for variables with correct datatype
+                if not(dss[dvrb].dtype == datetime_dtype or \
+                    dss[dvrb].dtype == datetime_ns_dtype):
+                    continue
+
+                # Skip if not in deployment metadata
+                if not dvrb in deployment[meta_grp]:
+                    continue
+
+                _log.info(f"{meta_grp}: VARB {dvrb} as datetime dtype")
+
+                dattrs = dss[dvrb].attrs
+                for attr, value in deployment[meta_grp][dvrb].items():
+                    if attr in dattrs:
+                        if dattrs[attr] != value:
+                            dattrs[attr] = value
+                    else:
+                        dattrs[attr] = value
+
+                    # Move time specific attributes into encoding
+                    if attr in encoding_attributes:
+                        # Delete attribute from the variable and move to encoding
+                        evalue = dss[dvrb].attrs[attr]
+                        del dss[dvrb].attrs[attr]
+                        if not dvrb in encoding:
+                            encoding[dvrb] = {'dtype': 'float64'}
+                        encoding[dvrb][attr] = value
+
+    return (dss, encoding)
+
+
 # aliases
 extract_L0timeseries_profiles = extract_timeseries_profiles
 make_L0_gridfiles = make_gridfiles
 
 
-__all__ = ['extract_timeseries_profiles', 'make_gridfiles']
+__all__ = ['extract_timeseries_profiles', 'make_gridfiles', 'resync_metadata_and_encoding']

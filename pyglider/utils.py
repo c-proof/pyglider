@@ -8,11 +8,72 @@ from scipy.signal import argrelextrema
 import gsw
 import logging
 from pathlib import Path
+import shlex
+import subprocess
 import yaml
 
 
 _log = logging.getLogger(__name__)
 
+def _get_pyglider_version():
+
+    rc = -1
+    try:
+        cmdString = 'git describe --all --long --dirty --abbrev=10'
+        cmdList = shlex.split(cmdString)
+        temp = subprocess.Popen(cmdList, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        stdout, stderr = temp.communicate()
+        stdout = "".join(stdout.decode('utf-8').split("\n"))
+        stderr = stderr.decode('utf-8').split("\n")
+        rc = temp.returncode
+    except Exception as e:
+        pass
+
+    # On error provide the __version__ variable as the version number
+    if rc != 0:
+        from pyglider import _version
+        stdout = _version.__version__
+
+    return stdout
+
+def _get_netcdf_versions():
+    """
+    Return the C library and python library versions
+    of netCDF.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    c_version : `str`
+        The version of the c library.
+
+    py_version : `str`
+        The version of the python library.
+    """
+
+    c_version = None
+    py_version = None
+
+    if not c_version:
+        try:
+            import netCDF4
+            libversion = netCDF4.getlibversion()
+            # This may be a string like
+            # 4.9.2 of Oct  4 2024 15:27:22 $
+            c_version = libversion.split(" ")[0]
+            py_version = netCDF4.__version__
+        except:
+            pass
+
+    if not c_version:
+        c_version = 'unknown'
+    if not py_version:
+        py_version = 'unknown'
+
+    return (c_version, py_version)
 
 def get_distance_over_ground(ds):
     """
@@ -417,7 +478,7 @@ def fill_required_qcattrs(attrs, varname):
         "valid_max": np.int8(9),
         "flag_meanings": "PASS NOT_EVALUATED SUSPECT FAIL MISSING",
         "standard_name": "quality_flag",
-        "long_name": "Initial flag for {varname}"
+        "long_name": f"Initial flag for {varname}"
     }
     for k in required.keys():
         if not (k in attrs.keys()):
@@ -488,8 +549,11 @@ def fill_metadata(ds, metadata, sensor_data):
 
     ds.attrs['geospatial_lat_units'] = 'degrees_north'
     ds.attrs['geospatial_lon_units'] = 'degrees_east'
-    ds.attrs['netcdf_version'] = '4.0'  # TODO get this somehow...
-    ds.attrs['history'] = 'CPROOF glider toolbox version: pre-tag'
+    (netcdf_c_version, netcdf_py_version) = _get_netcdf_versions()
+    ds.attrs['netcdf_c_version'] = netcdf_c_version
+    ds.attrs['netcdf_py_version'] = netcdf_py_version
+    pyglider_version = _get_pyglider_version()
+    ds.attrs['history'] = f'CPROOF glider toolbox version: {pyglider_version}'
     for k, v in metadata.items():
         ds.attrs[k] = v
     ds.attrs['featureType'] = 'trajectory'

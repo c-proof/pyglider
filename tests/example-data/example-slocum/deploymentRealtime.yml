@@ -246,6 +246,8 @@ profile_variables:
     observation_type:  calculated
     platform:          platform
     standard_name:     time
+    units:             seconds since 1990-01-01T00:00:00Z
+    calendar:          gregorian
 
   profile_time_start:
     comment:           Timestamp corresponding to the start of the profile

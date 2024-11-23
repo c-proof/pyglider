@@ -74,8 +74,13 @@ def test_example_slocum_metadata():
     # dates first
     output_slocum.attrs.pop('date_created')
     output_slocum.attrs.pop('date_issued')
+    output_slocum.attrs.pop('history')
+    output_slocum.attrs.pop('netcdf_c_version')
+    output_slocum.attrs.pop('netcdf_py_version')
     test_data_slocum.attrs.pop('date_created')
     test_data_slocum.attrs.pop('date_issued')
+    test_data_slocum.attrs.pop('history')
+    test_data_slocum.attrs.pop('netcdf_version')
     assert output_slocum.attrs == test_data_slocum.attrs
 
 
@@ -96,7 +101,8 @@ def test_profiles_compliant():
     Inputs to ComplianceChecker.run_checker
 
     path            Dataset location (url or file)
-    checker_names   List of string names to run, should match keys of checkers dict (empty list means run all)
+    checker_names   List of string names to run,
+                    should match keys of checkers dict (empty list means run all)
     verbose         Verbosity of the output (0, 1, 2)
     criteria        Determines failure (lenient, normal, strict)
     output_filename Path to the file for output
@@ -138,7 +144,8 @@ def test_timeseries_compliant():
     Inputs to ComplianceChecker.run_checker
 
     path            Dataset location (url or file)
-    checker_names   List of string names to run, should match keys of checkers dict (empty list means run all)
+    checker_names   List of string names to run,
+                    should match keys of checkers dict (empty list means run all)
     verbose         Verbosity of the output (0, 1, 2)
     criteria        Determines failure (lenient, normal, strict)
     output_filename Path to the file for output

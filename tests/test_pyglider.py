@@ -54,8 +54,13 @@ def test_example_seaexplorer_metadata():
     # Test that attributes match. Have to remove creation and issue dates first
     output.attrs.pop('date_created')
     output.attrs.pop('date_issued')
+    output.attrs.pop('history')
+    output.attrs.pop('netcdf_c_version')
+    output.attrs.pop('netcdf_py_version')
     test_data.attrs.pop('date_created')
     test_data.attrs.pop('date_issued')
+    test_data.attrs.pop('history')
+    test_data.attrs.pop('netcdf_version')
     assert output.attrs == test_data.attrs
 
 
@@ -117,8 +122,13 @@ def test_example_seaexplorer_metadata_raw():
     # Test that attributes match. Have to remove creation and issue dates first
     output_raw.attrs.pop('date_created')
     output_raw.attrs.pop('date_issued')
+    output_raw.attrs.pop('history')
+    output_raw.attrs.pop('netcdf_c_version')
+    output_raw.attrs.pop('netcdf_py_version')
     test_data_raw.attrs.pop('date_created')
     test_data_raw.attrs.pop('date_issued')
+    test_data_raw.attrs.pop('history')
+    test_data_raw.attrs.pop('netcdf_version')
     assert output_raw.attrs == test_data_raw.attrs
 
 

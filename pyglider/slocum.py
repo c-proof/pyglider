@@ -701,7 +701,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
     if not os.path.exists(ebdn) or not os.path.exists(dbdn):
         raise FileNotFoundError('Could not find %s and %s', ebdn, dbdn)
 
-    _log.info('Opening:', ebdn, dbdn)
+    _log.info(f'Opening: {ebdn}, {dbdn}')
     ebd = xr.open_dataset(ebdn, decode_times=False)
     dbd = xr.open_dataset(dbdn, decode_times=False)
     _log.debug(f'DBD, {dbd}, {dbd.m_depth}')
@@ -739,6 +739,12 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
             val = convert(dbd[sensorname])
             val = _dbd2ebd(dbd, ds, val)
             ncvar['method'] = 'linear fill'
+        # Check for NMEA to degrees conversion
+        if 'source_units' in ncvar[name] and 'units' in ncvar[name]:
+            if ncvar[name]['source_units'] == 'NMEA':
+                if 'degrees' in ncvar[name]['units']:
+                    _log.debug(f'Converting {name} NMEA to degrees')
+                    val.data = utils.nmea2deg(val.data)
         # make the attributes:
         ncvar[name].pop('coordinates', None)
         attrs = ncvar[name]
@@ -760,6 +766,7 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, *,
 
     ds['time'] = (ds.time.values.astype('timedelta64[s]') +
                   np.datetime64('1970-01-01T00:00:00')).astype('datetime64[ns]')
+    _log.info(f'utils.fill_metadata: {device_data}')
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
     start = ds['time'].values[0]
     end = ds['time'].values[-1]
