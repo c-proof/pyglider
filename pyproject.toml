@@ -7,7 +7,7 @@ name = "pyglider"
 dynamic = ["version"]
 description = "Glider data to netCDF translation in python"
 readme = "README.md"
-license = "Apache"
+license = { file = "LICENSE" }
 requires-python = ">=3.6"
 authors = [
   { name = "Jody Klymak", email = "jklymak@gmail.com" },
@@ -45,7 +45,7 @@ testing = [
 Homepage = "https://pyglider.readthedocs.io"
 
 [tool.hatch.version]
-path = "pyglider/__init__.py"
+path = "pyglider/_version.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
