@@ -1,3 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyglider"
+dynamic = ["version"]
+description = "Glider data to netCDF translation in python"
+readme = "README.md"
+license = "Apache"
+requires-python = ">=3.6"
+authors = [
+  { name = "Jody Klymak", email = "jklymak@gmail.com" },
+]
+dependencies = [
+  "bitstring",
+  "dask",
+  "gsw",
+  "netcdf4",
+  "polars",
+  "pooch",
+  "scipy",
+  "xarray",
+]
+
+[project.optional-dependencies]
+code_style = [
+  "black",
+  "flake8<3.8.0,>=3.7.0",
+  "pre-commit==1.17.0",
+]
+docs = [
+  "autoapi",
+  "myst-parser",
+  "numpydoc",
+  "pydata-sphinx-theme",
+  "sphinx",
+]
+testing = [
+  "pytest",
+  "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://pyglider.readthedocs.io"
+
+[tool.hatch.version]
+path = "pyglider/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/pyglider",
+]
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
 testpaths = ["tests"]
