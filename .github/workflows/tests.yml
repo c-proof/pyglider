@@ -19,7 +19,7 @@ jobs:
         uses: mamba-org/setup-micromamba@v1.9.0
         with:
           environment-name: test-env
-          environment-file: tests/environment.yml
+          environment-file: environment.yml
           create-args: >-
             python=${{ matrix.python-version }}
       - name: install pyglider source

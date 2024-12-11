@@ -34,24 +34,6 @@ dependencies = [
   "xarray",
 ]
 
-[project.optional-dependencies]
-code_style = [
-  "black",
-  "flake8<3.8.0,>=3.7.0",
-  "pre-commit==1.17.0",
-]
-docs = [
-  "autoapi",
-  "myst-parser",
-  "numpydoc",
-  "pydata-sphinx-theme",
-  "sphinx",
-]
-testing = [
-  "pytest",
-  "pytest-cov",
-]
-
 [project.urls]
 Homepage = "https://pyglider.readthedocs.io"
 
