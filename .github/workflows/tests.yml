@@ -22,35 +22,25 @@ jobs:
           environment-file: tests/environment.yml
           create-args: >-
             python=${{ matrix.python-version }}
-      - name: Conda info
-        run: |
-          conda info
-          conda list
       - name: install pyglider source
         run: |
-          which pip
           pip install -e .
       - name: Process seaexplorer
         run: |
-          which python
           cd tests/example-data/example-seaexplorer
           make clean-all
           python process_deploymentRealTime.py
       - name: Process slocum
         run: |
-          which python
           cd tests/example-data/example-slocum
           make clean-all
           python process_deploymentRealTime.py
       - name: Process seaexplorer-legato-flntu-arod-ad2cp
         run: |
-          which python
           cd tests/example-data/example-seaexplorer-legato-flntu-arod-ad2cp
           make clean-all
           python process_deploymentRealTime.py
       - name: Run tests
-        run: |
-          which python
-          pytest --cov --cov-report xml
+        run: pytest --cov --cov-report xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
