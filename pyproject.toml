@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Glider data to netCDF translation in python"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.6"
+requires-python = ">=3.9"
 authors = [
   { name = "Jody Klymak", email = "jklymak@gmail.com" },
 ]
