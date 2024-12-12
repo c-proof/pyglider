@@ -633,6 +633,87 @@ def find_gaps(sample_time, timebase, maxgap):
     return index
 
 
+pyglider_og_var_dict = {'time': 'TIME',
+                        'longitude': 'LONGITUDE',
+                        'latitude': 'LATITUDE',
+                        'depth': 'DEPTH',
+                        'pressure': 'PRES'}
+
+
+def add_og1_metadata(ds, deployment_yaml):
+    # Translate back to og names from pyglider names
+    for pyglider_var, og_var in pyglider_og_var_dict.items():
+        if pyglider_var in ds.keys():
+            ds = ds.rename({pyglider_var: og_var})
+    
+    # add some global attributes
+    attrs = ds.attrs
+    attrs["start_date"] = attrs["time_coverage_start"]
+    ds.attrs = attrs
+
+    # Add empty variables for OG1
+    for variable, variable_dict in deployment_yaml['oceangliders_empty_variables'].items():
+        attrs = {name: str(val) for name, val in variable_dict.items() if name != 'value'}
+        ds[variable] = xr.DataArray(variable_dict['value'], attrs=attrs)
+
+
+    # Add sensors
+    for device, device_dict in deployment_yaml['glider_devices'].items():
+        attrs = {name: str(val) for name, val in device_dict.items() if name != 'value'}
+        sensor_name = f"SENSOR_{device}_{device_dict['sensor_serial_number']}"
+        ds[sensor_name] = xr.DataArray(attrs=attrs)
+
+    # add GPS variables
+    for vname in ["LATITUDE", "LONGITUDE", "TIME"]:
+        ds[f"{vname}_GPS"] = ds[vname].copy()
+        nan_val = np.nan
+        if vname == 'TIME':
+            nan_val = np.datetime64("NaT")
+        ds[f"{vname}_GPS"].values[ds["dead_reckoning"].values != 0] = nan_val
+        ds[f"{vname}_GPS"].attrs["long_name"] = f"{vname.lower()} of each GPS location"
+    ds["LATITUDE_GPS"].attrs["URI"] = (
+        "https://vocab.nerc.ac.uk/collection/OG1/current/LAT_GPS/"
+    )
+    ds["LONGITUDE_GPS"].attrs["URI"] = (
+        "https://vocab.nerc.ac.uk/collection/OG1/current/LON_GPS/"
+    )
+
+    ds["TRAJECTORY"] = xr.DataArray(
+        ds.attrs["id"],
+        attrs={"cf_role": "trajectory_id", "long_name": "trajectory name"},
+    )
+    ds["PLATFORM_MODEL"] = xr.DataArray(
+        ds.attrs["glider_model"],
+        attrs={
+            "long_name": "model of the glider",
+            "platform_model_vocabulary": "None",
+        },
+    )
+    ds["PLATFORM_SERIAL_NUMBER"] = xr.DataArray(
+        f"sea{ds.attrs['glider_serial'].zfill(3)}",
+        attrs={"long_name": "glider serial number"},
+    )
+    ds["DEPLOYMENT_TIME"] = np.nanmin(ds.TIME.values)
+    ds["DEPLOYMENT_TIME"].attrs = {
+        "long_name": "date of deployment",
+        "standard_name": "time",
+        "units": "seconds since 1970-01-01T00:00:00Z",
+        "calendar": "gregorian",
+    }
+    ds["DEPLOYMENT_LATITUDE"] = ds.LATITUDE.values[0]
+    ds["DEPLOYMENT_LATITUDE"].attrs = {"long_name": "latitude of deployment"}
+    ds["DEPLOYMENT_LONGITUDE"] = ds.LONGITUDE.values[0]
+    ds["DEPLOYMENT_LONGITUDE"].attrs = {"long_name": "longitude of deployment"}
+    for var_name in ds.keys():
+        if "time" in var_name.lower() and var_name is not "TIME":
+            if 'units' in ds[var_name].attrs.keys():
+                ds[var_name].attrs.pop('units')
+            if 'calendar' in ds[var_name].attrs.keys():
+                ds[var_name].attrs.pop('calendar')
+    ds = ds.rename_dims({'TIME': 'N_MEASUREMENTS'})
+    return ds
+    
+    
 def _parse_gliderxml_pos(fname):
     """
     DEPRECATED: use slocum.parse_gliderState instead

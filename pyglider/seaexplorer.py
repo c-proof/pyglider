@@ -304,7 +304,7 @@ def _remove_fill_values(df, fill_value=9999):
 
 def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                       profile_filt_time=100, profile_min_time=300,
-                      maxgap=10, interpolate=False, fnamesuffix=''):
+                      maxgap=10, interpolate=False, fnamesuffix='', og_format=False):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -320,7 +320,12 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.parquet')
     sensor = pl.read_parquet(f'{indir}/{id}-{kind}pld.parquet')
     sensor = _remove_fill_values(sensor)
-
+    if og_format:
+        # temporarily translate from og names to pyglider names
+        for pyglider_var, og_var in utils.pyglider_og_var_dict.items():
+            if og_var in ncvar.keys():
+                ncvar[pyglider_var] = ncvar.pop(og_var)
+        
     # build a new data set based on info in `deploymentyaml.`
     # We will use ctd as the interpolant
     ds = xr.Dataset()
@@ -470,8 +475,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds = ds.assign_coords(longitude=ds.longitude)
     ds = ds.assign_coords(latitude=ds.latitude)
     ds = ds.assign_coords(depth=ds.depth)
-    # ds = ds._get_distance_over_ground(ds)
-
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
 
     start = ds['time'].values[0]
@@ -485,8 +488,6 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     except:
         pass
     id0 = ds.attrs['deployment_name']
-    outname = outdir + id0 + fnamesuffix + '.nc'
-    _log.info('writing %s', outname)
     if 'units' in ds.time.attrs.keys():
         ds.time.attrs.pop('units')
     if 'calendar' in ds.time.attrs.keys():
@@ -494,9 +495,19 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     if 'ad2cp_time' in list(ds):
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
-    ds.to_netcdf(outname, 'w',
-                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
-                                    'dtype': 'float64'}})
+    if og_format:
+        ds = utils.add_og1_metadata(ds, deployment)
+        outname = f"{outdir}/{ds.attrs['id']}.nc"
+        _log.info('writing %s', outname)
+        ds.to_netcdf(outname, 'w',
+                     encoding={'TIME': {'units': 'seconds since 1970-01-01T00:00:00Z',
+                                        'dtype': 'float64'}})
+    else:
+        outname = outdir + id0 + fnamesuffix + '.nc'
+        _log.info('writing %s', outname)
+        ds.to_netcdf(outname, 'w',
+                     encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
+                                        'dtype': 'float64'}})
     return outname
 
 
