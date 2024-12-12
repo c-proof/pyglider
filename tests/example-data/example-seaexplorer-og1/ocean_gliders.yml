@@ -1,0 +1,278 @@
+metadata:
+  # mandatory Ocean Gliders global attributes of fixed value, do not change!
+  featureType: trajectory
+  # mandatory Ocean Gliders global attributes to be specified by the user
+  title: OceanGliders trajectory file
+  platform: sub-surface gliders
+  platform_vocabulary: https://vocab.nerc.ac.uk/collection/L06/current/27/
+  id: sea063_20210822T122401_R
+  contributor_name: Callum Rollo, Louise Biddle, Olle Petersson, Aleksandra Mazur, Marcus Melin
+  contributor_role: Data Processor, PI, Operator, Operator, Operator
+  contributor_email: "callum.rollo@voiceoftheocean.org, louise.biddle@voiceoftheocean.org, , , "
+  contributor_role_vocabulary: https://vocab.nerc.ac.uk/collection/W08
+  contributing_institutions: Voice of the Ocean Foundation
+  contributing_institutions_role: Operator
+  contributing_institutions_role_vocabulary: https://vocab.nerc.ac.uk/collection/W08/current/
+  rtqc_method: Quality control performed with IOOS QARTOD toolbox v2.1 https://github.com/ioos/ioos_qc
+  Conventions: "CF-1.10, ACDD-1.3, OG-1.0"
+  # Other attributes
+  acknowledgement: This study used data collected and made freely available by Voice
+    of the Ocean Foundation (https://voiceoftheocean.org) accessed from https://erddap.observations.voiceoftheocean.org/erddap/index.html
+  institution: Voice of the Ocean Foundation
+  license: Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/)
+    This study used data collected and made freely available by Voice of the Ocean
+    Foundation (https://voiceoftheocean.org) accessed from https://erddap.observations.voiceoftheocean.org/erddap/index.html
+  format_version: IOOS_Glider_NetCDF_v2.0.nc
+  glider_model: SeaExplorer
+  glider_instrument_name: seaexplorer
+  keywords: AUVS, Autonomous Underwater Vehicles, Oceans, Ocean Pressure, Water Pressure,
+    Ocean Temperature, Water Temperature, Salinity/Density, Conductivity, Density,
+    Salinity
+  keywords_vocabulary: GCMD Science Keywords
+  metadata_link: http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html
+  Metadata_Conventions: CF-1.6, Unidata Dataset Discovery v1.0
+  naming_authority: Voice of the Ocean Foundation
+  processing_level: Data provided as is with no expressed or implied assurance of
+    quality assurance or quality control. L0
+  publisher_email: callum.rollo@voiceoftheocean.org
+  publisher_name: Callum Rollo
+  publisher_url: https://voiceoftheocean.org
+  references: created with pyglider https://github.com/c-proof/pyglider
+  source: Observational data from a profiling glider.
+  standard_name_vocabulary: CF STandard Name Table v49
+  sea_name: Baltic
+  transmission_system: IRIDIUM
+  glider_name: Ljung
+  glider_serial: '63'
+  wmo_id: '6801707'
+  comment: Altitude set to 6m for the entire mission duration. Zt/zs set to 5m for
+    the entire mission duration
+  creator_email: callum.rollo@voiceoftheocean.org
+  creator_name: Callum Rollo
+  creator_url: https://observations.voiceoftheocean.org
+  deployment_id: '22'
+  deployment_name: SAMBA
+  project: SAMBA
+  project_url: https://voiceoftheocean.org/samba-smart-autonomous-monitoring-of-the-baltic-sea/
+  summary: 'Part of SAMBA continuous monitoring'
+
+oceangliders_empty_variables:
+  WMO_IDENTIFIER:
+    long_name: "wmo id"
+    value: 6801706
+  PLATFORM_MODEL:
+    long_name: "name of the glider"
+    platform_model_vocabulary: "http://vocab.nerc.ac.uk/collection/B76/current/B7600002/"
+    value: 6801706
+
+glider_devices:
+  ctd:
+    make: RBR
+    model: legato
+    sensor_serial_number: '206523'
+    long_name: RBR legato CTD
+    make_model: RBR legato CTD
+    factory_calibrated: 'Yes'
+    calibration_date: '2021-03-01'
+  optics:
+    make: Wetlabs
+    model: FLNTU
+    sensor_serial_number: '6661'
+    long_name: Wetlabs ECO Puck FLNTU
+    make_model: Wetlabs FLNTU
+    factory_calibrated: 'Yes'
+    calibration_date: '2021-02-01'
+    calibration_parameters:
+      Chl_DarkCounts: 48
+      Chl_SF: 0.0121
+      NTU_DarkCounts: 49
+      NTU_SF: 0.006
+  oxygen:
+    make: JFE Advantech
+    model: AROD-FT
+    sensor_serial_number: '0044'
+    long_name: JFE Advantech RINKO-FT
+    make_model: JFE Advantech AROD_FT
+    factory_calibrated: 'Yes'
+    calibration_date: '2021-01-23'
+
+# map between glider variables and netcdf variables.  This shouldn't
+# change too much.
+netcdf_variables:
+  timebase:
+    source: NAV_LATITUDE
+  # Time and Place:
+  TIME:
+    source:        time
+    long_name:     Time elapsed since 1970-01-01T00:00:00Z
+    standard_name: time
+    axis:          T
+    observation_type: "measured"
+    time_vocabulary: https://vocab.nerc.ac.uk/collection/OG1/current/TIME/”
+    _FillValue: -1
+    valid_min: 1e9
+    valid_max: 4e9
+    coordinates:   time depth latitude longitude
+
+  LATITUDE:
+    source:       NAV_LATITUDE
+    long_name:    latitude of each measurement and GPS location
+    standard_name: latitude
+    units:        degrees_north
+    axis:         Y
+    coordinates:   time depth latitude longitude
+    conversion:   nmea2deg
+    comment:     "Estimated between surface fixes"
+    observation_type: measured
+    platform:     platform
+    reference:    WGS84
+    _FillValue:  -9999.9
+    valid_min: -90.0
+    valid_max: 90.0
+    latitude_vocabulary: https://vocab.nerc.ac.uk/collection/OG1/current/LAT/
+    coordinate_reference_frame:  urn:ogc:crs:EPSG::4326
+
+  LONGITUDE:
+    source:       NAV_LONGITUDE
+    long_name:    longitude of each measurement and GPS location
+    standard_name: longitude
+    units:        degrees_east
+    axis:         X
+    coordinates:  time depth latitude longitude
+    conversion:   nmea2deg
+    comment:     "Estimated between surface fixes"
+    observation_type: measured
+    platform:     platform
+    reference:    WGS84
+    _FillValue:  -9999.9
+    valid_min: -180.0
+    valid_max: 180.0
+    longitude_vocabulary: https://vocab.nerc.ac.uk/collection/OG1/current/LON/
+    coordinate_reference_frame:  urn:ogc:crs:EPSG::4326
+
+  dead_reckoning:
+    source: DeadReckoning
+    long_name: dead reckoning
+    standard_name: dead_reckoning
+    units: None
+    coordinates: time depth latitude longitude
+
+  heading:
+    source:       Heading
+    long_name:    glider heading angle
+    standard_name: platform_orientation
+    units:        degrees
+    coordinates:  time depth latitude longitude
+
+  pitch:
+    source:       Pitch
+    long_name:    glider pitch angle
+    standard_name: platform_pitch_angle
+    units:        degrees
+    coordinates:  time depth latitude longitude
+
+  roll:
+    source:       Roll
+    long_name:    glider roll angle
+    standard_name: platform_roll_angle
+    units:        degrees
+    coordinates:  time depth latitude longitude
+
+  # data parameters
+  conductivity:
+    source:       LEGATO_CONDUCTIVITY
+    long_name:    water conductivity
+    standard_name: sea_water_electrical_conductivity
+    units:        mS cm-1
+    coordinates:  time depth latitude longitude
+    instrument:    instrument_ctd
+    valid_min:    "0."
+    valid_max:    "10."
+    observation_type: "measured"
+    accuracy:      "0.0003"
+    precision:     "0.0001"
+    resolution:     "0.00002"
+
+  temperature:
+    source:       LEGATO_TEMPERATURE
+    long_name:    water temperature
+    standard_name: sea_water_temperature
+    units:        Celsius
+    coordinates:  time depth latitude longitude
+    instrument:   instrument_ctd
+    valid_min:    "-5"
+    valid_max:    "50"
+    observation_type: "measured"
+    accuracy:      "0.002"
+    precision:     "0.001"
+    resolution:    "0.0002"
+
+  pressure:
+    source:       LEGATO_PRESSURE
+    long_name:    water pressure
+    standard_name:  sea_water_pressure
+    units:        dbar
+    coordinates:  time depth latitude longitude
+    valid_min:    "0"
+    valid_max:    "2000"
+    positive:      "down"
+    reference_datum:  "sea-surface"
+    instrument:     "instrument_ctd"
+    observation_type: "measured"
+    accuracy:         "1"
+    precision:        "2"
+    resolution:       "0.02"
+    comment:          "ctd pressure sensor"
+
+  salinity:
+    source:       LEGATO_SALINITY
+    long_name:    water salinity
+    standard_name: sea_water_salinity
+    units:        kg m-3
+    coordinates:  time depth latitude longitude
+    instrument:    instrument_ctd
+    valid_min:    "0."
+    valid_max:    "50."
+    observation_type: "calculated"
+    accuracy:      "0.0003"
+    precision:     "0.0001"
+    resolution:     "0.00002"
+
+# optics:
+  chlorophyll:
+    source:       FLNTU_CHL_SCALED
+    long_name:    chlorophyll
+    standard_name: concentration_of_chlorophyll_in_sea_water
+    units:        mg m-3
+    coordinates:  time depth latitude longitude
+    # example of how to use median rather than mean when producing gridded average netCDF
+    average_method: median
+
+  cdom:
+    source:  FLNTU_NTU_SCALED
+    long_name:    flntu variable
+    units:        arbitrary
+    coordinates:  time depth latitude longitude
+    # Use geometric mean for gridded netCDF. Useful for PAR
+    average_method: "geometric mean"
+
+
+
+# Oxygen
+  oxygen_concentration:
+    source:       AROD_FT_DO
+    long_name:    oxygen concentration
+    standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
+    correct_oxygen: "True"
+    reference_salinity: "0"
+    units:        umol l-1
+    coordinates:   time depth latitude longitude
+
+  temperature_oxygen:
+    source:  AROD_FT_TEMP
+    long_name:    oxygen sensor temperature
+    standard_name: temperature_of_sensor_for_oxygen_in_sea_water
+    units:        Celsius
+    coordinates:   time depth latitude longitude
+
+
