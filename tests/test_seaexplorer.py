@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -7,10 +6,9 @@ import pytest
 import yaml
 
 os.system('rm tests/data/realtime_rawnc/*')
-library_dir = Path(__file__).parent.parent.absolute()
-example_dir = library_dir / 'tests/example-data/'
 
 import pyglider.seaexplorer as seaexplorer
+from tests.utils import EXAMPLE_DIR
 
 
 def test__outputname():
@@ -67,13 +65,13 @@ def test_merge_rawnc():
     result_default = seaexplorer.merge_parquet(
         'tests/data/realtime_rawnc/',
         'tests/data/realtime_rawnc/',
-        str(example_dir / 'example-seaexplorer/deploymentRealtime.yml'),
+        str(EXAMPLE_DIR / 'example-seaexplorer/deploymentRealtime.yml'),
     )
 
     result_sub = seaexplorer.merge_parquet(
         'tests/data/realtime_rawnc/',
         'tests/data/realtime_rawnc/',
-        str(example_dir / 'example-seaexplorer/deploymentRealtime.yml'),
+        str(EXAMPLE_DIR / 'example-seaexplorer/deploymentRealtime.yml'),
         kind='sub',
     )
     assert result_default is False
@@ -107,12 +105,12 @@ def test_raw_to_timeseries():
         result_default = seaexplorer.raw_to_timeseries(
             'tests/data/realtime_rawnc/',
             'tests/data/l0-profiles/',
-            str(example_dir / 'example-seaexplorer/deploymentRealtime.yml'),
+            str(EXAMPLE_DIR / 'example-seaexplorer/deploymentRealtime.yml'),
         )
     result_sub = seaexplorer.raw_to_timeseries(
         'tests/data/realtime_rawnc/',
         'tests/data/l0-profiles/',
-        str(example_dir / 'example-seaexplorer/deploymentRealtime.yml'),
+        str(EXAMPLE_DIR / 'example-seaexplorer/deploymentRealtime.yml'),
         kind='sub',
     )
     assert 'No such file or directory' in str(missing_file_exc)
@@ -121,26 +119,26 @@ def test_raw_to_timeseries():
 
 def test_missing_bad_timebase():
     # Prepare yaml files with bad timebase and no timebase
-    with open(example_dir / 'example-seaexplorer/deploymentRealtime.yml') as fin:
+    with open(EXAMPLE_DIR / 'example-seaexplorer/deploymentRealtime.yml') as fin:
         deployment = yaml.safe_load(fin)
     deployment['netcdf_variables']['timebase']['source'] = 'non existing sensor'
-    with open(example_dir / 'example-seaexplorer/bad_timebase.yml', 'w') as fin:
+    with open(EXAMPLE_DIR / 'example-seaexplorer/bad_timebase.yml', 'w') as fin:
         yaml.dump(deployment, fin)
     deployment['netcdf_variables'].pop('timebase')
-    with open(example_dir / 'example-seaexplorer/no_timebase.yml', 'w') as fin:
+    with open(EXAMPLE_DIR / 'example-seaexplorer/no_timebase.yml', 'w') as fin:
         yaml.dump(deployment, fin)
     with pytest.raises(ValueError) as bad_timebase_exc:
         result_bad_timebase = seaexplorer.raw_to_timeseries(
             'tests/data/realtime_rawnc/',
             'tests/data/l0-profiles/',
-            str(example_dir / 'example-seaexplorer/bad_timebase.yml'),
+            str(EXAMPLE_DIR / 'example-seaexplorer/bad_timebase.yml'),
             kind='sub',
         )
     with pytest.raises(ValueError) as no_timebase_exc:
         result_no_timebase = seaexplorer.raw_to_timeseries(
             'tests/data/realtime_rawnc/',
             'tests/data/l0-profiles/',
-            str(example_dir / 'example-seaexplorer/no_timebase.yml'),
+            str(EXAMPLE_DIR / 'example-seaexplorer/no_timebase.yml'),
             kind='sub',
         )
     assert 'sensor not found in pld1 columns' in str(bad_timebase_exc)
