@@ -2,14 +2,16 @@
 Routines that are used for common processing of netcdf files after they have
 been converted to standard timeseries.
 """
+
 import logging
-import xarray as xr
-import numpy as np
-import pyglider.utils as utils
 import os
-import yaml
+
 import netCDF4
+import numpy as np
 import scipy.stats as stats
+import xarray as xr
+
+import pyglider.utils as utils
 
 _log = logging.getLogger(__name__)
 
@@ -44,8 +46,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
     with xr.open_dataset(inname) as ds:
         _log.info('Extracting profiles: opening %s', inname)
         profiles = np.unique(ds.profile_index)
-        profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
-                                            and (p > 0))]
+        profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1) and (p > 0))]
         for p in profiles:
             ind = np.where(ds.profile_index == p)[0]
             dss = ds.isel(time=ind)
@@ -58,7 +59,8 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                 dss['trajectory'].attrs['cf_role'] = 'trajectory_id'
                 dss['trajectory'].attrs['comment'] = (
                     'A trajectory is a single'
-                    'deployment of a glider and may span multiple data files.')
+                    'deployment of a glider and may span multiple data files.'
+                )
                 dss['trajectory'].attrs['long_name'] = 'Trajectory/Deployment Name'
 
                 # profile-averaged variables....
@@ -79,13 +81,16 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     dss['u'] = np.nan
                     dss['v'] = np.nan
 
-
                 dss['profile_id'] = np.int32(p)
                 dss['profile_id'].attrs = profile_meta['profile_id']
                 if '_FillValue' not in dss['profile_id'].attrs:
                     dss['profile_id'].attrs['_FillValue'] = -1
-                dss['profile_id'].attrs['valid_min'] = np.int32(dss['profile_id'].attrs['valid_min'])
-                dss['profile_id'].attrs['valid_max'] = np.int32(dss['profile_id'].attrs['valid_max'])
+                dss['profile_id'].attrs['valid_min'] = np.int32(
+                    dss['profile_id'].attrs['valid_min']
+                )
+                dss['profile_id'].attrs['valid_max'] = np.int32(
+                    dss['profile_id'].attrs['valid_max']
+                )
 
                 dss['profile_time'] = dss.time.mean()
                 dss['profile_time'].attrs = profile_meta['profile_time']
@@ -103,19 +108,19 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                 dss['lat'] = dss['latitude']
                 dss['lon'] = dss['longitude']
                 dss['platform'] = np.int32(1)
-                comment = (meta['glider_model'] + ' operated by ' +
-                           meta['institution'])
+                comment = meta['glider_model'] + ' operated by ' + meta['institution']
                 dss['platform'].attrs['comment'] = comment
                 dss['platform'].attrs['id'] = (
-                    meta['glider_name'] + meta['glider_serial'])
+                    meta['glider_name'] + meta['glider_serial']
+                )
                 dss['platform'].attrs['instrument'] = 'instrument_ctd'
                 dss['platform'].attrs['long_name'] = (
-                    meta['glider_model'] + dss['platform'].attrs['id'])
+                    meta['glider_model'] + dss['platform'].attrs['id']
+                )
                 dss['platform'].attrs['type'] = 'platform'
                 dss['platform'].attrs['wmo_id'] = meta['wmo_id']
                 if '_FillValue' not in dss['platform'].attrs:
                     dss['platform'].attrs['_FillValue'] = -1
-
 
                 dss['lat_uv'] = np.nan
                 dss['lat_uv'].attrs = profile_meta['lat_uv']
@@ -134,13 +139,20 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                 # ancillary variables: link and create with values of 2.  If
                 # we dont' want them all 2, then create these variables in the
                 # time series
-                to_fill = ['temperature', 'pressure', 'conductivity',
-                        'salinity', 'density', 'lon', 'lat', 'depth']
+                to_fill = [
+                    'temperature',
+                    'pressure',
+                    'conductivity',
+                    'salinity',
+                    'density',
+                    'lon',
+                    'lat',
+                    'depth',
+                ]
                 for name in to_fill:
                     qcname = name + '_qc'
                     dss[name].attrs['ancillary_variables'] = qcname
                     if qcname not in dss.keys():
-
                         dss[qcname] = ('time', 2 * np.ones(len(dss[name]), np.int8))
                         dss[qcname].attrs = utils.fill_required_qcattrs({}, name)
                         # 2 is "not eval"
@@ -153,22 +165,30 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     del dss.profile_time.attrs['units']
                 except KeyError:
                     pass
-                dss.to_netcdf(outname, encoding={'time': {'units': timeunits,
-                                                          'calendar': timecalendar,
-                                                          'dtype': 'float64'},
-                                                          'profile_time':
-                                                         {'units': timeunits,
-                                                         '_FillValue': -99999.0,
-                                                         'dtype': 'float64'},
-                }
-
-                                                         )
+                dss.to_netcdf(
+                    outname,
+                    encoding={
+                        'time': {
+                            'units': timeunits,
+                            'calendar': timecalendar,
+                            'dtype': 'float64',
+                        },
+                        'profile_time': {
+                            'units': timeunits,
+                            '_FillValue': -99999.0,
+                            'dtype': 'float64',
+                        },
+                    },
+                )
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
-def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01'):
+
+def make_gridfiles(
+    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01'
+):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
@@ -211,9 +231,8 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     _log.debug(str(ds.time[-1]))
 
     profiles = np.unique(ds.profile_index)
-    profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1)
-                                        and (p > 0))]
-    profile_bins = np.hstack((np.array(profiles) - 0.5, [profiles[-1]+0.5]))
+    profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1) and (p > 0))]
+    profile_bins = np.hstack((np.array(profiles) - 0.5, [profiles[-1] + 0.5]))
     _log.debug(profile_bins)
     Nprofiles = len(profiles)
     _log.info(f'Nprofiles {Nprofiles}')
@@ -221,23 +240,27 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     depths = depth_bins[:-1] + 0.5
     xdimname = 'time'
     dsout = xr.Dataset(
-        coords={'depth': ('depth', depths),
-                'profile': (xdimname, profiles)})
-    dsout['depth'].attrs = {'units': 'm',
-                            'long_name': 'Depth',
-                            'standard_name': 'depth',
-                            'positive': 'down',
-                            'coverage_content_type': 'coordinate',
-                            'comment': 'center of depth bins'}
+        coords={'depth': ('depth', depths), 'profile': (xdimname, profiles)}
+    )
+    dsout['depth'].attrs = {
+        'units': 'm',
+        'long_name': 'Depth',
+        'standard_name': 'depth',
+        'positive': 'down',
+        'coverage_content_type': 'coordinate',
+        'comment': 'center of depth bins',
+    }
 
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
     for td in ('time_1970', 'longitude', 'latitude'):
         good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
         dat, xedges, binnumber = stats.binned_statistic(
-                ds['profile_index'].values[good],
-                ds[td].values[good], statistic='mean',
-                bins=[profile_bins])
+            ds['profile_index'].values[good],
+            ds[td].values[good],
+            statistic='mean',
+            bins=[profile_bins],
+        )
         if td == 'time_1970':
             td = 'time'
             dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
@@ -246,10 +269,8 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
     ds.drop('time_1970')
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
     _log.info(f'Done times! {len(dat)}')
-    dsout['profile_time_start'] = (
-        (xdimname), dat, profile_meta['profile_time_start'])
-    dsout['profile_time_end'] = (
-        (xdimname), dat, profile_meta['profile_time_end'])
+    dsout['profile_time_start'] = ((xdimname), dat, profile_meta['profile_time_start'])
+    dsout['profile_time_end'] = ((xdimname), dat, profile_meta['profile_time_end'])
 
     for k in ds.keys():
         if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
@@ -258,22 +279,26 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
         if len(good) <= 0:
             continue
-        if "average_method" in ds[k].attrs:
-            average_method = ds[k].attrs["average_method"]
-            ds[k].attrs["processing"] = (
-                f"Using average method {average_method} for "
-                f"variable {k} following deployment yaml.")
-            if average_method == "geometric mean":
+        if 'average_method' in ds[k].attrs:
+            average_method = ds[k].attrs['average_method']
+            ds[k].attrs['processing'] = (
+                f'Using average method {average_method} for '
+                f'variable {k} following deployment yaml.'
+            )
+            if average_method == 'geometric mean':
                 average_method = stats.gmean
-                ds[k].attrs["processing"] += (" Using geometric mean implementation "
-                                              "scipy.stats.gmean")
+                ds[k].attrs['processing'] += (
+                    ' Using geometric mean implementation ' 'scipy.stats.gmean'
+                )
         else:
-            average_method = "mean"
+            average_method = 'mean'
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
-                ds['profile_index'].values[good],
-                ds['depth'].values[good],
-                values=ds[k].values[good], statistic=average_method,
-                bins=[profile_bins, depth_bins])
+            ds['profile_index'].values[good],
+            ds['depth'].values[good],
+            values=ds[k].values[good],
+            statistic=average_method,
+            bins=[profile_bins, depth_bins],
+        )
 
         _log.debug(f'dat{np.shape(dat)}')
         dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
@@ -282,15 +307,13 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
         dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)
 
     # fix u and v, because they should really not be gridded...
-    if (('water_velocity_eastward' in dsout.keys()) and
-            ('u' in profile_meta.keys())):
+    if ('water_velocity_eastward' in dsout.keys()) and ('u' in profile_meta.keys()):
         _log.debug(str(ds.water_velocity_eastward))
         dsout['u'] = dsout.water_velocity_eastward.mean(axis=0)
         dsout['u'].attrs = profile_meta['u']
         dsout['v'] = dsout.water_velocity_northward.mean(axis=0)
         dsout['v'].attrs = profile_meta['v']
-        dsout = dsout.drop(['water_velocity_eastward',
-                            'water_velocity_northward'])
+        dsout = dsout.drop(['water_velocity_eastward', 'water_velocity_northward'])
     dsout.attrs = ds.attrs
     dsout.attrs.pop('cdm_data_type')
     # fix to be ISO parsable:
@@ -321,16 +344,20 @@ def make_gridfiles(inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, star
         else:
             dsout[k].attrs['coverage_content_type'] = 'physicalMeasurement'
 
-
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid' + fnamesuffix + '.nc'
     _log.info('Writing %s', outname)
     # timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
     dsout.to_netcdf(
         outname,
-        encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
-                           '_FillValue': np.nan,
-                           'calendar': 'gregorian',
-                           'dtype': 'float64'}})
+        encoding={
+            'time': {
+                'units': 'seconds since 1970-01-01T00:00:00Z',
+                '_FillValue': np.nan,
+                'calendar': 'gregorian',
+                'dtype': 'float64',
+            }
+        },
+    )
     _log.info('Done gridding')
 
     return outname

@@ -32,8 +32,8 @@ release = __version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "numpydoc",
-    "myst_parser",
+    'numpydoc',
+    'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.inheritance_diagram',
     'autoapi.sphinx',
@@ -42,9 +42,9 @@ extensions = [
 extensions.append('sphinx.ext.intersphinx')
 
 intersphinx_mapping = {
-  'xarray': ('http://xarray.pydata.org/en/stable/', None),
-  'python': ('https://docs.python.org/3/', None),
-  }
+    'xarray': ('http://xarray.pydata.org/en/stable/', None),
+    'python': ('https://docs.python.org/3/', None),
+}
 
 autoapi_modules = {'pyglider': None}
 
@@ -62,40 +62,41 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "pydata_sphinx_theme"
+html_theme = 'pydata_sphinx_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_logo = "_static/PyGliderHorizontal.svg"
+html_logo = '_static/PyGliderHorizontal.svg'
 
 html_context = {
     # "github_url": "https://github.com", # or your GitHub Enterprise interprise
-    "github_user": "c-proof",
-    "github_repo": "pyglider",
-    "doc_path": "docs/",
+    'github_user': 'c-proof',
+    'github_repo': 'pyglider',
+    'doc_path': 'docs/',
 }
 html_theme_options = {
-    "icon_links": [
+    'icon_links': [
         {
             # Label for this link
-            "name": "GitHub",
+            'name': 'GitHub',
             # URL where the link will redirect
-            "url": "https://github.com/c-proof/pyglider",  # required
+            'url': 'https://github.com/c-proof/pyglider',  # required
             # Icon class (if "type": "fontawesome"), or path to local image (if "type": "local")
-            "icon": "fab fa-github-square",
+            'icon': 'fab fa-github-square',
             # The type of image to be used (see below for details)
-            "type": "fontawesome",
+            'type': 'fontawesome',
         },
         {
-            "name": "PyPI",
-            "url": "https://pypi.org/project/pyglider",
-            "icon": "fas fa-box",
+            'name': 'PyPI',
+            'url': 'https://pypi.org/project/pyglider',
+            'icon': 'fas fa-box',
         },
         # {   "name": "conda-forge",
         #     "url": "https://anaconda.org/conda-forge/pyglider",
         #     "icon": "fas fa-box"
         # }
-   ]}
+    ]
+}

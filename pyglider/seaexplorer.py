@@ -2,15 +2,17 @@
 """
 SeaExplorer-specific processing routines.
 """
+
+import datetime
 import glob
 import logging
-import numpy as np
 import os
-import xarray as xr
-import yaml
-import pyglider.utils as utils
-import datetime
+
+import numpy as np
 import polars as pl
+import xarray as xr
+
+import pyglider.utils as utils
 
 _log = logging.getLogger(__name__)
 
@@ -31,15 +33,22 @@ def _outputname(f, outdir):
 def _needsupdating(ftype, fin, fout):
     if not os.path.isfile(fout):
         return True
-    return (os.path.getmtime(fin) >= os.path.getmtime(fout))
+    return os.path.getmtime(fin) >= os.path.getmtime(fout)
 
 
 def _sort(ds):
     return ds.sortby('time')
 
 
-def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
-                 min_samples_in_file=5, dropna_subset=None, dropna_thresh=1):
+def raw_to_rawnc(
+    indir,
+    outdir,
+    deploymentyaml,
+    incremental=True,
+    min_samples_in_file=5,
+    dropna_subset=None,
+    dropna_thresh=1,
+):
     """
     Convert seaexplorer text files to raw parquet pandas files.
 
@@ -135,49 +144,69 @@ def raw_to_rawnc(indir, outdir, deploymentyaml, incremental=True,
                         badfiles.append(f)
                         continue
                     # Parse the datetime from nav files (called Timestamp) and pld1 files (called PLD_REALTIMECLOCK)
-                    if "Timestamp" in out.columns:
+                    if 'Timestamp' in out.columns:
                         out = out.with_columns(
-                            pl.col("Timestamp").str.strptime(pl.Datetime, format="%d/%m/%Y %H:%M:%S"))
-                        out = out.rename({"Timestamp": "time"})
+                            pl.col('Timestamp').str.strptime(
+                                pl.Datetime, format='%d/%m/%Y %H:%M:%S'
+                            )
+                        )
+                        out = out.rename({'Timestamp': 'time'})
                     else:
                         out = out.with_columns(
-                            pl.col("PLD_REALTIMECLOCK").str.strptime(pl.Datetime, format="%d/%m/%Y %H:%M:%S.%3f"))
-                        out = out.rename({"PLD_REALTIMECLOCK": "time"})
+                            pl.col('PLD_REALTIMECLOCK').str.strptime(
+                                pl.Datetime, format='%d/%m/%Y %H:%M:%S.%3f'
+                            )
+                        )
+                        out = out.rename({'PLD_REALTIMECLOCK': 'time'})
                     for col_name in out.columns:
-                        if "time" not in col_name.lower():
+                        if 'time' not in col_name.lower():
                             out = out.with_columns(pl.col(col_name).cast(pl.Float64))
                     # If AD2CP data present, convert timestamps to datetime
                     if 'AD2CP_TIME' in out.columns:
                         # Set datestamps with date 00000 to None
                         out = out.with_columns(
-                            pl.col('AD2CP_TIME').str.strptime(pl.Datetime, format="%m%d%y %H:%M:%S", strict=False))
+                            pl.col('AD2CP_TIME').str.strptime(
+                                pl.Datetime, format='%m%d%y %H:%M:%S', strict=False
+                            )
+                        )
 
                     # subsetting for heavily oversampled raw data:
                     if rawsub == 'raw' and dropna_subset is not None:
                         # This check is the polars equivalent of pandas dropna. See docstring note on dropna
-                        out = out.with_columns(out.select(pl.col(dropna_subset).is_null().cast(pl.Int64))
-                                              .sum(axis=1).alias("null_count")).filter(
-                            pl.col("null_count") <= dropna_thresh) \
-                            .drop("null_count")
+                        out = (
+                            out.with_columns(
+                                out.select(
+                                    pl.col(dropna_subset).is_null().cast(pl.Int64)
+                                )
+                                .sum(axis=1)
+                                .alias('null_count')
+                            )
+                            .filter(pl.col('null_count') <= dropna_thresh)
+                            .drop('null_count')
+                        )
 
                     if ftype == 'gli':
-                        out = out.with_columns([(pl.col("NavState") * 0 + int(filenum)).alias("fnum")])
+                        out = out.with_columns(
+                            [(pl.col('NavState') * 0 + int(filenum)).alias('fnum')]
+                        )
                         out.write_parquet(fnout)
                         goodfiles.append(f)
                     else:
-                        if out.select("time").shape[0] > min_samples_in_file:
+                        if out.select('time').shape[0] > min_samples_in_file:
                             out.write_parquet(fnout)
                             goodfiles.append(f)
                         else:
-                            _log.warning('Number of sensor data points'
-                                         'too small. Skipping parquet write')
+                            _log.warning(
+                                'Number of sensor data points'
+                                'too small. Skipping parquet write'
+                            )
                             badfiles.append(f)
     if len(badfiles) > 0:
         _log.warning('Some files could not be parsed:')
         for fn in badfiles:
             _log.warning('%s', fn)
     if not goodfiles:
-        _log.warning(f'No valid unprocessed seaexplorer files found in'f'{indir}')
+        _log.warning(f'No valid unprocessed seaexplorer files found in' f'{indir}')
         return False
     _log.info('All raw files converted to parquet')
     return True
@@ -198,13 +227,13 @@ def drop_pre_1971_samples(df):
     """
     dt_1971 = datetime.datetime(1971, 1, 1)
     # If all dates before or after 1971-01-01, return the dataset
-    pre_1971 = df.filter(pl.col("time") < dt_1971)
+    pre_1971 = df.filter(pl.col('time') < dt_1971)
     if len(pre_1971) == len(df):
         return pre_1971
-    post_1971 = df.filter(pl.col("time") > dt_1971)
+    post_1971 = df.filter(pl.col('time') > dt_1971)
     if len(post_1971) == len(df):
         return post_1971
-    return df.filter(pl.col("time") > dt_1971)
+    return df.filter(pl.col('time') > dt_1971)
 
 
 def merge_parquet(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
@@ -267,22 +296,22 @@ def _interp_gli_to_pld(gli, ds, val, indctd):
     gli_ind = ~np.isnan(val)
     # switch for if we are comparing two polars dataframes or a polars dataframe and a xarray dataset
     if type(ds) is pl.DataFrame:
-        valout = np.interp(ds["time"],
-                           gli.filter(gli_ind)["time"],
-                           val[gli_ind])
+        valout = np.interp(ds['time'], gli.filter(gli_ind)['time'], val[gli_ind])
     else:
-        valout = np.interp(ds['time'].astype(int),
-                           np.array(gli.filter(gli_ind)["time"].to_numpy().astype('datetime64[ns]')).astype(int),
-                           val[gli_ind])
+        valout = np.interp(
+            ds['time'].astype(int),
+            np.array(
+                gli.filter(gli_ind)['time'].to_numpy().astype('datetime64[ns]')
+            ).astype(int),
+            val[gli_ind],
+        )
     return valout
 
 
 def _interp_pld_to_pld(pld, ds, val, indctd):
     pld_ind = np.where(~np.isnan(val))[0]
     if len(pld_ind) != len(indctd):
-        val = np.interp(ds['time'],
-                        pld['time'][pld_ind],
-                        val[pld_ind])
+        val = np.interp(ds['time'], pld['time'][pld_ind], val[pld_ind])
     else:
         val = val[indctd]
     return val
@@ -302,9 +331,17 @@ def _remove_fill_values(df, fill_value=9999):
     return df
 
 
-def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
-                      profile_filt_time=100, profile_min_time=300,
-                      maxgap=10, interpolate=False, fnamesuffix=''):
+def raw_to_timeseries(
+    indir,
+    outdir,
+    deploymentyaml,
+    kind='raw',
+    profile_filt_time=100,
+    profile_min_time=300,
+    maxgap=10,
+    interpolate=False,
+    fnamesuffix='',
+):
     """
     A little different than above, for the 4-file version of the data set.
     """
@@ -333,23 +370,31 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     # If present, use the timebase specified in ncvar: timebase in the
     # deployment yaml.
     if 'timebase' not in ncvar:
-        raise ValueError("Must specify timebase:source in netcdf_variables section of deployment yaml")
+        raise ValueError(
+            'Must specify timebase:source in netcdf_variables section of deployment yaml'
+        )
     if ncvar['timebase']['source'] not in sensor.columns:
-        raise ValueError(f"timebase source: {ncvar['timebase']['source']} not found in pld1 columns")
+        raise ValueError(
+            f"timebase source: {ncvar['timebase']['source']} not found in pld1 columns"
+        )
     vals = sensor.select([ncvar['timebase']['source']]).to_numpy()[:, 0]
     indctd = np.where(~np.isnan(vals))[0]
-    ds['time'] = (('time'), sensor.select('time').to_numpy()[indctd, 0].astype('datetime64[ns]'), attr)
+    ds['time'] = (
+        ('time'),
+        sensor.select('time').to_numpy()[indctd, 0].astype('datetime64[ns]'),
+        attr,
+    )
     thenames = list(ncvar.keys())
     # Check yaml to see if interpolate has been set to True
-    if "interpolate" in thenames:
-        if ncvar["interpolate"]:
+    if 'interpolate' in thenames:
+        if ncvar['interpolate']:
             interpolate = True
     for i in ['time', 'timebase', 'keep_variables', 'interpolate']:
         if i in thenames:
             thenames.remove(i)
     for name in thenames:
         _log.info('interpolating ' + name)
-        if not ('method' in ncvar[name].keys()):
+        if 'method' not in ncvar[name].keys():
             # variables that are in the data set or can be interpolated from it
             if 'conversion' in ncvar[name].keys():
                 convert = getattr(utils, ncvar[name]['conversion'])
@@ -363,17 +408,19 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                     # coarsen oxygen data as originally perscribed
                     coarsen_time = ncvar[name]['coarsen']
                     # create a boolean mask of coarsened timesteps. Use this mask to create an array of samples to keep
-                    coarse_ints = np.arange(0, len(sensor) / coarsen_time, 1 / coarsen_time).astype(int)
-                    sensor_sub = sensor.with_columns(pl.lit(coarse_ints).alias("coarse_ints"))
+                    coarse_ints = np.arange(
+                        0, len(sensor) / coarsen_time, 1 / coarsen_time
+                    ).astype(int)
+                    sensor_sub = sensor.with_columns(
+                        pl.lit(coarse_ints).alias('coarse_ints')
+                    )
                     # Subsample the variable data keeping only the samples from the coarsened timeseries
-                    sensor_sub_grouped = sensor_sub.with_columns(
-                        pl.col('time').to_physical()
-                    ).group_by(
-                        pl.col('coarse_ints'),
-                        maintain_order=True
-                    ).mean().with_columns(
-                        pl.col('time').cast(pl.Datetime('ms'))
-                    )[:-1, :]
+                    sensor_sub_grouped = (
+                        sensor_sub.with_columns(pl.col('time').to_physical())
+                        .group_by(pl.col('coarse_ints'), maintain_order=True)
+                        .mean()
+                        .with_columns(pl.col('time').cast(pl.Datetime('ms')))[:-1, :]
+                    )
                     val2 = sensor_sub_grouped.select(sensorname).to_numpy()[:, 0]
                     val = _interp_gli_to_pld(sensor_sub_grouped, sensor, val2, indctd)
                 if interpolate and not np.isnan(val).all():
@@ -381,19 +428,33 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
                     time_var = time_original[np.where(~np.isnan(val))[0]]
                     var_non_nan = val[np.where(~np.isnan(val))[0]]
                     time_timebase = sensor.select('time').to_numpy()[indctd, 0]
-                    if val.dtype == "<M8[us]":
+                    if val.dtype == '<M8[us]':
                         # for datetime, must convert to numerical, interpolate, then convert back
-                        us_since_1970 = (var_non_nan - np.datetime64("1970-01-01")).astype(int)
-                        val_int = np.interp(time_timebase.astype(float), time_var.astype(float), us_since_1970)
-                        val_us = val_int.astype("timedelta64[us]")
-                        val = np.datetime64("1970-01-01") + val_us
+                        us_since_1970 = (
+                            var_non_nan - np.datetime64('1970-01-01')
+                        ).astype(int)
+                        val_int = np.interp(
+                            time_timebase.astype(float),
+                            time_var.astype(float),
+                            us_since_1970,
+                        )
+                        val_us = val_int.astype('timedelta64[us]')
+                        val = np.datetime64('1970-01-01') + val_us
                     else:
-                        val = np.interp(time_timebase.astype(float), time_var.astype(float), var_non_nan)
+                        val = np.interp(
+                            time_timebase.astype(float),
+                            time_var.astype(float),
+                            var_non_nan,
+                        )
 
                     # interpolate only over those gaps that are smaller than 'maxgap'
                     # apparently maxgap is to be in somethng like seconds, and this data is in ms.  Certainly
                     # the default of 0.3 s was not intended.  Changing default to 10 s:
-                    tg_ind = utils.find_gaps(time_var.astype(float), time_timebase.astype(float), maxgap*1000)
+                    tg_ind = utils.find_gaps(
+                        time_var.astype(float),
+                        time_timebase.astype(float),
+                        maxgap * 1000,
+                    )
                     val[tg_ind] = np.nan
                 else:
                     val = val[indctd]
@@ -413,12 +474,12 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
             ds[name] = (('time'), val, attrs)
 
     # fix lon and lat to be linearly interpolated between fixes
-    good = np.where(np.abs(np.diff(ds.longitude)) +
-                    np.abs(np.diff(ds.latitude)) > 0)[0] + 1
-    ds['longitude'].values = np.interp(ds.time, ds.time[good],
-                                       ds.longitude[good])
-    ds['latitude'].values = np.interp(ds.time, ds.time[good],
-                                      ds.latitude[good])
+    good = (
+        np.where(np.abs(np.diff(ds.longitude)) + np.abs(np.diff(ds.latitude)) > 0)[0]
+        + 1
+    )
+    ds['longitude'].values = np.interp(ds.time, ds.time[good], ds.longitude[good])
+    ds['latitude'].values = np.interp(ds.time, ds.time[good], ds.latitude[good])
 
     # keep only timestamps with data from one of a set of variables
     if 'keep_variables' in ncvar:
@@ -434,27 +495,30 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     ds = utils.get_glider_depth(ds)
     ds = utils.get_distance_over_ground(ds)
     #    ds = utils.get_profiles(ds)
-    ds = utils.get_profiles_new(ds, filt_time=profile_filt_time,
-                                profile_min_time=profile_min_time)
+    ds = utils.get_profiles_new(
+        ds, filt_time=profile_filt_time, profile_min_time=profile_min_time
+    )
     ds = utils.get_derived_eos_raw(ds)
 
     # somehow this comes out unsorted:
     ds = ds.sortby(ds.time)
     # Drop duplicate timestamps and check how many are removed this way
     len_before_drop = len(ds.time)
-    if hasattr(ds, "drop_duplicates"):
-        ds = ds.drop_duplicates(dim="time")
+    if hasattr(ds, 'drop_duplicates'):
+        ds = ds.drop_duplicates(dim='time')
     else:
-        time_diffs = (ds.time.astype(int).diff(dim="time") > 1e-6).values
+        time_diffs = (ds.time.astype(int).diff(dim='time') > 1e-6).values
         time_diffs_list = list(time_diffs)
         time_diffs_list.append(True)
         good = np.array(time_diffs_list)
         ds = ds.isel(time=good)
     len_after_drop = len(ds.time)
     proportion_kept = len_after_drop / len_before_drop
-    loss_str = f"{100 * (1 - proportion_kept)} % samples removed by timestamp deduplication."
+    loss_str = (
+        f'{100 * (1 - proportion_kept)} % samples removed by timestamp deduplication.'
+    )
     if proportion_kept < 0.5:
-        raise ValueError(f"{loss_str} Check input data for duplicate timestamps")
+        raise ValueError(f'{loss_str} Check input data for duplicate timestamps')
     elif proportion_kept < 0.999:
         _log.warning(loss_str)
     else:
@@ -465,8 +529,9 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
         if 'correct_oxygen' in ncvar['oxygen_concentration'].keys():
             ds = utils.oxygen_concentration_correction(ds, ncvar)
         else:
-            _log.warning('correct_oxygen not found in oxygen yaml. No'
-                         'correction applied')
+            _log.warning(
+                'correct_oxygen not found in oxygen yaml. No' 'correction applied'
+            )
     ds = ds.assign_coords(longitude=ds.longitude)
     ds = ds.assign_coords(latitude=ds.latitude)
     ds = ds.assign_coords(depth=ds.depth)
@@ -494,9 +559,13 @@ def raw_to_timeseries(indir, outdir, deploymentyaml, kind='raw',
     if 'ad2cp_time' in list(ds):
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
-    ds.to_netcdf(outname, 'w',
-                 encoding={'time': {'units': 'seconds since 1970-01-01T00:00:00Z',
-                                    'dtype': 'float64'}})
+    ds.to_netcdf(
+        outname,
+        'w',
+        encoding={
+            'time': {'units': 'seconds since 1970-01-01T00:00:00Z', 'dtype': 'float64'}
+        },
+    )
     return outname
 
 
