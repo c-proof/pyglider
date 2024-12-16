@@ -14,4 +14,4 @@ dependencies:
   - bitstring
   - pooch
   - pip:
-    - dbdreader
+      - dbdreader

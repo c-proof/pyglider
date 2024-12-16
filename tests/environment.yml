@@ -19,4 +19,4 @@ dependencies:
   - compliance-checker
   - cc-plugin-glider
   - pip:
-    - dbdreader
+      - dbdreader

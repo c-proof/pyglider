@@ -1,0 +1,31 @@
+exclude: "^tests/example-data/.*"
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-ast
+      - id: check-json
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.2
+    hooks:
+      - id: ruff
+        name: ruff lint
+        args: [--fix, --show-fixes]
+      - id: ruff-format
+  - repo: https://github.com/rbubley/mirrors-prettier # Update mirror as official mirror is deprecated
+    rev: v3.4.2
+    hooks:
+      - id: prettier
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.9.3
+    hooks:
+      - id: taplo-format
+        args: ["--option", "array_auto_collapse=false"]
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.23
+    hooks:
+      - id: validate-pyproject
+        additional_dependencies: ["validate-pyproject-schema-store[all]"]

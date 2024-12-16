@@ -1,0 +1,47 @@
+[tool.pytest.ini_options]
+addopts = ["--strict-config", "--strict-markers"]
+testpaths = ["tests"]
+xfail_strict = true
+minversion = "7"
+markers = [ # can be skipped by doing `pytest -m "not slow"` etc.
+  "flaky: flaky tests",
+  "slow: slow tests",
+]
+
+filterwarnings = [
+  "error",
+  "default::DeprecationWarning",
+  "error::DeprecationWarning:pyglider",
+]
+
+[tool.ruff.lint]
+select = [
+  "F", # pyflakes
+  "I", # isort
+  "E", # Error
+  # "D",  # pydocstyle
+  # "B",  # Bugbear
+  # "UP", # pyupgrade
+  # "LOG", # logging
+  # "ICN", # import conventions
+  # "G", # logging-format
+  # "RUF", # ruff
+]
+
+ignore = [
+  # TODO: Remove
+  "E402", # Module level import not at top of file
+
+  "F841", # Local variable `...` is assigned to but never used
+  "E722", # Do not use bare `except`
+  "E501", # Line too long (... > 88)
+  "E741", # Ambiguous variable name: `l`
+]
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.isort]
+known-first-party = ["pyglider"]

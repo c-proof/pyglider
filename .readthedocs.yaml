@@ -28,7 +28,6 @@ python:
     # Install our python package before building the docs
     - method: pip
       path: .
-
 # Optionally build your docs in additional formats such as PDF and ePub
 # formats:
 #   - pdf
