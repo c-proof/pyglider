@@ -12,7 +12,7 @@ try:
 
     have_dbdreader = True
 except ImportError:
-    have_dbdreader = True
+    have_dbdreader = False
 import glob
 import logging
 import os
