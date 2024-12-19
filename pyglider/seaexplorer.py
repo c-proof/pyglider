@@ -20,8 +20,8 @@ def _outputname(f, outdir):
     fnout = os.path.basename(f)
     fns = fnout.split('.')
     fns = fns[:5]
-    fns[4] = '%04d' % int(fns[4])
-    fns[1] = '%04d' % int(fns[1])
+    fns[4] = f'{int(fns[4]):04d}'
+    fns[1] = f'{int(fns[1]):04d}'
     fnout = ''
     for ff in fns:
         fnout += ff.lower() + '.'
