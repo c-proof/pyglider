@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 SeaExplorer-specific processing routines.
 """

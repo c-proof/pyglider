@@ -118,7 +118,7 @@ def test_profiles_compliant():
         output_format=output_format,
     )
     # Open the JSON output and get the compliance scores
-    with open(output_filename, 'r') as fp:
+    with open(output_filename) as fp:
         cc_data = json.load(fp)
         test = cc_data['gliderdac']
         assert test['high_count'] == 0
@@ -162,7 +162,7 @@ def test_timeseries_compliant():
         output_format=output_format,
     )
     # Open the JSON output and get the compliance scores
-    with open(output_filename, 'r') as fp:
+    with open(output_filename) as fp:
         cc_data = json.load(fp)
         test = cc_data['cf:1.8']
         assert test['high_count'] == 0

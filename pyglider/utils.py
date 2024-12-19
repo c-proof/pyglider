@@ -701,7 +701,7 @@ def _parse_gliderxml_pos(fname):
     xmln = fname
     from bs4 import BeautifulSoup
 
-    with open(xmln, 'r') as fin:
+    with open(xmln) as fin:
         y = BeautifulSoup(fin, features='xml')
         time = None
         lon = None
@@ -735,7 +735,7 @@ def _parse_gliderxml_surfacedatetime(fname):
     xmln = fname
     from bs4 import BeautifulSoup
 
-    with open(xmln, 'r') as fin:
+    with open(xmln) as fin:
         y = BeautifulSoup(fin, features='xml')
         time = None
         for a in y.find_all('report'):

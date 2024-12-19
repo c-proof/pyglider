@@ -20,8 +20,8 @@ select = [
   "I", # isort
   "E", # Error
   # "D",  # pydocstyle
-  # "B",  # Bugbear
-  # "UP", # pyupgrade
+  "B",  # Bugbear
+  "UP", # pyupgrade
   # "LOG", # logging
   # "ICN", # import conventions
   # "G", # logging-format

@@ -1128,7 +1128,7 @@ def parse_logfiles(files):
     for fn in files:
         found_time = False
 
-        with open(fn, 'r') as fin:
+        with open(fn) as fin:
             for ll in fin:
                 if 'Curr Time:' in ll:
                     times[ntimes] = ll
@@ -1208,7 +1208,7 @@ def parse_logfiles_maybe(files):
     for fn in files:
         found_time = False
 
-        with open(fn, 'r') as fin:
+        with open(fn) as fin:
             for l in fin:
                 if 'Curr Time:' in l:
                     times[ntimes] = l
