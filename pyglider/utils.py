@@ -124,7 +124,7 @@ def get_profiles(ds, min_dp=10.0, inversion=3.0, filt_length=7, min_nsamples=14)
     )
     dpall = np.diff(p)
     inflect = np.where(dpall[:-1] * dpall[1:] < 0)[0]
-    for n, i in enumerate(inflect[:-1]):
+    for n, _ in enumerate(inflect[:-1]):
         nprofile = inflect[n + 1] - inflect[n]
         inds = np.arange(good[inflect[n]], good[inflect[n + 1]] + 1) + 1
         dp = np.diff(ds.pressure[inds[[-1, 0]]])
@@ -553,8 +553,8 @@ def fill_metadata(ds, metadata, sensor_data):
     ds.attrs['title'] = ds.attrs['id']
 
     dt = ds.time.values
-    ds.attrs['time_coverage_start'] = '%s' % dt[0]
-    ds.attrs['time_coverage_end'] = '%s' % dt[-1]
+    ds.attrs['time_coverage_start'] = str(dt[0])
+    ds.attrs['time_coverage_end'] = str(dt[-1])
 
     ds.attrs['processing_level'] = (
         'Level 0 (L0) processed data timeseries; ' 'no corrections or data screening'
@@ -751,8 +751,8 @@ def _parse_gliderxml_surfacedatetime(fname):
 def example_gridplot(
     filename,
     outname,
-    toplot=['potential_temperature', 'salinity', 'oxygen_concentration'],
-    pdenlevels=np.arange(10, 30, 0.5),
+    toplot=['potential_temperature', 'salinity', 'oxygen_concentration'],  # noqa: B006
+    pdenlevels=np.arange(10, 30, 0.5),  # noqa: B008
     dpi=200,
     ylim=None,
 ):
@@ -790,7 +790,7 @@ def _get_deployment(deploymentyaml):
             deploymentyaml,
         ]
     deployment = {}
-    for nn, d in enumerate(deploymentyaml):
+    for d in deploymentyaml:
         with open(d) as fin:
             deployment_ = yaml.safe_load(fin)
             for k in deployment_:

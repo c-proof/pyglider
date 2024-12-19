@@ -160,7 +160,7 @@ def _decode_sensor_info(dfh, meta):
     activeSensorList = [{} for i in range(nsensors_used)]
     outlines = []
     sensorInfo = {}
-    for i in range(nsensors_total):
+    for _ in range(nsensors_total):
         line = dfh.readline().decode('utf-8')
         if line.split(':')[0] != 's':
             raise ValueError('Failed to parse sensor info')
@@ -264,7 +264,7 @@ def dbd_get_meta(filename, cachedir):
         # read the cache first.  If its not there, try to make one....
         try:
             activeSensorList, sensorInfo = _get_cached_sensorlist(cachedir, meta)
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             if localcache:
                 _log.info('No cache file found; trying to create one')
                 _make_cache(outlines, cachedir, meta)
@@ -275,7 +275,7 @@ def dbd_get_meta(filename, cachedir):
                     'offloaddir/Science/STATE/CACHE/ or ',
                     'offloaddir/Main_board/STATE/CACHE/. ',
                     f'Copy those locally into {cachedir}',
-                )
+                ) from e
         meta['activeSensorList'] = activeSensorList
         # get the file's timestamp...
         meta['_dbdfiletimestamp'] = os.path.getmtime(filename)
@@ -441,8 +441,8 @@ def dbd_to_dict(dinkum_file, cachedir, keys=None):
 
     proctimeend = time.time()
     _log.info(
-        ('%s lines of data read from %s, data rate of %s rows ' 'per second')
-        % (len(data), dinkum_file, len(data) / (proctimeend - proctimestart))
+        f'{len(data)} lines of data read from {dinkum_file}, data rate of {len(data) / (proctimeend - proctimestart)} rows '
+        'per second'
     )
     dfh.close()
 
@@ -605,7 +605,7 @@ def datameta_to_nc(
         # make a long string for activeSensorList:
         listst = ''
         for sensor in meta['activeSensorList']:
-            listst += '%s' % sensor
+            listst += str(sensor)
             listst += '\n'
         ds.attrs['activeSensorList'] = listst
 

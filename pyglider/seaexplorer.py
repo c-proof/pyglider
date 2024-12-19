@@ -127,7 +127,7 @@ def raw_to_rawnc(
                 # If no files of this type found, try the next type
                 continue
 
-            for ind, f in enumerate(files):
+            for f in files:
                 # output name:
                 fnout, filenum = _outputname(f, outdir)
                 _log.info(f'{f} to {fnout}')
