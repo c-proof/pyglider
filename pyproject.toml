@@ -30,8 +30,6 @@ select = [
 
 ignore = [
   "RUF005", # Consider `[*outlines, line]` instead of concatenation
-  # TODO: Remove
-  "E402", # Module level import not at top of file
 
   "F841", # Local variable `...` is assigned to but never used
   "E722", # Do not use bare `except`
