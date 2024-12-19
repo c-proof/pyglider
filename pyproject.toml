@@ -15,6 +15,7 @@ filterwarnings = [
 ]
 
 [tool.ruff.lint]
+# See https://docs.astral.sh/ruff/rules/ for all rules
 select = [
   "F",   # pyflakes
   "I",   # isort
