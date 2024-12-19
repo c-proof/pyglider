@@ -834,12 +834,12 @@ def _get_glider_name_slocum(current_directory):
 
 
 __all__ = [
+    'fill_metadata',
+    'gappy_fill_vertical',
+    'get_derived_eos_raw',
     'get_distance_over_ground',
     'get_glider_depth',
     'get_profiles_new',
-    'get_derived_eos_raw',
-    'fill_metadata',
     'nmea2deg',
-    'gappy_fill_vertical',
     'oxygen_concentration_correction',
 ]

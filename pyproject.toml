@@ -16,19 +16,20 @@ filterwarnings = [
 
 [tool.ruff.lint]
 select = [
-  "F", # pyflakes
-  "I", # isort
-  "E", # Error
+  "F",   # pyflakes
+  "I",   # isort
+  "E",   # Error
+  "B",   # Bugbear
+  "UP",  # pyupgrade
+  "LOG", # logging
+  "ICN", # import conventions
+  "G",   # logging-format
+  "RUF", # ruff
   # "D",  # pydocstyle
-  "B",  # Bugbear
-  "UP", # pyupgrade
-  # "LOG", # logging
-  # "ICN", # import conventions
-  # "G", # logging-format
-  # "RUF", # ruff
 ]
 
 ignore = [
+  "RUF005", # Consider `[*outlines, line]` instead of concatenation
   # TODO: Remove
   "E402", # Module level import not at top of file
 

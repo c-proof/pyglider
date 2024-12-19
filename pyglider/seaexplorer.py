@@ -572,4 +572,4 @@ def raw_to_timeseries(
 raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
 merge_rawnc = merge_parquet
 
-__all__ = ['raw_to_rawnc', 'merge_parquet', 'raw_to_timeseries']
+__all__ = ['merge_parquet', 'raw_to_rawnc', 'raw_to_timeseries']

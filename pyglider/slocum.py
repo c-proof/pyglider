@@ -1273,7 +1273,7 @@ def parse_logfiles_maybe(files):
 __all__ = [
     'binary_to_rawnc',
     'merge_rawnc',
-    'raw_to_timeseries',
     'parse_gliderState',
     'parse_logfiles',
+    'raw_to_timeseries',
 ]
