@@ -158,6 +158,12 @@ def raw_to_rawnc(
                             )
                         )
                         out = out.rename({'PLD_REALTIMECLOCK': 'time'})
+                    # remove leading and trailing whitespace
+                    # from entire dataframe
+                    for col_name in out.columns:
+                        out = out.with_columns(pl.col(col_name).str.strip_chars())
+                    # from column names
+                    out = out.rename(str.strip)
                     for col_name in out.columns:
                         if 'time' not in col_name.lower():
                             out = out.with_columns(pl.col(col_name).cast(pl.Float64))
