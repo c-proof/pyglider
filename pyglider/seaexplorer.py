@@ -143,6 +143,7 @@ def raw_to_rawnc(
                         _log.warning(f'Could not read {f}')
                         badfiles.append(f)
                         continue
+
                     # Parse the datetime from nav files (called Timestamp) and pld1 files (called PLD_REALTIMECLOCK)
                     if 'Timestamp' in out.columns:
                         out = out.with_columns(
@@ -158,15 +159,12 @@ def raw_to_rawnc(
                             )
                         )
                         out = out.rename({'PLD_REALTIMECLOCK': 'time'})
-                    # remove leading and trailing whitespace
-                    # from entire dataframe
-                    for col_name in out.columns:
-                        out = out.with_columns(pl.col(col_name).str.strip_chars())
-                    # from column names
-                    out = out.rename(str.strip)
                     for col_name in out.columns:
                         if 'time' not in col_name.lower():
+                            out = out.with_columns(pl.col(col_name).str.strip_chars())
                             out = out.with_columns(pl.col(col_name).cast(pl.Float64))
+                    # remove leading and trailing spaces from column names
+                    out = out.rename(str.strip)
                     # If AD2CP data present, convert timestamps to datetime
                     if 'AD2CP_TIME' in out.columns:
                         # Set datestamps with date 00000 to None
