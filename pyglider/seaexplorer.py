@@ -143,7 +143,6 @@ def raw_to_rawnc(
                         _log.warning(f'Could not read {f}')
                         badfiles.append(f)
                         continue
-
                     # Parse the datetime from nav files (called Timestamp) and pld1 files (called PLD_REALTIMECLOCK)
                     if 'Timestamp' in out.columns:
                         out = out.with_columns(
