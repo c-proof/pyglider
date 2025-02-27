@@ -985,12 +985,12 @@ def binary_to_timeseries(
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
 
     start = ds.time.values[0]
-    end = ds.time.values[0]
+    end = ds.time.values[-1]
     _log.debug('Long')
     _log.debug(ds.longitude.values[-2000:])
     # make sure this is ISO readable....
-    ds.attrs['deployment_start'] = str(start)[:18]
-    ds.attrs['deployment_end'] = str(end)[:18]
+    ds.attrs['deployment_start'] = str(start)[:19]
+    ds.attrs['deployment_end'] = str(end)[:19]
     _log.debug(ds.depth.values[:100])
     _log.debug(ds.depth.values[2000:2100])
 
