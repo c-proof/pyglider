@@ -1,6 +1,6 @@
 ![](docs/_static/PyGliderHorizontal.svg)
 
-Python tools for interacting with ocean glider data.   PyGlider takes data from
+Python tools for interacting with ocean glider data. PyGlider takes data from
 Teledyne/Webb Slocum gliders and Alseamar SeaExplorers and creates CF-compliant
 NetCDF files.
 

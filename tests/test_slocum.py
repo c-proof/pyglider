@@ -1,17 +1,13 @@
-import xarray as xr
-
-from compliance_checker.runner import ComplianceChecker, CheckSuite
 import json
 from pathlib import Path
-import pytest
+
 import numpy as np
-import yaml
+import pytest
+import xarray as xr
+from compliance_checker.runner import CheckSuite, ComplianceChecker
 
 import pyglider.ncprocess as ncprocess
-import pyglider.seaexplorer as seaexplorer
 import pyglider.slocum as slocum
-
-
 
 library_dir = Path(__file__).parent.parent.absolute()
 example_dir = library_dir / 'tests/example-data/'
@@ -26,24 +22,31 @@ deploymentyaml_slocum = str(example_dir / 'example-slocum/deploymentRealtime.yml
 tsdir = str(example_dir / 'example-slocum/L0-timeseries/') + '/'
 scisuffix = 'tbd'
 glidersuffix = 'sbd'
-profiledir = str(example_dir /  'example-slocum/L0-profiles/')
+profiledir = str(example_dir / 'example-slocum/L0-profiles/')
 do_direct = True
 
 # This needs to get run every time the tests are run, so do at top level:
 
 # turn *.sbd and *.tbd into timeseries netcdf files
-outname_slocum = slocum.binary_to_timeseries(binarydir, cacdir, tsdir, deploymentyaml_slocum,
-                                             search='*.[s|t]bd', profile_filt_time=20,
-                                             profile_min_time=20)
+outname_slocum = slocum.binary_to_timeseries(
+    binarydir,
+    cacdir,
+    tsdir,
+    deploymentyaml_slocum,
+    search='*.[s|t]bd',
+    profile_filt_time=20,
+    profile_min_time=20,
+)
 # make profiles...
-ncprocess.extract_timeseries_profiles(outname_slocum, profiledir, deploymentyaml_slocum,
-                                      force=True)
+ncprocess.extract_timeseries_profiles(
+    outname_slocum, profiledir, deploymentyaml_slocum, force=True
+)
 
 output_slocum = xr.open_dataset(outname_slocum)
 # Open test data file
 test_data_slocum = xr.open_dataset(
-    library_dir /
-    'tests/expected/example-slocum/L0-timeseries/dfo-rosie713-20190615.nc')
+    library_dir / 'tests/expected/example-slocum/L0-timeseries/dfo-rosie713-20190615.nc'
+)
 variables_slocum = list(output_slocum.variables)
 
 
@@ -54,19 +57,20 @@ def test_variables_slocum():
     assert variables_slocum == test_variables
 
 
-@pytest.mark.parametrize("var", variables_slocum)
+@pytest.mark.parametrize('var', variables_slocum)
 def test_example_slocum(var):
     # Test that variables and coordinates match
     assert output_slocum[var].attrs == test_data_slocum[var].attrs
     if var not in ['time']:
-        np.testing.assert_allclose(output_slocum[var].values,
-                                   test_data_slocum[var].values, rtol=1e-6)
+        np.testing.assert_allclose(
+            output_slocum[var].values, test_data_slocum[var].values, rtol=1e-6
+        )
     else:
         dt0 = output_slocum[var].values - np.datetime64('2000-01-01')
         dt1 = test_data_slocum[var].values - np.datetime64('2000-01-01')
         assert np.allclose(
-            np.array(dt0, dtype='float64'),
-            np.array(dt1, dtype='float64'))
+            np.array(dt0, dtype='float64'), np.array(dt1, dtype='float64')
+        )
 
 
 def test_example_slocum_metadata():
@@ -80,6 +84,7 @@ def test_example_slocum_metadata():
 
 
 # test the profiles with compliance_checker...
+
 
 def test_profiles_compliant():
     # Load all available checker classes
@@ -104,12 +109,14 @@ def test_profiles_compliant():
 
     @returns                If the tests failed (based on the criteria)
     """
-    return_value, errors = ComplianceChecker.run_checker(path,
-                                                        checker_names,
-                                                        verbose,
-                                                        criteria,
-                                                        output_filename=output_filename,
-                                                        output_format=output_format)
+    return_value, errors = ComplianceChecker.run_checker(
+        path,
+        checker_names,
+        verbose,
+        criteria,
+        output_filename=output_filename,
+        output_format=output_format,
+    )
     # Open the JSON output and get the compliance scores
     with open(output_filename, 'r') as fp:
         cc_data = json.load(fp)
@@ -146,12 +153,14 @@ def test_timeseries_compliant():
 
     @returns                If the tests failed (based on the criteria)
     """
-    return_value, errors = ComplianceChecker.run_checker(path,
-                                                        checker_names,
-                                                        verbose,
-                                                        criteria,
-                                                        output_filename=output_filename,
-                                                        output_format=output_format)
+    return_value, errors = ComplianceChecker.run_checker(
+        path,
+        checker_names,
+        verbose,
+        criteria,
+        output_filename=output_filename,
+        output_format=output_format,
+    )
     # Open the JSON output and get the compliance scores
     with open(output_filename, 'r') as fp:
         cc_data = json.load(fp)
