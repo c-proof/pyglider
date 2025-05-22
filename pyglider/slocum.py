@@ -894,10 +894,6 @@ def binary_to_timeseries(
     thenames = list(ncvar.keys())
     thenames.remove('time')
 
-    # get the dbd file
-    _log.info(f'{indir}/{search}')
-    dbd = dbdreader.MultiDBD(pattern=f'{indir}/{search}', cacheDir=cachedir)
-
     # build a new data set based on info in `deployment.`
     # We will use ebd.m_present_time as the interpolant if the
     # variable is in dbd.
@@ -909,13 +905,20 @@ def binary_to_timeseries(
             attr[atts] = ncvar[name][atts]
     sensors = [time_base]
 
+    baseind = None
     for nn, name in enumerate(thenames):
         sensorname = ncvar[name]['source']
         if not sensorname == time_base:
             sensors.append(sensorname)
         else:
             baseind = nn
+    if not baseind:
+        raise RuntimeError('no time source specified.')
 
+    # get the dbd file
+    _log.info(f'{indir}/{search}')
+    dbd = dbdreader.MultiDBD(pattern=f'{indir}/{search}',
+                             cacheDir=cachedir)
     # get the data, with `time_base` as the time source that
     # all other variables are synced to:
     data = list(dbd.get_sync(*sensors))
@@ -971,10 +974,15 @@ def binary_to_timeseries(
     _log.info(f'Getting glider depths, {ds}')
     _log.debug(f'HERE, {ds.pressure[0:100]}')
 
-    ds = utils.get_glider_depth(ds)
-    ds = utils.get_distance_over_ground(ds)
+    if 'pressure' in ds:
+        ds = utils.get_glider_depth(ds)
+    try:
+        ds = utils.get_distance_over_ground(ds)
+    except:
+        pass
 
-    ds = utils.get_derived_eos_raw(ds)
+    if ('temperature' in ds) and ('conductivity' in ds) and ('pressure' in ds):
+        ds = utils.get_derived_eos_raw(ds)
 
     # screen out-of-range times; these won't convert:
     ds['time'] = ds.time.where((ds.time > 0) & (ds.time < 6.4e9), np.nan)
@@ -1139,13 +1147,20 @@ def parse_logfiles(files):
                 if found_time and 'sensor:m_coulomb_amphr_total' in ll:
                     amph[ntimes - 1] = ll
                 if ll.startswith('   sensor:m_lithium_battery_relative_charge'):
-                    pattern = r'=(\d+\.\d+)'
-                    match = re.search(pattern, ll)
-                    relcharge[ntimes - 1] = float(match.group(1))
+                        pattern = r'=(\d+\.\d+)'
+                        match = re.search(pattern, ll)
+                        if match:
+                            relcharge[ntimes-1] = float(match.group(1))
+                        else:
+                            relcharge[ntimes-1] = relcharge[ntimes-2]
                 if ll.startswith('   sensor:m_battery(volts)='):
-                    pattern = r'=(\d+\.\d+)'
-                    match = re.search(pattern, ll)
-                    volts[ntimes - 1] = float(match.group(1))
+                        pattern = r'=(\d+\.\d+)'
+                        match = re.search(pattern, ll)
+                        if match:
+                            volts[ntimes-1] = float(match.group(1))
+                        else:
+                            volts[ntimes-1] = volts[ntimes-2]
+
     amph = amph[:ntimes]
     gps = gps[:ntimes]
     times = times[:ntimes]

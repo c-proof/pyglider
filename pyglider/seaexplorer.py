@@ -115,6 +115,8 @@ def raw_to_rawnc(
             d = indir + f'*.{ftype}.{rawsub}.*'
 
             files = glob.glob(d)
+            _log.info(f'Nfiles found: {len(files)}')
+
             fnum = np.zeros(len(files))
             # these files don't sort properly, but we can sort them here.
             for n, f in enumerate(files):
@@ -173,18 +175,14 @@ def raw_to_rawnc(
                     # subsetting for heavily oversampled raw data:
                     if rawsub == 'raw' and dropna_subset is not None:
                         # This check is the polars equivalent of pandas dropna. See docstring note on dropna
-                        out = (
-                            out.with_columns(
-                                out.select(
-                                    pl.col(dropna_subset).is_null().cast(pl.Int64)
-                                )
-                                .sum(axis=1)
-                                .alias('null_count')
-                            )
-                            .filter(pl.col('null_count') <= dropna_thresh)
-                            .drop('null_count')
-                        )
+                        dropna_thresh = 1  # Drop rows with more than 1 null
+                        null_exprs = [pl.col(c).is_null().cast(pl.Int64) for c in df.columns]
 
+                        df = df.with_columns(
+                            pl.sum(null_exprs).alias("nulls")
+                        ).filter(
+                            pl.col("nulls") <= dropna_thresh
+                        ).drop("nulls")
                     if ftype == 'gli':
                         out = out.with_columns(
                             [(pl.col('NavState') * 0 + int(filenum)).alias('fnum')]
