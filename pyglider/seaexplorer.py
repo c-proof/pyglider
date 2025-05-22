@@ -339,6 +339,7 @@ def raw_to_timeseries(
     maxgap=10,
     interpolate=False,
     fnamesuffix='',
+    deadreckon=False,
 ):
     """
     A little different than above, for the 4-file version of the data set.
@@ -355,6 +356,23 @@ def raw_to_timeseries(
     _log.info(f'Opening combined payload file {indir}/{id}-{kind}pld.parquet')
     sensor = pl.read_parquet(f'{indir}/{id}-{kind}pld.parquet')
     sensor = _remove_fill_values(sensor)
+
+    # don't use lat/lon if deadreckoned:
+    if not deadreckon:
+        _log.info('Not using deadreckoning')
+        gli = gli.with_columns(
+            pl.when(pl.col('DeadReckoning') == 1)
+            .then(np.nan)
+            .otherwise(pl.col('Lat'))
+            .alias('Lat')
+        )
+        gli = gli.with_columns(
+            pl.when(pl.col('DeadReckoning') == 1)
+            .then(np.nan)
+            .otherwise(pl.col('Lon'))
+            .alias('Lon')
+        )
+
 
     # build a new data set based on info in `deploymentyaml.`
     # We will use ctd as the interpolant
