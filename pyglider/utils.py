@@ -760,6 +760,8 @@ def _get_glider_name_slocum(current_directory):
     else:
         slocum_glider = slocum_glider[:-3] + '_' + slocum_glider[-3:]
 
+    if slocum_glider == 'walle_652':
+        slocum_glider = 'wall_e_652'
     return glider, mission, slocum_glider
 
 
