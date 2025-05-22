@@ -378,7 +378,7 @@ def raw_to_timeseries(
                 .alias('Lon')
             )
         else:
-            _log.info('Not using deadreckoning; glider has DeadReckoning column')
+            _log.info('Not using deadreckoning; glider does not have DeadReckoning column')
             gli = gli.with_columns(
                 pl.when(pl.col('NavState') == 116)
                 .then(np.nan)
