@@ -7,6 +7,7 @@ import datetime
 import glob
 import logging
 import os
+import warnings
 
 import numpy as np
 import polars as pl
@@ -359,19 +360,57 @@ def raw_to_timeseries(
 
     # don't use lat/lon if deadreckoned:
     if not deadreckon:
-        _log.info('Not using deadreckoning')
-        gli = gli.with_columns(
-            pl.when(pl.col('DeadReckoning') == 1)
-            .then(np.nan)
-            .otherwise(pl.col('Lat'))
-            .alias('Lat')
-        )
-        gli = gli.with_columns(
-            pl.when(pl.col('DeadReckoning') == 1)
-            .then(np.nan)
-            .otherwise(pl.col('Lon'))
-            .alias('Lon')
-        )
+        if not ncvar['latitude']['source'] == 'Lat':
+            warnings.warn("For deadreckon=False it is suggested to use 'Lat' as the "
+                          "source for latitude and 'Lon' as the source for longitude")
+        if 'DeadReckoning' in gli.columns:
+            _log.info('Not using deadreckoning; glider has DeadReckoning column')
+            gli = gli.with_columns(
+                pl.when(pl.col('DeadReckoning') == 1)
+                .then(np.nan)
+                .otherwise(pl.col('Lat'))
+                .alias('Lat')
+            )
+            gli = gli.with_columns(
+                pl.when(pl.col('DeadReckoning') == 1)
+                .then(np.nan)
+                .otherwise(pl.col('Lon'))
+                .alias('Lon')
+            )
+        else:
+            _log.info('Not using deadreckoning; glider has DeadReckoning column')
+            gli = gli.with_columns(
+                pl.when(pl.col('NavState') == 116)
+                .then(np.nan)
+                .otherwise(pl.col('Lat'))
+                .alias('Lat')
+            )
+            gli = gli.with_columns(
+                pl.when(pl.col('NavState') == 116)
+                .then(np.nan)
+                .otherwise(pl.col('Lon'))
+                .alias('Lon')
+            )
+        # Forward-fill Lat to get the last good value at each row
+        gli = gli.with_columns([
+                pl.col("Lat").fill_null(strategy="forward").alias("Lat_ffill")
+            ])
+        gli = gli.with_columns([
+            pl.when(
+                (pl.col("Lat") == pl.col("Lat_ffill").shift(1)) & pl.col("Lat").is_not_null()
+            ).then(np.nan).otherwise(pl.col("Lat")).alias("Lat")
+        ])
+        gli = gli.drop("Lat_ffill")
+        # Forward-fill Lat to get the last good value at each row
+        gli = gli.with_columns([
+                pl.col("Lon").fill_null(strategy="forward").alias("Lat_ffill")
+            ])
+        gli = gli.with_columns([
+            pl.when(
+                (pl.col("Lon") == pl.col("Lat_ffill").shift(1)) & pl.col("Lon").is_not_null()
+            ).then(np.nan).otherwise(pl.col("Lon")).alias("Lon")
+        ])
+        gli = gli.drop("Lat_ffill")
 
 
     # build a new data set based on info in `deploymentyaml.`
