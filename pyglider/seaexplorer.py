@@ -160,9 +160,18 @@ def raw_to_rawnc(
                             )
                         )
                         out = out.rename({'PLD_REALTIMECLOCK': 'time'})
+                    # strip leading and trailing spaces
+                    out = out.with_columns(pl.col(pl.String).str.strip_chars())
+                    # replace empty values with None
+                    out = out.with_columns(pl.when(pl.col(pl.String).str.len_chars() == 0)
+                                           .then(None)
+                                           .otherwise(pl.col(pl.String))
+                                           .name.keep())
                     for col_name in out.columns:
                         if 'time' not in col_name.lower():
                             out = out.with_columns(pl.col(col_name).cast(pl.Float64))
+                    # remove leading and trailing spaces from column names
+                    out = out.rename(str.strip)
                     # If AD2CP data present, convert timestamps to datetime
                     if 'AD2CP_TIME' in out.columns:
                         # Set datestamps with date 00000 to None
