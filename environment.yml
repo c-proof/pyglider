@@ -1,8 +1,9 @@
-name: pyglider
+name: pyglider-dev
 channels:
   - conda-forge
 dependencies:
-  - python>=3.10
+  # Core
+  - python>=3.9
   - numpy
   - pip
   - xarray
@@ -13,5 +14,24 @@ dependencies:
   - scipy
   - bitstring
   - pooch
+
+  # Testing
+  - pytest
+  - pytest-cov
+  - matplotlib
+  - compliance-checker
+  - cc-plugin-glider
+
+  # Docs
+  - pydata-sphinx-theme
+  - sphinx
+  - sphinx-autoapi
+  - numpydoc
+  - myst-parser
+
+  # QAQC
+  - pre_commit
+
   - pip:
+      # Core
       - dbdreader
