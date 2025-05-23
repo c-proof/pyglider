@@ -330,6 +330,29 @@ def _remove_fill_values(df, fill_value=9999):
     return df
 
 
+def _forward_fill(gli, todo='Lat'):
+    """Forward-fill Lat to get the last good value at each row"""
+    gli = gli.with_columns([
+        pl.col(todo).fill_null(strategy="forward").alias("temp_fill")
+    ])
+    gli = gli.with_columns([
+        pl.when(
+            (pl.col(todo) == pl.col("temp_fill").shift(1)) & pl.col("Lat").is_not_null()
+        ).then(np.nan).otherwise(pl.col(todo)).alias(todo)
+    ])
+    gli = gli.drop("temp_fill")
+    return gli
+
+
+def _drop_if(gli, todo='Lat', condit='DeadReckoning', value=1):
+    """Drop Lat if DeadReckoning is 1"""
+    gli = gli.with_columns([
+        pl.when(pl.col(condit) == value).then(np.nan).otherwise(pl.col(todo)).alias(todo)
+    ])
+    return gli
+
+
+
 def raw_to_timeseries(
     indir,
     outdir,
@@ -399,53 +422,16 @@ def raw_to_timeseries(
                           "source for latitude and 'Lon' as the source for longitude")
         if 'DeadReckoning' in gli.columns:
             _log.info('Not using deadreckoning; glider has DeadReckoning column')
-            gli = gli.with_columns(
-                pl.when(pl.col('DeadReckoning') == 1)
-                .then(np.nan)
-                .otherwise(pl.col('Lat'))
-                .alias('Lat')
-            )
-            gli = gli.with_columns(
-                pl.when(pl.col('DeadReckoning') == 1)
-                .then(np.nan)
-                .otherwise(pl.col('Lon'))
-                .alias('Lon')
-            )
+            gli = _drop_if(gli, todo='Lat', condit='DeadReckoning', value=1)
+            gli = _drop_if(gli, todo='Lon', condit='DeadReckoning', value=1)
         else:
             _log.info('Not using deadreckoning; glider does not have DeadReckoning column')
-            gli = gli.with_columns(
-                pl.when(pl.col('NavState') == 116)
-                .then(np.nan)
-                .otherwise(pl.col('Lat'))
-                .alias('Lat')
-            )
-            gli = gli.with_columns(
-                pl.when(pl.col('NavState') == 116)
-                .then(np.nan)
-                .otherwise(pl.col('Lon'))
-                .alias('Lon')
-            )
-        # Forward-fill Lat to get the last good value at each row
-        gli = gli.with_columns([
-                pl.col("Lat").fill_null(strategy="forward").alias("Lat_ffill")
-            ])
-        gli = gli.with_columns([
-            pl.when(
-                (pl.col("Lat") == pl.col("Lat_ffill").shift(1)) & pl.col("Lat").is_not_null()
-            ).then(np.nan).otherwise(pl.col("Lat")).alias("Lat")
-        ])
-        gli = gli.drop("Lat_ffill")
-        # Forward-fill Lat to get the last good value at each row
-        gli = gli.with_columns([
-                pl.col("Lon").fill_null(strategy="forward").alias("Lat_ffill")
-            ])
-        gli = gli.with_columns([
-            pl.when(
-                (pl.col("Lon") == pl.col("Lat_ffill").shift(1)) & pl.col("Lon").is_not_null()
-            ).then(np.nan).otherwise(pl.col("Lon")).alias("Lon")
-        ])
-        gli = gli.drop("Lat_ffill")
-
+            gli = _drop_if(gli, todo='Lat', condit='NavState', value=116)
+            gli = _drop_if(gli, todo='Lon', condit='NavState', value=116)
+        # drop a lat/lon if it is not unique.  Happens when there
+        # are stale fixes.
+        gli = _forward_fill(gli, todo='Lat')
+        gli = _forward_fill(gli, todo='Lon')
 
     # build a new data set based on info in `deploymentyaml.`
     # We will use ctd as the interpolant
