@@ -183,7 +183,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
                 with netCDF4.Dataset(outname, 'r+') as nc:
-                    nc.renameDimension('string%d' % trajlen, 'traj_strlen')
+                    nc.renameDimension(f'string{trajlen}', 'traj_strlen')
 
 
 def make_gridfiles(

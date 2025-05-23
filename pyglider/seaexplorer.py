@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 SeaExplorer-specific processing routines.
 """
@@ -21,8 +20,8 @@ def _outputname(f, outdir):
     fnout = os.path.basename(f)
     fns = fnout.split('.')
     fns = fns[:5]
-    fns[4] = '%04d' % int(fns[4])
-    fns[1] = '%04d' % int(fns[1])
+    fns[4] = f'{int(fns[4]):04d}'
+    fns[1] = f'{int(fns[1]):04d}'
     fnout = ''
     for ff in fns:
         fnout += ff.lower() + '.'
@@ -130,7 +129,7 @@ def raw_to_rawnc(
                 # If no files of this type found, try the next type
                 continue
 
-            for ind, f in enumerate(files):
+            for f in files:
                 # output name:
                 fnout, filenum = _outputname(f, outdir)
                 _log.info(f'{f} to {fnout}')
@@ -580,4 +579,4 @@ def raw_to_timeseries(
 raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
 merge_rawnc = merge_parquet
 
-__all__ = ['raw_to_rawnc', 'merge_parquet', 'raw_to_timeseries']
+__all__ = ['merge_parquet', 'raw_to_rawnc', 'raw_to_timeseries']
