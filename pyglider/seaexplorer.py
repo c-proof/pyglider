@@ -331,13 +331,13 @@ def _remove_fill_values(df, fill_value=9999):
 
 
 def _forward_fill(gli, todo='Lat'):
-    """Forward-fill Lat to get the last good value at each row"""
+    """Forward-fill the specified column (todo) to propagate the last good value at each row."""
     gli = gli.with_columns([
         pl.col(todo).fill_null(strategy="forward").alias("temp_fill")
     ])
     gli = gli.with_columns([
         pl.when(
-            (pl.col(todo) == pl.col("temp_fill").shift(1)) & pl.col("Lat").is_not_null()
+            (pl.col(todo) == pl.col("temp_fill").shift(1)) & pl.col(todo).is_not_null()
         ).then(np.nan).otherwise(pl.col(todo)).alias(todo)
     ])
     gli = gli.drop("temp_fill")
@@ -393,7 +393,7 @@ def raw_to_timeseries(
         Suffix to add to the output file name.  Default is ''.
     deadreckon : bool
         If *True* use the dead reckoning latitude and longitude data from the glider.  Default
-        is *False*, and latitude and longitude are linearly interpolated between sueface fixes.
+        is *False*, and latitude and longitude are linearly interpolated between surface fixes.
         *False* is the default, and recommended to avoid a-physical underwater jumps.
 
     Returns
@@ -418,8 +418,9 @@ def raw_to_timeseries(
     # don't use lat/lon if deadreckoned:
     if not deadreckon:
         if not ncvar['latitude']['source'] == 'Lat':
-            warnings.warn("For deadreckon=False it is suggested to use 'Lat' as the "
-                          "source for latitude and 'Lon' as the source for longitude")
+            warnings.warn("For deadreckon=False, it is suggested to use 'Lat' as the source for latitude.")
+        if not ncvar['longitude']['source'] == 'Lon':
+            warnings.warn("For deadreckon=False, it is suggested to use 'Lon' as the source for longitude.")
         if 'DeadReckoning' in gli.columns:
             _log.info('Not using deadreckoning; glider has DeadReckoning column')
             gli = _drop_if(gli, todo='Lat', condit='DeadReckoning', value=1)
