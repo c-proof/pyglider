@@ -29,7 +29,8 @@ if True:
     seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='sub')
 
         # Make level-1 timeseries netcdf file from th raw files...
-    outname = seaexplorer.raw_to_timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
+    outname = seaexplorer.raw_to_timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub',
+                                            deadreckon=False)
     ncprocess.extract_timeseries_profiles(outname, profiledir, deploymentyaml)
     outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
 
