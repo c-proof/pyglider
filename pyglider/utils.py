@@ -541,7 +541,7 @@ def fill_metadata(ds, metadata, sensor_data):
     ds.attrs['geospatial_lon_units'] = 'degrees_east'
     ds.attrs['netcdf_version'] = '4.0'  # TODO get this somehow...
     ds.attrs['history'] = (
-        f'CPROOF glider toolbox pyglider version:  {__version__}'
+        f'CPROOF glider toolbox pyglider version: {__version__}'
     )
     for k, v in metadata.items():
         ds.attrs[k] = v
