@@ -187,7 +187,14 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 
 
 def make_gridfiles(
-    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01'
+    inname, 
+    outdir, 
+    deploymentyaml, 
+    *, 
+    fnamesuffix='', 
+    depth_bins=None, 
+    dz=1, 
+    starttime='1970-01-01', 
 ):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
@@ -204,13 +211,20 @@ def make_gridfiles(
         location of deployment yaml file for the netCDF file.  This should
         be the same yaml file that was used to make the timeseries file.
 
+    depth_bins : array, default = None
+        User-defined depth bins. For instance: ``np.arange(0, 1100.1, 1)``.
+        If not None, these are the depth bins into which the data will be gridded, 
+        and the 'depth' values will be the beginning of the depth bins. 
+        If None, dz is used to generate bins between 0 and 1100m, 
+        and the 'depth' values will be the midpoint of the depth bins.
+
     dz : float, default = 1
-        Vertical grid spacing in meters.
+        Vertical grid spacing in meters. Ignored if depth_bins is not None
 
     Returns
     -------
     outname : str
-        Name of gridded netCDF file. The gridded netCDF file has coordinates of
+        Name of gridded netCDF file. The gridded netCDF file has dimensions of
         'depth' and 'profile', so each variable is gridded in depth bins and by
         profile number.  Each profile has a time, latitude, and longitude.
     """
@@ -236,8 +250,15 @@ def make_gridfiles(
     _log.debug(profile_bins)
     Nprofiles = len(profiles)
     _log.info(f'Nprofiles {Nprofiles}')
-    depth_bins = np.arange(0, 1100.1, dz)
-    depths = depth_bins[:-1] + 0.5
+
+    if depth_bins is None:
+        depth_bins = np.arange(0, 1100.1, dz)
+        depths = depth_bins[:-1] + 0.5*dz
+        depth_comment = 'center of depth bins'
+    else:
+        depths = depth_bins[:-1]
+        depth_comment = 'beginning of depth bins'
+
     xdimname = 'time'
     dsout = xr.Dataset(
         coords={'depth': ('depth', depths), 'profile': (xdimname, profiles)}
@@ -247,8 +268,9 @@ def make_gridfiles(
         'long_name': 'Depth',
         'standard_name': 'depth',
         'positive': 'down',
+        'source': ds.depth.attrs["source"], 
         'coverage_content_type': 'coordinate',
-        'comment': 'center of depth bins',
+        'comment': depth_comment,
     }
 
     ds['time_1970'] = ds.temperature.copy()
@@ -266,14 +288,28 @@ def make_gridfiles(
             dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs)
-    ds.drop('time_1970')
+
+    # Profile start and end (min/max) times
+    profile_lookup = {'profile_time_start': "min", 'profile_time_end': "max"}
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
-    _log.info(f'Done times! {len(dat)}')
-    dsout['profile_time_start'] = ((xdimname), dat, profile_meta['profile_time_start'])
-    dsout['profile_time_end'] = ((xdimname), dat, profile_meta['profile_time_end'])
+    for td, bin_stat in profile_lookup.items():
+        _log.debug(f'td, bin_stat {td}, {bin_stat}')
+        dat, xedges, binnumber = stats.binned_statistic(
+            ds['profile_index'].values[good],
+            ds['time_1970'].values[good],
+            statistic=bin_stat,
+            bins=[profile_bins],
+        )
+        dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
+        _log.info(f'{td} {len(dat)}')
+        dsout[td] = ((xdimname), dat, profile_meta[td])
+
+    ds = ds.drop('time_1970')
+    _log.info(f'Done times!')
 
     for k in ds.keys():
         if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
+            _log.debug('k')
             continue
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
