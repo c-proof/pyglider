@@ -212,21 +212,20 @@ def make_gridfiles(
         be the same yaml file that was used to make the timeseries file.
 
     depth_bins : array, default = None
-        User-defined depth bins. For instance: ``np.arange(0, 1100.1, 1)``.
-        If not None, these are the depth bins into which the data will be gridded, 
-        and the 'depth' values will be the beginning of the depth bins. 
-        If None, dz is used to generate bins between 0 and 1100m, 
-        and the 'depth' values will be the midpoint of the depth bins.
+        User-defined depth bins, for instance ``np.arange(0, 1000.1, 1)``.
+        If not None, these are the depth bins into which the data will be 
+        gridded.  If None, ``dz`` is used to generate bins between 0 and 1100m
 
     dz : float, default = 1
-        Vertical grid spacing in meters. Ignored if depth_bins is not None
+        Vertical grid spacing in meters.  Ignored if ``depth_bins`` is not None
 
     Returns
     -------
     outname : str
-        Name of gridded netCDF file. The gridded netCDF file has dimensions of
+        Name of gridded netCDF file.  The gridded netCDF file has dimensions of
         'depth' and 'profile', so each variable is gridded in depth bins and by
-        profile number.  Each profile has a time, latitude, and longitude.
+        profile number.  Each profile has a time, latitude, and longitude. 
+        The depth values are the bin centers
     """
     try:
         os.mkdir(outdir)
@@ -252,12 +251,24 @@ def make_gridfiles(
     _log.info(f'Nprofiles {Nprofiles}')
 
     if depth_bins is None:
+        # calculate depth bins using dz
         depth_bins = np.arange(0, 1100.1, dz)
-        depths = depth_bins[:-1] + 0.5*dz
-        depth_comment = 'center of depth bins'
     else:
-        depths = depth_bins[:-1]
-        depth_comment = 'beginning of depth bins'
+        # sanity check user-provided bins
+        if (
+            depth_bins.ndim != 1 
+            or not np.all(np.isfinite(depth_bins))
+            or not np.issubdtype(depth_bins.dtype, np.number)
+        ):
+            raise ValueError('Depth bins must be a 1D array of finite numbers')
+        if len(depth_bins) < 2:
+            raise ValueError('There must be at least two depth bins edges')
+        if not np.all(np.diff(depth_bins) > 0):
+            raise ValueError('Depth bin edges must be strictly increasing and non-overlapping')
+    
+    # calculate bin centers
+    depths = 0.5*(depth_bins[:-1] + depth_bins[1:])
+    _log.debug(f'depth bins and centers {depth_bins} {{depths}}')
 
     xdimname = 'time'
     dsout = xr.Dataset(
@@ -270,9 +281,10 @@ def make_gridfiles(
         'positive': 'down',
         'source': ds.depth.attrs["source"], 
         'coverage_content_type': 'coordinate',
-        'comment': depth_comment,
+        'comment': 'center of depth bins',
     }
 
+    # Bin by profile index, for the mean time, lat, and lon values for each profile
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
     for td in ('time_1970', 'longitude', 'latitude'):
@@ -289,7 +301,7 @@ def make_gridfiles(
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs)
 
-    # Profile start and end (min/max) times
+    # Bin by profile index, for the profile start (min) and end (max) times
     profile_lookup = {'profile_time_start': "min", 'profile_time_end': "max"}
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
     for td, bin_stat in profile_lookup.items():
@@ -309,7 +321,6 @@ def make_gridfiles(
 
     for k in ds.keys():
         if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
-            _log.debug('k')
             continue
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
@@ -352,6 +363,7 @@ def make_gridfiles(
         dsout = dsout.drop(['water_velocity_eastward', 'water_velocity_northward'])
     dsout.attrs = ds.attrs
     dsout.attrs.pop('cdm_data_type')
+
     # fix to be ISO parsable:
     if len(dsout.attrs['deployment_start']) > 18:
         dsout.attrs['deployment_start'] = dsout.attrs['deployment_start'][:19]
@@ -366,6 +378,15 @@ def make_gridfiles(
         dsout['profile_time_end'].attrs.pop('standard_name')
     except:
         pass
+    # remove, so they can be encoded later:
+    try:
+        dsout['profile_time_start'].attrs.pop('units')
+        dsout['profile_time_end'].attrs.pop('units')
+        dsout['profile_time_start'].attrs.pop('_FillValue')
+        dsout['profile_time_end'].attrs.pop('_FillValue')
+    except:
+        pass
+
     # set some attributes for cf guidance
     # see H.6.2. Profiles along a single trajectory
     # https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/aphs06.html
@@ -383,15 +404,18 @@ def make_gridfiles(
     outname = outdir + '/' + ds.attrs['deployment_name'] + '_grid' + fnamesuffix + '.nc'
     _log.info('Writing %s', outname)
     # timeunits = 'nanoseconds since 1970-01-01T00:00:00Z'
+    time_encoding = {
+        'units': 'seconds since 1970-01-01T00:00:00Z',
+        '_FillValue': np.nan,
+        'calendar': 'gregorian',
+        'dtype': 'float64',
+    }
     dsout.to_netcdf(
         outname,
         encoding={
-            'time': {
-                'units': 'seconds since 1970-01-01T00:00:00Z',
-                '_FillValue': np.nan,
-                'calendar': 'gregorian',
-                'dtype': 'float64',
-            }
+            'time': time_encoding, 
+            'profile_time_start': time_encoding, 
+            'profile_time_end': time_encoding, 
         },
     )
     _log.info('Done gridding')
