@@ -974,11 +974,13 @@ def binary_to_timeseries(
         attrs = utils.fill_required_attrs(attrs)
         ds[name] = (('time'), val, attrs)
 
-    _log.info(f'Getting glider depths, {ds}')
-    _log.debug(f'HERE, {ds.pressure[0:100]}')
-
     if 'pressure' in ds:
+        _log.info(f'Getting glider depths')
+        _log.debug(ds)
+        _log.debug(f'HERE, {ds.pressure[0:100]}')
         ds = utils.get_glider_depth(ds)
+        _log.debug(ds.depth.values[:100])
+        _log.debug(ds.depth.values[2000:2100])
     try:
         ds = utils.get_distance_over_ground(ds)
     except:
@@ -995,22 +997,13 @@ def binary_to_timeseries(
 
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
 
-    start = ds.time.values[0]
-    end = ds.time.values[-1]
     _log.debug('Long')
     _log.debug(ds.longitude.values[-2000:])
-    # make sure this is ISO readable....
-    ds.attrs['deployment_start'] = str(start)[:19]
-    ds.attrs['deployment_end'] = str(end)[:19]
-    _log.debug(ds.depth.values[:100])
-    _log.debug(ds.depth.values[2000:2100])
 
     if (profile_filt_time is not None) and (profile_min_time is not None):
         ds = utils.get_profiles_new(
             ds, filt_time=profile_filt_time, profile_min_time=profile_min_time
         )
-    _log.debug(ds.depth.values[:100])
-    _log.debug(ds.depth.values[2000:2100])
 
     try:
         os.mkdir(outdir)
