@@ -364,6 +364,7 @@ def raw_to_timeseries(
     interpolate=False,
     fnamesuffix='',
     deadreckon=False,
+    replace_attrs=None
 ):
     """
     Convert raw seaexplorer data to a timeseries netcdf file.
@@ -372,29 +373,44 @@ def raw_to_timeseries(
     ----------
     indir : str
         Directory with the raw files are kept.
+
     outdir : str
         Directory to write the matching ``*.nc`` files.
+
     deploymentyaml : str
         YAML text file with deployment information for this glider.
+
     kind : 'raw' or 'sub'
         The type of data to process.  'raw' is the full resolution data, 'sub'
         is the sub-sampled data.  The default is 'raw'.  Note that realtime data is
         typically sub-sampled.
+
     profile_filt_time : float
         Time in seconds to use for filtering the profiles.  Default is 100.
+
     profile_min_time : float
         Minimum time in seconds for a profile to be considered a valid profile.
         Default is 300.
+
     maxgap : float
         Maximum gap in seconds to interpolate over.  Default is 10.
+
     interpolate : bool
         If *True*, interpolate the data to fill in gaps.  Default is False.
+
     fnamesuffix : str
         Suffix to add to the output file name.  Default is ''.
+
     deadreckon : bool
         If *True* use the dead reckoning latitude and longitude data from the glider.  Default
         is *False*, and latitude and longitude are linearly interpolated between surface fixes.
         *False* is the default, and recommended to avoid a-physical underwater jumps.
+
+    replace_attrs : dict or None
+        replace global attributes in the metadata after reading the metadata
+        file in.  Helpful when processing runs with only a couple things that
+        change.
+
 
     Returns
     -------
@@ -404,6 +420,9 @@ def raw_to_timeseries(
     """
 
     deployment = utils._get_deployment(deploymentyaml)
+    if replace_attrs:
+        for att in replace_attrs:
+            deployment['metadata'][att] = replace_attrs[att]
 
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
