@@ -89,7 +89,7 @@ netcdf_variables:
     coordinates:   time depth latitude longitude
 
   latitude:
-    source:       NAV_LATITUDE
+    source:       Lat
     long_name:    latitude
     standard_name: latitude
     units:        degrees_north
@@ -105,7 +105,7 @@ netcdf_variables:
     coordinate_reference_frame:  urn:ogc:crs:EPSG::4326
 
   longitude:
-    source:       NAV_LONGITUDE
+    source:       Lon
     long_name:    longitude
     standard_name: longitude
     units:        degrees_east

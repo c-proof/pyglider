@@ -763,10 +763,13 @@ def raw_to_timeseries(
             val = ebd[sensorname]
             val = utils._zero_screen(val)
             #        val[val==0] = np.nan
+            val = xr.DataArray(convert(val.values), coords=ebd.coords,
+                               dims=ebd.dims)
             val = convert(val)
         else:
             _log.debug('DBD sensorname %s', sensorname)
-            val = convert(dbd[sensorname])
+            val = xr.DataArray(convert(dbd[sensorname].values), coords=dbd.coords,
+                               dims=dbd.dims)
             val = _dbd2ebd(dbd, ds, val)
             ncvar['method'] = 'linear fill'
         # make the attributes:
