@@ -682,6 +682,9 @@ def find_gaps(sample_time, timebase, maxgap):
     Return an index into *timebase* where True are times in gaps of *sample_time* larger
     than maxgap.
     """
+    # make sure sample times are strictly increasing
+    sample_time = np.sort(sample_time)
+
     # figure out which sample each time in time base belongs to:
     time_index = np.searchsorted(sample_time, timebase, side='right')
     time_index = np.clip(time_index, 0, len(sample_time) - 1)

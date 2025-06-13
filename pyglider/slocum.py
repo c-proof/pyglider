@@ -954,6 +954,7 @@ def binary_to_timeseries(
             _t, _ = dbd.get(ncvar[name]['source'])
             tg_ind = utils.find_gaps(_t, time, maxgap)
             val[tg_ind] = np.nan
+            _log.debug('number of gaps %s', np.count_nonzero(tg_ind))
 
             val = utils._zero_screen(val)
             val = convert(val)
