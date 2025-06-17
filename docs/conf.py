@@ -25,7 +25,8 @@ author = 'PyGlider team'
 # The full version, including alpha/beta/rc tags
 release = __version__
 
-
+master_doc = 'index'
+source_suffix = ['.rst', '.md']
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -36,7 +37,7 @@ extensions = [
     'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.inheritance_diagram',
-    'autoapi.sphinx',
+    'autoapi.extension',
 ]
 
 extensions.append('sphinx.ext.intersphinx')
@@ -46,7 +47,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
 }
 
-autoapi_modules = {'pyglider': None}
+autoapi_dirs = ['../pyglider']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

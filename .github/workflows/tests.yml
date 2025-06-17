@@ -1,5 +1,10 @@
 name: Test pyglider
 on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash -el {0}
+
 jobs:
   test-gliders:
     name: pyglider (${{ matrix.python-version }}, ${{ matrix.os }})
@@ -7,33 +12,35 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: mamba setup enviroment
         uses: mamba-org/setup-micromamba@v1.9.0
         with:
           environment-name: test-env
-          environment-file: tests/environment.yml
+          environment-file: environment.yml
           create-args: >-
             python=${{ matrix.python-version }}
-      - name: Conda info
-        shell: micromamba-shell {0}
-        run: conda info; conda list
       - name: install pyglider source
-        shell: micromamba-shell {0}
-        run: which pip; pip install -e .
+        run: |
+          pip install -e .
       - name: Process seaexplorer
-        shell: micromamba-shell {0}
-        run: which python; cd tests/example-data/example-seaexplorer; make clean-all; python process_deploymentRealTime.py
+        run: |
+          cd tests/example-data/example-seaexplorer
+          make clean-all
+          python process_deploymentRealTime.py
       - name: Process slocum
-        shell: micromamba-shell {0}
-        run: which python; cd tests/example-data/example-slocum; make clean-all; python process_deploymentRealTime.py
+        run: |
+          cd tests/example-data/example-slocum
+          make clean-all
+          python process_deploymentRealTime.py
       - name: Process seaexplorer-legato-flntu-arod-ad2cp
-        shell: micromamba-shell {0}
-        run: which python; cd tests/example-data/example-seaexplorer-legato-flntu-arod-ad2cp; make clean-all; python process_deploymentRealTime.py
+        run: |
+          cd tests/example-data/example-seaexplorer-legato-flntu-arod-ad2cp
+          make clean-all
+          python process_deploymentRealTime.py
       - name: Run tests
-        shell: micromamba-shell {0}
-        run: which python; pytest --cov --cov-report xml
+        run: pytest --cov --cov-report xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
