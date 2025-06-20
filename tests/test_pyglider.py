@@ -98,7 +98,7 @@ l0tsdir = str(example_dir / 'example-seaexplorer-raw/L0-timeseries-test/') + '/'
 seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml_raw)
 seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml_raw, kind='raw')
 outname_raw = seaexplorer.raw_to_L0timeseries(
-    rawncdir, l0tsdir, deploymentyaml_raw, kind='raw'
+    rawncdir, l0tsdir, deploymentyaml_raw, kind='raw', deadreckon=True
 )
 output_raw = xr.open_dataset(outname_raw)
 # Open test data file
@@ -147,7 +147,7 @@ l0tsdir_interp_raw = (
 )
 
 outname_interp_raw = seaexplorer.raw_to_L0timeseries(
-    rawncdir, l0tsdir_interp_raw, interp_yaml, kind='raw'
+    rawncdir, l0tsdir_interp_raw, interp_yaml, kind='raw', deadreckon=True
 )
 output_interp_raw = xr.open_dataset(outname_interp_raw)
 
