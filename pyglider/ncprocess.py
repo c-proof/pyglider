@@ -340,7 +340,7 @@ def make_gridfiles(
 
     if exclude_vars is None:
         exclude_vars = []
-    exclude_vars = list(dsout.keys()) + ["distance_over_ground"] + exclude_vars
+    exclude_vars += list(dsout.keys()) + ["depth"]
     for k in ds.keys():       
         if (k in exclude_vars) or ('time' in k) or ('profile' in k):
             _log.debug('Not gridding %s', k)
