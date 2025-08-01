@@ -284,7 +284,7 @@ def merge_parquet(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
     # lets figure out what columns to read for situations where the number of columns changes:
     gli0 = pl.read_parquet(files[0])
     gli1 = pl.read_parquet(files[-1])
-    columns = list(set(gli0.columns) & set(gli1.columns))
+    columns = list(set(gli0.columns) | set(gli1.columns))
     columns = set([c for c in columns if len(c) > 0])
     dfs = []
     for f in files:
@@ -293,7 +293,7 @@ def merge_parquet(indir, outdir, deploymentyaml, incremental=False, kind='raw'):
         for col in missing:
             df = df.with_columns(pl.lit(None).cast(pl.Float64).alias(col))
 
-        dfs.append(df)
+        dfs.append(df.select(sorted(columns)))
     gli = pl.concat(dfs, rechunk=True)
 
     #gli = pl.read_parquet(indir + '/*.gli.sub.*.parquet', columns=columns,
