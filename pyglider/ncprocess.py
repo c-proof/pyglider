@@ -195,10 +195,15 @@ def make_gridfiles(
     depth_bins=None, 
     dz=1, 
     starttime='1970-01-01', 
-    exclude_vars=None,
 ):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
+
+    Timeseries variables can be excluded from the gridded netCDF file
+    by including ``grid_exclude: 'true'`` in the deployment yaml.
+    'distance_over_ground' will always be excluded. 
+    'profile_direction', 'profile_time_start', and 'profile_time_end' 
+    will always be included, but will only have one dimension ('profile'). 
 
     Parameters
     ----------
@@ -224,17 +229,13 @@ def make_gridfiles(
         The minimum time of data that will be gridded.  All data before this 
         time will be dropped
 
-    exclude_vars : list of strings, default empty list
-        Variable names from the timeseries that should not be gridded.  
-        These variables will be excluded from the gridded netCDF file
-
     Returns
     -------
     outname : str
         Name of gridded netCDF file.  The gridded netCDF file has dimensions of
         'depth' and 'profile', so each variable is gridded in depth bins and by
         profile number.  Each profile has a time, latitude, and longitude. 
-        The depth values are the bin centers
+        The depth values are the bin centers. 
     """
     try:
         os.mkdir(outdir)
@@ -283,7 +284,7 @@ def make_gridfiles(
     dsout = xr.Dataset(
         coords={'depth': ('depth', depths), 'profile': (xdimname, profiles)}
     )
-    # dsout['profile'].attrs = ds.profile_index.attrs
+    dsout['profile'].attrs = ds.profile_index.attrs
     dsout['depth'].attrs = {
         'units': 'm',
         'long_name': 'Depth',
@@ -315,7 +316,7 @@ def make_gridfiles(
             td = 'time'
             dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
-        dsout[td] = (('time'), dat, ds[td].attrs)
+        dsout[td] = (xdimname, dat, ds[td].attrs)
 
     # Bin by profile index, for the profile start (min) and end (max) times
     profile_time_lookup = {
@@ -338,13 +339,19 @@ def make_gridfiles(
     ds = ds.drop('time_1970')
     _log.info(f'Done times!')
 
-    if exclude_vars is None:
-        exclude_vars = []
-    exclude_vars += list(dsout.keys()) + ["depth"]
+    coordinate_vars = (
+        list(dsout.keys())
+        + ["depth", "profile_index", "distance_over_ground"]
+    )
     for k in ds.keys():       
-        if (k in exclude_vars) or ('time' in k) or ('profile' in k):
+        if (k in coordinate_vars) or ('time' in k):
             _log.debug('Not gridding %s', k)
             continue
+        if 'grid_exclude' in ds[k].attrs:
+            if ds[k].attrs['grid_exclude'] == 'true':
+                _log.debug('Not gridding %s due to grid_exclude flag', k)
+                continue
+
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
         if len(good) <= 0:
@@ -419,7 +426,7 @@ def make_gridfiles(
     dsout['mission_number'].attrs['cf_role'] = 'trajectory_id'
     dsout = dsout.set_coords(['latitude', 'longitude', 'time'])
     for k in dsout:
-        if k in ['profile', 'depth', 'latitude', 'longitude', 'time', 'mission_number']:
+        if k in coordinate_vars + ['mission_number']:
             dsout[k].attrs['coverage_content_type'] = 'coordinate'
         else:
             dsout[k].attrs['coverage_content_type'] = 'physicalMeasurement'
