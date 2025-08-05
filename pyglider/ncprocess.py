@@ -339,12 +339,12 @@ def make_gridfiles(
     ds = ds.drop('time_1970')
     _log.info(f'Done times!')
 
-    coordinate_vars = (
+    grid_exclude_vars = (
         list(dsout.keys())
         + ["depth", "profile_index", "distance_over_ground"]
     )
     for k in ds.keys():       
-        if (k in coordinate_vars) or ('time' in k):
+        if (k in grid_exclude_vars) or ('time' in k):
             _log.debug('Not gridding %s', k)
             continue
         if 'grid_exclude' in ds[k].attrs:
@@ -426,8 +426,10 @@ def make_gridfiles(
     dsout['mission_number'].attrs['cf_role'] = 'trajectory_id'
     dsout = dsout.set_coords(['latitude', 'longitude', 'time'])
     for k in dsout:
-        if k in coordinate_vars + ['mission_number']:
+        if k in ['profile', 'depth', 'latitude', 'longitude', 'time', 'mission_number']:
             dsout[k].attrs['coverage_content_type'] = 'coordinate'
+        elif k in grid_exclude_vars:
+            dsout[k].attrs['coverage_content_type'] = 'auxiliaryInformation'
         else:
             dsout[k].attrs['coverage_content_type'] = 'physicalMeasurement'
 
