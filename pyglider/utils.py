@@ -17,6 +17,37 @@ from pyglider._version import __version__
 _log = logging.getLogger(__name__)
 
 
+def convert_ddmm_coords(ds, lat_name="latitude", lon_name="longitude"):
+    """
+    Convert DDMM.mmmm formatted latitude/longitude in an xarray Dataset
+    to decimal degrees. Only converts values with abs() > 180.
+    Thank you chatgpt
+    """
+
+    def ddmm_to_dd(da):
+        sign = xr.where(da < 0, -1.0, 1.0)
+        abs_da = np.abs(da)
+
+        deg = np.floor(abs_da / 100.0)
+        minutes = abs_da - deg * 100.0
+
+        dd = sign * (deg + minutes / 60.0)
+        return dd
+
+    # Convert latitude if needed
+    if lat_name in ds:
+        lat = ds[lat_name]
+        if float(np.nanmax(np.abs(lat))) > 180:
+            ds[lat_name] = ddmm_to_dd(lat)
+
+    # Convert longitude if needed
+    if lon_name in ds:
+        lon = ds[lon_name]
+        if float(np.nanmax(np.abs(lon))) > 180:
+            ds[lon_name] = ddmm_to_dd(lon)
+
+    return ds
+
 def get_distance_over_ground(ds):
     """
     Add a distance over ground variable to a netcdf structure
