@@ -187,8 +187,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 
 
 def make_gridfiles(
-    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01'
-):
+    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=CPROOF_mask):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
@@ -223,12 +222,14 @@ def make_gridfiles(
 
     profile_meta = deployment['profile_variables']
 
-    ds = xr.open_dataset(inname, decode_times=True)
-    ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
+    ds0 = xr.open_dataset(inname, decode_times=True)
+    ds0 = ds0.where(ds0.time > np.datetime64(starttime), drop=True)
     _log.info(f'Working on: {inname}')
-    _log.debug(str(ds))
-    _log.debug(str(ds.time[0]))
-    _log.debug(str(ds.time[-1]))
+    _log.debug(str(ds0))
+    _log.debug(str(ds0.time[0]))
+    _log.debug(str(ds0.time[-1]))
+
+    ds = maskfunction(ds0)
 
     profiles = np.unique(ds.profile_index)
     profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1) and (p > 0))]
@@ -271,32 +272,43 @@ def make_gridfiles(
     _log.info(f'Done times! {len(dat)}')
     dsout['profile_time_start'] = ((xdimname), dat, profile_meta['profile_time_start'])
     dsout['profile_time_end'] = ((xdimname), dat, profile_meta['profile_time_end'])
-
+    
     for k in ds.keys():
         if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
             continue
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
+        
         if len(good) <= 0:
             continue
         if 'average_method' in ds[k].attrs:
-            average_method = ds[k].attrs['average_method']
+            method = ds[k].attrs['average_method']
             ds[k].attrs['processing'] = (
                 f'Using average method {average_method} for '
                 f'variable {k} following deployment yaml.'
             )
-            if average_method == 'geometric mean':
-                average_method = stats.gmean
+            if method == 'geometric mean':
+                method = stats.gmean
                 ds[k].attrs['processing'] += (
                     ' Using geometric mean implementation ' 'scipy.stats.gmean'
                 )
+        elif 'QC_protocol' in ds[k].attrs:
+            method = ds[k].attrs['max_method']
+            ds[k].attrs['processing'] = (
+                f'Taking the maximum quality flag for '
+                f'variable {k} following deployment yaml.'
+            )
+            method = np.nanmax
+
         else:
-            average_method = 'mean'
+            method = 'mean'
+
+
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds['profile_index'].values[good],
             ds['depth'].values[good],
             values=ds[k].values[good],
-            statistic=average_method,
+            statistic=method,
             bins=[profile_bins, depth_bins],
         )
 
@@ -361,7 +373,7 @@ def make_gridfiles(
     _log.info('Done gridding')
 
     return outname
-
+ 
 
 # aliases
 extract_L0timeseries_profiles = extract_timeseries_profiles
