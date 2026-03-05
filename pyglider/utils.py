@@ -657,39 +657,23 @@ def _passthrough(val):
     return val
 
 
-def gappy_fill_vertical(data, max_gap=50):
+def gappy_fill_vertical(data):
     """
-    Fill ONLY small NaN runs (<= max_gap bins) inside each vertical column.
-    No extrapolation at top/bottom edges.
+    Fill vertical gaps from the first to last bin with data in them.
+    Applied column-wise.
+
+    data = gappy_fill_vertical(data)
     """
     m, n = np.shape(data)
     for j in range(n):
-        col = data[:, j]
-        ind = np.where(~np.isnan(col))[0]
-        if len(ind) < 2:
-            continue
-
-        lo, hi = ind[0], ind[-1]
-        sub = col[lo:hi+1]
-        isn = np.isnan(sub)
-        if not isn.any():
-            continue
-
-        x = isn.astype(np.int8)
-        edges = np.diff(np.r_[0, x, 0])
-        starts = np.where(edges == 1)[0]
-        ends   = np.where(edges == -1)[0]  # exclusive
-
-        for s, e in zip(starts, ends):
-            run_len = e - s
-            if run_len <= max_gap and s > 0 and e < len(sub):
-                # bracketed by finite values
-                if np.isfinite(sub[s-1]) and np.isfinite(sub[e]):
-                    sub[s:e] = np.interp(np.arange(s, e), [s-1, e], [sub[s-1], sub[e]])
-
-        col[lo:hi+1] = sub
-        data[:, j] = col
-
+        ind = np.where(~np.isnan(data[:, j]))[0]
+        if (
+            len(ind) > 0
+            and len(ind) < (ind[-1] - ind[0])
+            and len(ind) > (ind[-1] - ind[0]) * 0.05
+        ):
+            int = np.arange(ind[0], ind[-1])
+            data[:, j][ind[0] : ind[-1]] = np.interp(int, ind, data[ind, j])
     return data
 
 def find_gaps(sample_time, timebase, maxgap):
