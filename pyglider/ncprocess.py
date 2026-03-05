@@ -186,6 +186,30 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 
+def CPROOF_mask(ds):
+    """Mask QC4 samples in data variables (set to NaN) so gridding ignores them.
+    Does NOT shorten arrays or overwrite QC variables.
+    """
+    _log = logging.getLogger(__name__)
+
+    ds = ds.copy() 
+
+    for k in list(ds.data_vars):
+        # skip QC variables themselves
+        if k.endswith("_QC"):
+            continue
+
+        qc_name = f"{k}_QC"
+        if qc_name not in ds:
+            continue
+
+        # mask data where QC == 4, preserving dims/coords
+        ds[k] = ds[k].where(ds[qc_name] != 4)
+        ds[qc_name] = ds[qc_name].where(ds[qc_name] != 4)
+        
+    return ds
+
+    
 def make_gridfiles(
     inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=CPROOF_mask):
     """
@@ -206,6 +230,11 @@ def make_gridfiles(
     dz : float, default = 1
         Vertical grid spacing in meters.
 
+    maskfunction : callable or None, optional
+        Function applied to the dataset before gridding. By default, CPROOF_mask
+        masks QC4 samples in data variables by setting them to NaN so they are
+        ignored during gridding. Set to None to skip masking.
+
     Returns
     -------
     outname : str
@@ -222,14 +251,17 @@ def make_gridfiles(
 
     profile_meta = deployment['profile_variables']
 
-    ds0 = xr.open_dataset(inname, decode_times=True)
-    ds0 = ds0.where(ds0.time > np.datetime64(starttime), drop=True)
+    ds = xr.open_dataset(inname, decode_times=True)
+    
+    if maskfunction is not None:
+        ds = maskfunction(ds)
+        
+    ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
     _log.info(f'Working on: {inname}')
-    _log.debug(str(ds0))
-    _log.debug(str(ds0.time[0]))
-    _log.debug(str(ds0.time[-1]))
+    _log.debug(str(ds))
+    _log.debug(str(ds.time[0]))
+    _log.debug(str(ds.time[-1]))
 
-    ds = maskfunction(ds0)
 
     profiles = np.unique(ds.profile_index)
     profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1) and (p > 0))]
@@ -284,7 +316,7 @@ def make_gridfiles(
         if 'average_method' in ds[k].attrs:
             method = ds[k].attrs['average_method']
             ds[k].attrs['processing'] = (
-                f'Using average method {average_method} for '
+                f'Using average method {method} for '
                 f'variable {k} following deployment yaml.'
             )
             if method == 'geometric mean':
@@ -293,16 +325,18 @@ def make_gridfiles(
                     ' Using geometric mean implementation ' 'scipy.stats.gmean'
                 )
         elif 'QC_protocol' in ds[k].attrs:
-            method = ds[k].attrs['max_method']
+            # QC variables are treated as discrete flags rather than continuous data.
+            # If a variable has a QC_protocol attribute, it is gridded using the
+            # maximum flag in each bin (e.g. any QC3 in a bin makes the gridded bin QC3).
+            method = np.nanmax
             ds[k].attrs['processing'] = (
                 f'Taking the maximum quality flag for '
                 f'variable {k} following deployment yaml.'
             )
-            method = np.nanmax
+        
 
         else:
             method = 'mean'
-
 
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds['profile_index'].values[good],
@@ -315,9 +349,10 @@ def make_gridfiles(
         _log.debug(f'dat{np.shape(dat)}')
         dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
 
-        # fill gaps in data:
-        dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)
-
+        # Fill only continuous variables, not QC flags
+        if 'QC_protocol' not in ds[k].attrs :
+            dsout[k] = dsout[k].interpolate_na(dim="depth", method="linear", max_gap=50)
+        
     # fix u and v, because they should really not be gridded...
     if ('water_velocity_eastward' in dsout.keys()) and ('u' in profile_meta.keys()):
         _log.debug(str(ds.water_velocity_eastward))
@@ -373,7 +408,8 @@ def make_gridfiles(
     _log.info('Done gridding')
 
     return outname
- 
+    
+    
 
 # aliases
 extract_L0timeseries_profiles = extract_timeseries_profiles
