@@ -211,7 +211,7 @@ def CPROOF_mask(ds):
 
     
 def make_gridfiles(
-    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=CPROOF_mask):
+    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=None):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
@@ -231,9 +231,7 @@ def make_gridfiles(
         Vertical grid spacing in meters.
 
     maskfunction : callable or None, optional
-        Function applied to the dataset before gridding. By default, CPROOF_mask
-        masks QC4 samples in data variables by setting them to NaN so they are
-        ignored during gridding. Set to None to skip masking.
+        Function applied to the dataset before gridding. 
 
     Returns
     -------
@@ -314,6 +312,9 @@ def make_gridfiles(
         if len(good) <= 0:
             continue
         if 'average_method' in ds[k].attrs:
+            # variables are treated as d continuous data.
+            # If a variable has a average_method attribute, it is gridded using the
+            # mean in each bin  
             method = ds[k].attrs['average_method']
             ds[k].attrs['processing'] = (
                 f'Using average method {method} for '
@@ -408,6 +409,10 @@ def make_gridfiles(
     _log.info('Done gridding')
 
     return outname
+    
+    
+    
+    
     
     
 
