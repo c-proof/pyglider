@@ -9,6 +9,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Upgrade pip and setuptools
+          command: python -m ensurepip --upgrade || true && python -m pip install --upgrade pip setuptools
+      - run:
           name: Install Python dependencies
           command: |
             python -m pip install -r docs-requirements.txt
