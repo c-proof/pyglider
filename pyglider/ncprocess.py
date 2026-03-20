@@ -331,7 +331,7 @@ def make_gridfiles(inname,
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
         if len(good) <= 0:
             continue        
-        if 'QC_protocol' in ds[k].attrs.values():
+        if d in ds[k].attrs.values():
             # QC variables are treated as discrete flags rather than continuous data.
             # If a variable has a QC_protocol attribute, it is gridded using the
             # maximum flag in each bin (e.g. any QC3 in a bin makes the gridded bin QC3).
@@ -622,7 +622,16 @@ def correct_sal(ds, fn, alpha, tau, interpolate_filter = None):
 
     return sal
 
-def adjust_CTD(uncorrected_file,deploymentyaml,ts_directory, ds_directory, alpha= None, tau = None, dTdC=None, accuracy = None): 
+def adjust_CTD(uncorrected_file,
+    deploymentyaml,
+    ts_directory,
+     ds_directory,
+     alpha= None, 
+    tau = None, 
+    dTdC=None, 
+    accuracy = None,
+    maskfunction = None,
+    interp_variables = None): 
 
     ts = xr.open_dataset(uncorrected_file)
     deployment = utils._get_deployment(deploymentyaml)
@@ -778,7 +787,7 @@ def adjust_CTD(uncorrected_file,deploymentyaml,ts_directory, ds_directory, alpha
     deploy_name = ts.deployment_name
     ts.to_netcdf(f'{ts_directory}/{deploy_name}_CTDadjusted.nc')
     make_gridfiles(f'{ts_directory}/{deploy_name}_CTDadjusted.nc',  f'{ds_directory}', deploymentyaml, fnamesuffix='_CTDadjusted',
-                       maskfunction=CPROOF_mask,interp_variables=interpolate_vertical) 
+                       maskfunction= maskfunction,interp_variables= interp_variables) 
 
     return 
 
