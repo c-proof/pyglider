@@ -347,10 +347,10 @@ def get_derived_eos_raw(ds):
         [
             ('long_name', 'water salinity'),
             ('standard_name', 'sea_water_practical_salinity'),
-            ('units', '1e-3'),
-            ('comment', 'raw, uncorrected salinity'),
+            ('units', '1'),
+            ('comment', 'raw, uncorrected practical salinity; Units are also known as PSU'),
             ('sources', 'conductivity temperature pressure'),
-            ('method', 'get_derived_eos_raw'),
+            ('method', 'pyglider.utils.get_derived_eos_raw; gsw.conversions.SP_from_C'),
             ('observation_type', 'calulated'),
             ('instrument', 'instrument_ctd'),
             ('valid_max', 40.0),
@@ -372,9 +372,9 @@ def get_derived_eos_raw(ds):
             ('long_name', 'water potential density'),
             ('standard_name', 'sea_water_potential_density'),
             ('units', 'kg m-3'),
-            ('comment', 'raw, uncorrected salinity'),
+            ('comment', 'raw, uncorrected potential density'),
             ('sources', 'salinity temperature pressure'),
-            ('method', 'get_derived_eos_raw'),
+            ('method', 'pyglider.utils.get_derived_eos_raw; gsw.density.sigma0 using gsw.SA_from_SP and gsw.CT_from_t'),
             ('observation_type', 'calulated'),
             ('instrument', 'instrument_ctd'),
             ('accuracy', 0.01),
@@ -394,11 +394,11 @@ def get_derived_eos_raw(ds):
             ('long_name', 'Density'),
             ('standard_name', 'sea_water_density'),
             ('units', 'kg m-3'),
-            ('comment', 'raw, uncorrected salinity'),
+            ('comment', 'raw, uncorrected density'),
             ('observation_type', 'calulated'),
             ('sources', 'salinity temperature pressure'),
             ('instrument', 'instrument_ctd'),
-            ('method', 'get_derived_eos_raw'),
+            ('method', 'pyglider.utils.get_derived_eos_raw; gsw.density.rho using gsw.SA_from_SP and gsw.CT_from_t'),
             ('valid_min', 990.0),
             ('valid_max', 1040.0),
             ('accuracy', 0.01),
@@ -417,10 +417,10 @@ def get_derived_eos_raw(ds):
             ('long_name', 'water potential temperature'),
             ('standard_name', 'sea_water_potential_temperature'),
             ('units', 'Celsius'),
-            ('comment', 'raw, uncorrected salinity'),
+            ('comment', 'raw, uncorrected potential temperature'),
             ('sources', 'salinity temperature pressure'),
             ('observation_type', 'calulated'),
-            ('method', 'get_derived_eos_raw'),
+            ('method', 'pyglider.utils.get_derived_eos_raw; gsw.conversions.pt0_from_t using gsw.SA_from_SP'),
             ('instrument', 'instrument_ctd'),
             ('accuracy', 0.002),
             ('precision', 0.001),
@@ -558,7 +558,7 @@ def fill_metadata(ds, metadata, sensor_data):
     dt = ds.time.values
     ds.attrs['time_coverage_start'] = '%s' % dt[0]
     ds.attrs['time_coverage_end'] = '%s' % dt[-1]
-    
+
     # make sure this is ISO readable....
     ds.attrs['deployment_start'] = str(dt[0])[:19]
     ds.attrs['deployment_end'] = str(dt[-1])[:19]

@@ -402,6 +402,7 @@ def raw_to_timeseries(
     profile_min_time=300,
     maxgap=10,
     interpolate=False,
+    start_time=None,
     fnamesuffix='',
     deadreckon=False,
     replace_attrs=None
@@ -438,6 +439,9 @@ def raw_to_timeseries(
     interpolate : bool
         If *True*, interpolate the data to fill in gaps.  Default is False.
 
+    start_time : str or None
+        Drop data if before this date - sometimes there are bad times. Default is *None*
+
     fnamesuffix : str
         Suffix to add to the output file name.  Default is ''.
 
@@ -460,6 +464,7 @@ def raw_to_timeseries(
     """
 
     deployment = utils._get_deployment(deploymentyaml)
+    print(deployment)
     if replace_attrs:
         for att in replace_attrs:
             deployment['metadata'][att] = replace_attrs[att]
@@ -475,6 +480,7 @@ def raw_to_timeseries(
     sensor = _remove_fill_values(sensor)
 
     # don't use lat/lon if deadreckoned:
+    print(ncvar)
     if not deadreckon:
         if not ncvar['latitude']['source'] == 'Lat':
             warnings.warn("For deadreckon=False, it is suggested to use 'Lat' as the source for latitude.")
@@ -625,6 +631,10 @@ def raw_to_timeseries(
             keeps[~np.isnan(ds[keep_var].values)] = 1
         ds = ds.where(~np.isnan(keeps))
         ds = ds.dropna(dim='time', how='all')
+
+    # drop dates before start_time
+    if start_time is not None:
+        ds = ds.where(ds.time >= np.datetime64(start_time), drop=True)
 
     # some derived variables:
     ds = utils.get_glider_depth(ds)
