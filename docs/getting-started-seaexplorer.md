@@ -31,7 +31,17 @@ The example script is relatively straight forward if there is no intermediate pr
 
 Data comes from an input directory, and is translated to raw glider-dependent parquet files files and put in a new directory. These files are useful of their own right. Apache Parquet is a columnar oriented format for storing tabular data. Parquet files take up less space than netCDF or csv and are much faster to read and write. These files can be opened with [polars.read_parquet](https://pola-rs.github.io/polars-book/user-guide/howcani/io/parquet.html) or [pandas.read_parquet](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_parquet.html). These files are then merged into a single monolithic parquet file, and this is translated to a CF-compliant timeseries netCDF file. Finally individual profiles are saved and a 2-D 1-m grid in time-depth is saved.
 
-It is likely that between these steps the user will want to add any screening steps, or adjustments to the calibrations. PyGlider does not provide those steps.
+Users may wish to include additional screening steps or calibration adjustments between these stages.
+
+PyGlider provides an optional function, `pyglider.ncprocess.adjust_CTD`, which:
+
+- identifies anomalous conductivity values  
+- corrects for sensor misalignment between temperature and conductivity  
+- applies a thermal lag correction  
+
+This function can be used as a starting point and adapted depending on the dataset and application.
+
+See the full documentation: [CTD adjustment workflow](adjust_CTD.md). 
 
 (ExDepl)=
 

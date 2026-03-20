@@ -29,7 +29,17 @@ Data comes from an input directory, and is translated into a single CF-compliant
 There is a version that does not require `dbdreader` to do the initial conversion from the Dinkum format to netCDF. However it is quite slow, particularly for full-resolution datasets, and less robust. We suggest using the `slocum.raw_to_timeseries`.
 :::
 
-It is possible that between these steps the user will want to add any screening steps, or adjustments to the calibrations. PyGlider does not provide those steps, but is designed so they are easy to add.
+Users may wish to include additional screening steps or calibration adjustments between these stages.
+
+PyGlider provides an optional function, `pyglider.ncprocess.adjust_CTD`, which:
+
+- identifies anomalous conductivity values  
+- corrects for sensor misalignment between temperature and conductivity  
+- applies a thermal lag correction  
+
+This function can be used as a starting point and adapted depending on the dataset and application.
+
+See the full documentation: [CTD adjustment workflow](adjust_CTD.md).
 
 (ExDeplSlocum)=
 
