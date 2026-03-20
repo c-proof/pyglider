@@ -9,13 +9,15 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Upgrade pip and setuptools
+          command: python -m ensurepip --upgrade || true && python -m pip install --upgrade pip setuptools
+      - run:
           name: Install Python dependencies
           command: |
-            python -m pip install --user \
-                -r docs-requirements.txt
+            python -m pip install -r docs-requirements.txt
       - run:
           name: install module
-          command: python -m pip install --user -ve .
+          command: python -m pip install -ve .
       - run:
           name: Build docs
           command: cd docs/ && make html
