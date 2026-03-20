@@ -464,7 +464,6 @@ def raw_to_timeseries(
     """
 
     deployment = utils._get_deployment(deploymentyaml)
-    print(deployment)
     if replace_attrs:
         for att in replace_attrs:
             deployment['metadata'][att] = replace_attrs[att]
@@ -480,7 +479,6 @@ def raw_to_timeseries(
     sensor = _remove_fill_values(sensor)
 
     # don't use lat/lon if deadreckoned:
-    print(ncvar)
     if not deadreckon:
         if not ncvar['latitude']['source'] == 'Lat':
             warnings.warn("For deadreckon=False, it is suggested to use 'Lat' as the source for latitude.")

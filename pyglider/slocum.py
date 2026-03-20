@@ -906,10 +906,8 @@ def binary_to_timeseries(
     sensors = [time_base]
 
     baseind = None
-    print(thenames)
     for nn, name in enumerate(thenames):
         sensorname = ncvar[name]['source']
-        print(sensorname, time_base)
         if not sensorname == time_base:
             sensors.append(sensorname)
         else:
