@@ -331,7 +331,7 @@ def make_gridfiles(inname,
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
         if len(good) <= 0:
             continue        
-        if d in ds[k].attrs.values():
+        if 'QC_protocol' in ds[k].attrs.values():
             # QC variables are treated as discrete flags rather than continuous data.
             # If a variable has a QC_protocol attribute, it is gridded using the
             # maximum flag in each bin (e.g. any QC3 in a bin makes the gridded bin QC3).
