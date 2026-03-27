@@ -126,7 +126,7 @@ def get_profiles(ds, min_dp=10.0, inversion=3.0, filt_length=7, min_nsamples=14)
     )
     dpall = np.diff(p)
     inflect = np.where(dpall[:-1] * dpall[1:] < 0)[0]
-    for n, i in enumerate(inflect[:-1]):
+    for n, _ in enumerate(inflect[:-1]):
         nprofile = inflect[n + 1] - inflect[n]
         inds = np.arange(good[inflect[n]], good[inflect[n + 1]] + 1) + 1
         dp = np.diff(ds.pressure[inds[[-1, 0]]])
@@ -556,8 +556,8 @@ def fill_metadata(ds, metadata, sensor_data):
     ds.attrs['title'] = ds.attrs['id']
 
     dt = ds.time.values
-    ds.attrs['time_coverage_start'] = '%s' % dt[0]
-    ds.attrs['time_coverage_end'] = '%s' % dt[-1]
+    ds.attrs['time_coverage_start'] = str(dt[0])
+    ds.attrs['time_coverage_end'] = str(dt[-1])
 
     # make sure this is ISO readable....
     ds.attrs['deployment_start'] = str(dt[0])[:19]
@@ -711,7 +711,7 @@ def _parse_gliderxml_pos(fname):
     xmln = fname
     from bs4 import BeautifulSoup
 
-    with open(xmln, 'r') as fin:
+    with open(xmln) as fin:
         y = BeautifulSoup(fin, features='xml')
         time = None
         lon = None
@@ -745,7 +745,7 @@ def _parse_gliderxml_surfacedatetime(fname):
     xmln = fname
     from bs4 import BeautifulSoup
 
-    with open(xmln, 'r') as fin:
+    with open(xmln) as fin:
         y = BeautifulSoup(fin, features='xml')
         time = None
         for a in y.find_all('report'):
@@ -761,8 +761,8 @@ def _parse_gliderxml_surfacedatetime(fname):
 def example_gridplot(
     filename,
     outname,
-    toplot=['potential_temperature', 'salinity', 'oxygen_concentration'],
-    pdenlevels=np.arange(10, 30, 0.5),
+    toplot=['potential_temperature', 'salinity', 'oxygen_concentration'],  # noqa: B006
+    pdenlevels=np.arange(10, 30, 0.5),  # noqa: B008
     dpi=200,
     ylim=None,
 ):
@@ -800,7 +800,7 @@ def _get_deployment(deploymentyaml):
             deploymentyaml,
         ]
     deployment = {}
-    for nn, d in enumerate(deploymentyaml):
+    for d in deploymentyaml:
         with open(d) as fin:
             deployment_ = yaml.safe_load(fin)
             for k in deployment_:
@@ -846,12 +846,12 @@ def _get_glider_name_slocum(current_directory):
 
 
 __all__ = [
+    'fill_metadata',
+    'gappy_fill_vertical',
+    'get_derived_eos_raw',
     'get_distance_over_ground',
     'get_glider_depth',
     'get_profiles_new',
-    'get_derived_eos_raw',
-    'fill_metadata',
     'nmea2deg',
-    'gappy_fill_vertical',
     'oxygen_concentration_correction',
 ]
