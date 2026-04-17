@@ -244,7 +244,11 @@ def make_gridfiles(
 
     deployment = utils._get_deployment(deploymentyaml)
 
-    profile_meta = deployment['profile_variables']
+    ncvar = deployment['netcdf_variables']
+    if 'profile_variables' in deployment.keys():
+        profile_meta = deployment['profile_variables']
+    else:
+        profile_meta = {}
 
     ds = xr.open_dataset(inname, decode_times=True)
     ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
@@ -319,22 +323,23 @@ def make_gridfiles(
         dsout[td] = (xdimname, dat, ds[td].attrs)
 
     # Bin by profile index, for the profile start (min) and end (max) times
-    profile_time_lookup = {
-        'profile_time_start': "min", 
-        'profile_time_end': "max"
-    }
-    good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
-    for td, bin_stat in profile_time_lookup.items():
-        _log.debug(f'td, bin_stat {td}, {bin_stat}')
-        dat, xedges, binnumber = stats.binned_statistic(
-            ds['profile_index'].values[good],
-            ds['time_1970'].values[good],
-            statistic=bin_stat,
-            bins=[profile_bins],
-        )
-        dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
-        _log.info(f'{td} {len(dat)}')
-        dsout[td] = ((xdimname), dat, profile_meta[td])
+    if 'profile_time_start' in profile_meta.keys():
+        profile_time_lookup = {
+            'profile_time_start': "min", 
+            'profile_time_end': "max"
+        }
+        good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
+        for td, bin_stat in profile_time_lookup.items():
+            _log.debug(f'td, bin_stat {td}, {bin_stat}')
+            dat, xedges, binnumber = stats.binned_statistic(
+                ds['profile_index'].values[good],
+                ds['time_1970'].values[good],
+                statistic=bin_stat,
+                bins=[profile_bins],
+            )
+            dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
+            _log.info(f'{td} {len(dat)}')
+            dsout[td] = ((xdimname), dat, profile_meta[td])
 
     ds = ds.drop('time_1970')
     _log.info(f'Done times!')
@@ -347,9 +352,13 @@ def make_gridfiles(
         if (k in grid_exclude_vars) or ('time' in k):
             _log.debug('Not gridding %s', k)
             continue
-        if 'grid_exclude' in ds[k].attrs:
-            if ds[k].attrs['grid_exclude'] == 'true':
-                _log.debug('Not gridding %s due to grid_exclude flag', k)
+        if 'grid_exclude' in ncvar[k]:
+            if ncvar[k]['grid_exclude'] == 'true':
+                _log.debug(
+                    'Not gridding %s due to grid_exclude flag'
+                    + 'in the deployment yaml', 
+                    k
+                )
                 continue
 
         _log.info('Gridding %s', k)
@@ -402,14 +411,15 @@ def make_gridfiles(
         dsout.attrs['time_coverage_end'] = dsout.attrs['time_coverage_end'][:19]
     # fix standard_name so they don't overlap!
     try:
-        dsout['profile_time_start'].attrs.pop('standard_name')
-        dsout['profile_time_end'].attrs.pop('standard_name')
         dsout['waypoint_latitude'].attrs.pop('standard_name')
         dsout['waypoint_longitude'].attrs.pop('standard_name')
     except:
         pass
-    # remove, so they can be encoded later:
+
     try:
+        dsout['profile_time_start'].attrs.pop('standard_name')
+        dsout['profile_time_end'].attrs.pop('standard_name')
+        # remove, so they can be encoded later:
         dsout['profile_time_start'].attrs.pop('units')
         dsout['profile_time_end'].attrs.pop('units')
         dsout['profile_time_start'].attrs.pop('_FillValue')
@@ -442,14 +452,17 @@ def make_gridfiles(
         'calendar': 'gregorian',
         'dtype': 'float64',
     }
-    dsout.to_netcdf(
-        outname,
-        encoding={
+    try:
+        netcdf_encoding = {
             'time': time_encoding, 
             'profile_time_start': time_encoding, 
             'profile_time_end': time_encoding, 
-        },
-    )
+        }
+    except:
+        netcdf_encoding = {'time': time_encoding}
+
+
+    dsout.to_netcdf(outname, encoding=netcdf_encoding)
     _log.info('Done gridding')
 
     return outname
