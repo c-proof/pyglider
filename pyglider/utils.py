@@ -11,6 +11,8 @@ import numpy as np
 import xarray as xr
 import yaml
 from scipy.signal import argrelextrema
+from scipy import signal
+from datetime import datetime, date
 
 from pyglider._version import __version__
 
@@ -347,10 +349,10 @@ def get_derived_eos_raw(ds):
         [
             ('long_name', 'water salinity'),
             ('standard_name', 'sea_water_practical_salinity'),
-            ('units', '1'),
-            ('comment', 'raw, uncorrected practical salinity; Units are also known as PSU'),
+            ('units', '1e-3'),
+            ('comment', 'raw, uncorrected salinity'),
             ('sources', 'conductivity temperature pressure'),
-            ('method', 'pyglider.utils.get_derived_eos_raw; gsw.conversions.SP_from_C'),
+            ('method', 'get_derived_eos_raw'),
             ('observation_type', 'calulated'),
             ('instrument', 'instrument_ctd'),
             ('valid_max', 40.0),
@@ -372,9 +374,9 @@ def get_derived_eos_raw(ds):
             ('long_name', 'water potential density'),
             ('standard_name', 'sea_water_potential_density'),
             ('units', 'kg m-3'),
-            ('comment', 'raw, uncorrected potential density'),
+            ('comment', 'raw, uncorrected salinity'),
             ('sources', 'salinity temperature pressure'),
-            ('method', 'pyglider.utils.get_derived_eos_raw; gsw.density.sigma0 using gsw.SA_from_SP and gsw.CT_from_t'),
+            ('method', 'get_derived_eos_raw'),
             ('observation_type', 'calulated'),
             ('instrument', 'instrument_ctd'),
             ('accuracy', 0.01),
@@ -394,11 +396,11 @@ def get_derived_eos_raw(ds):
             ('long_name', 'Density'),
             ('standard_name', 'sea_water_density'),
             ('units', 'kg m-3'),
-            ('comment', 'raw, uncorrected density'),
+            ('comment', 'raw, uncorrected salinity'),
             ('observation_type', 'calulated'),
             ('sources', 'salinity temperature pressure'),
             ('instrument', 'instrument_ctd'),
-            ('method', 'pyglider.utils.get_derived_eos_raw; gsw.density.rho using gsw.SA_from_SP and gsw.CT_from_t'),
+            ('method', 'get_derived_eos_raw'),
             ('valid_min', 990.0),
             ('valid_max', 1040.0),
             ('accuracy', 0.01),
@@ -417,10 +419,10 @@ def get_derived_eos_raw(ds):
             ('long_name', 'water potential temperature'),
             ('standard_name', 'sea_water_potential_temperature'),
             ('units', 'Celsius'),
-            ('comment', 'raw, uncorrected potential temperature'),
+            ('comment', 'raw, uncorrected salinity'),
             ('sources', 'salinity temperature pressure'),
             ('observation_type', 'calulated'),
-            ('method', 'pyglider.utils.get_derived_eos_raw; gsw.conversions.pt0_from_t using gsw.SA_from_SP'),
+            ('method', 'get_derived_eos_raw'),
             ('instrument', 'instrument_ctd'),
             ('accuracy', 0.002),
             ('precision', 0.001),
@@ -558,7 +560,7 @@ def fill_metadata(ds, metadata, sensor_data):
     dt = ds.time.values
     ds.attrs['time_coverage_start'] = '%s' % dt[0]
     ds.attrs['time_coverage_end'] = '%s' % dt[-1]
-
+    
     # make sure this is ISO readable....
     ds.attrs['deployment_start'] = str(dt[0])[:19]
     ds.attrs['deployment_end'] = str(dt[-1])[:19]
@@ -844,6 +846,567 @@ def _get_glider_name_slocum(current_directory):
         slocum_glider = 'wall_e_652'
     return glider, mission, slocum_glider
 
+def flag_conductivity_in_depth_space(ts0, d_profile=50, dz=5, clean_stdev=3, accuracy=None):
+    """
+    Flag conductivity as QC1 (good) or QC4 (bad) using profile bins and depth bins.
+
+    Conductivity data are grouped into profile bins of width `d_profile` and depth bins
+    of width `dz`. Within each depth bin, points farther than 5 standard deviations from
+    the mean are temporarily excluded. A second mean and standard deviation are then
+    computed from the remaining points, and values farther than `clean_stdev` standard
+    deviations from that cleaned mean are flagged as QC4. If `accuracy` is provided,
+    deviations smaller than `accuracy` are not flagged.
+
+    Parameters
+    ----------
+    ts0 : xarray.Dataset
+        Timeseries dataset containing conductivity, depth, and profile_index.
+
+    d_profile : float, optional
+        Width of the profile bins.
+
+    dz : float, optional
+        Width of the depth bins in meters.
+
+    clean_stdev : float, optional
+        Number of standard deviations used in the second-pass flagging step.
+
+    accuracy : float or None, optional
+        Sensor accuracy threshold. Deviations smaller than this are not flagged.
+
+    Returns
+    -------
+    qc : np.ndarray
+        Array of QC flags with the same shape as ts0.conductivity.
+        Good data are flagged as 1, bad data as 4.
+    """
+    ts = ts0.copy(deep=True).load()
+    ts = ts.where(np.isfinite(ts.conductivity), drop=False)
+    _log.info('Flagging conductivity in profile-depth space with d_profile=%s, dz=%s, clean_stdev=%s, accuracy=%s', d_profile, dz, clean_stdev, accuracy)
+
+    prof_vals = ts.profile_index.values
+    depth_vals = ts.depth.values
+    cond_vals = ts.conductivity.values
+
+    prof_bins = np.arange(np.nanmin(prof_vals), np.nanmax(prof_vals) + d_profile, d_profile)
+    zbins = np.arange(np.nanmin(depth_vals), np.nanmax(depth_vals) + dz, dz)
+
+    qc = np.full(cond_vals.shape, 4, dtype=int)
+    finite_cond = np.isfinite(cond_vals)
+
+    acc_thresh = 0 if accuracy is None else accuracy
+
+    for n in range(len(prof_bins) - 1):
+        ind_profbin = (
+            (prof_vals >= prof_bins[n]) &
+            (prof_vals < prof_bins[n + 1]) &
+            finite_cond
+        )
+
+        if not np.any(ind_profbin):
+            continue
+
+        cond = cond_vals[ind_profbin]
+        depth = depth_vals[ind_profbin]
+
+        ind_bad_z = np.zeros(len(cond), dtype=bool)
+
+        for m in range(len(zbins) - 1):
+            ind_zbin = (depth >= zbins[m]) & (depth < zbins[m + 1])
+
+            if not np.any(ind_zbin):
+                continue
+
+            var_z = cond[ind_zbin]
+            var_mean = np.nanmean(var_z)
+            var_std = np.nanstd(var_z)
+
+            if not np.isfinite(var_std) or var_std == 0:
+                ind_bad = np.zeros_like(var_z, dtype=bool)
+            else:
+                ind_flag = (
+                    (np.abs(var_z - var_mean) > 5 * var_std) &
+                    (np.abs(var_z - var_mean) > acc_thresh)
+                )
+
+                if np.all(ind_flag):
+                    ind_bad = ind_flag
+                else:
+                    clean_mean = np.nanmean(var_z[~ind_flag])
+                    clean_std = np.nanstd(var_z[~ind_flag])
+
+                    if not np.isfinite(clean_std) or clean_std == 0:
+                        ind_bad = np.zeros_like(var_z, dtype=bool)
+                    else:
+                        ind_bad = (
+                            (np.abs(var_z - clean_mean) > clean_stdev * clean_std) &
+                            (np.abs(var_z - clean_mean) > acc_thresh)
+                        )
+
+            ind_bad_z[ind_zbin] = ind_bad
+
+        qc_subset = np.where(ind_bad_z, 4, 1)
+        qc[ind_profbin] = qc_subset
+
+    return qc
+
+def interpolate_over_salinity_NANs(ds): 
+    """
+    Function applied to the dataset before finding the internal temperature. Function interpolates temperature over bad data and small data gaps
+    to prevent errors from affecting the neighbiuring cells. 
+
+    Parameters
+    ----------
+    ds: DataArray
+        Timeseries of mission data 
+    
+    Returns
+    ----------
+    interp: DataArray
+        Timeseries of interpolated temperature
+    
+    """
+    _log.info('Interpolating temperature over salinity NaNs and small data gaps before applying thermal lag correction')
+    interp = ds["temperature"].where(ds["temperature_QC"] != 4)
+    qc4 = (ds["temperature_QC"] == 4)
+    qc4_buf = qc4.rolling(time=5, center=True, min_periods=1).max().astype(bool)
+    interp = interp.where(~qc4_buf)
+
+    interp = interp.interpolate_na(
+        dim="time",
+        method="linear",
+        max_gap=np.timedelta64(60, "s"))
+
+    return interp
+
+def apply_thermal_lag(ds, fn, alpha, tau, interpolate_filter = None):
+    """
+    Function from Garau et al. (2011): estimates temperature inside the conductivity cell then recaluclates salinity
+
+    Parameters
+    ----------
+    ds: DataArray
+        Timeseries of mission data 
+
+    fn: float 
+        Sampling frequency of the sensor
+
+    alpha : float
+        Thermal lag strength constant for the sensor. 
+
+    tau: float
+        Thermal lag time constant for the sensor. 
+
+    interpolate_filter: callable or None, optional
+        Function applied to the dataset before finding the internal temperature. Function interpolates over bad data and small data gaps
+        to prevent errors from affecting the neighbiuring cells. 
+    
+    Returns 
+    ----------
+    sal: DataArray
+        Timeseries of salinity_adjusted calculated using the internal temperature of the conductivity cell.
+    """
+    if interpolate_filter is not None: 
+        temp = interpolate_filter(ds)
+        _log.info('Interpolating over bad data and small data gaps before applying thermal lag correction')
+
+    else: 
+        temp = ds.temperature
+
+    _log.info('Applying thermal lag correction with alpha = %s, tau = %s, and sampling frequency = %s', alpha, tau, fn)
+
+    a = 4 * fn * alpha * tau / (1 + 4*fn*tau)
+    b = 1 - 2 * a / alpha
+    aa = [1, b]
+    bb = [a, -a]
+    tempcorr = temp.values.copy()
+    tempcell = temp.values.copy()
+    good = ~np.isnan(tempcell)
+    tempcorr[good] = signal.lfilter(bb, aa, temp.values[good])
+    tempcell = tempcell - tempcorr
+    sal = gsw.SP_from_C(ds.conductivity * 10, tempcell, ds.pressure)
+
+    return sal
+
+def flag_CTD_data(ts0, clean_stdev=3, accuracy=None):
+    """
+    Wrapper function to flag CTD data.
+
+    Uses `flag_conductivity_in_depth_space` to flag conductivity as QC1 (good)
+    or QC4 (bad) in profile-depth space. Conductivity and salinity are then
+    flagged as QC4 wherever conductivity is flagged as QC4.
+
+    Creates `conductivity_QC`, `salinity_QC`, and `temperature_QC` if they do
+    not already exist.
+
+    Parameters
+    ----------
+    ts0 : xarray.Dataset
+        Timeseries of mission data.
+
+    clean_stdev : float, optional
+        Number of standard deviations from the cleaned mean for data to be
+        flagged as QC4.
+
+    Returns
+    -------
+    ts : xarray.Dataset
+        Timeseries of mission data with `conductivity_QC`, `salinity_QC`,
+        and `temperature_QC`.
+    """
+    _log.info('Sceening CTD data')
+
+    ts = ts0.copy()
+
+    ts["conductivity"] = ts["conductivity"].where(ts["conductivity"] >= 0.1)
+
+    cond_qc = flag_conductivity_in_depth_space(
+        ts,
+        d_profile=50,
+        dz=5,
+        clean_stdev=clean_stdev,
+        accuracy=accuracy
+    )
+
+    if "conductivity_QC" not in ts.data_vars:
+        _log.info('Adding conductivity_QC variable to dataset')
+
+        ts["conductivity_QC"] = xr.DataArray(
+            np.ones(ts["conductivity"].shape, dtype=int),
+            dims=ts["conductivity"].dims,
+            coords=ts["conductivity"].coords,
+        )
+
+    if "salinity_QC" not in ts.data_vars:
+        _log.info('Adding salinity_QC variable to dataset')
+        ts["salinity_QC"] = xr.DataArray(
+            np.ones(ts["salinity"].shape, dtype=int),
+            dims=ts["salinity"].dims,
+            coords=ts["salinity"].coords,
+        )
+
+    if "temperature_QC" not in ts.data_vars:
+        _log.info('Adding temperature_QC variable to dataset')
+        ts["temperature_QC"] = xr.DataArray(
+            np.ones(ts["temperature"].shape, dtype=int),
+            dims=ts["temperature"].dims,
+            coords=ts["temperature"].coords,
+        )
+
+    ts["conductivity_QC"] = xr.where(cond_qc == 4, 4, ts["conductivity_QC"])
+    ts["salinity_QC"] = xr.where(ts["conductivity_QC"] == 4, 4, ts["salinity_QC"])
+
+    return ts
+
+def adjust_CTD(ts, deploymentyaml, alpha=None, tau=None, dTdC=None, interpolate_filter=None):
+    """
+    Pulls correction constants from `deploymentyaml`. If `alpha`, `tau`, or `dTdC`
+    differ from the values in the YAML file, the values provided as function arguments
+    are used and a warning is issued.
+    
+    Applies conductivity–temperature lag correction and thermal lag correction when
+    the corresponding constants are not `None` or 0. This produces the variables
+    `temperature_adjusted` and `salinity_adjusted`. The variables
+    `potential_density_adjusted` and `potential_temperature_adjusted` are derived
+    from the adjusted temperature and salinity.
+    
+    Parameters
+    ----------
+    ts : xarray.Dataset
+        Time series of mission data.
+    
+    deploymentyaml : str or list
+        Path to a YAML file containing deployment information for the glider.
+    
+        If a list is provided, YAML files are read in order, and top-level keys
+        in later files overwrite those in earlier files.
+    
+    alpha : float, optional
+        Thermal lag correction parameter alpha. Default is None.
+    
+    tau : float, optional
+        Thermal lag correction parameter tau. Default is None.
+    
+    dTdC : float, optional
+        Time lag (seconds) between temperature and conductivity sensors. Default is None.
+    
+    interpolate_filter: callable or None, optional
+        Function applied to the dataset before finding the internal temperature. Function interpolates over bad data and small data gaps
+        to prevent errors from affecting the neighbiuring cells. Default is None.
+    Returns
+    -------
+    ts : xarray.Dataset
+        Time series dataset with the additional variables:
+        `temperature_adjusted`, `salinity_adjusted`,
+        `potential_density_adjusted`, and `potential_temperature_adjusted`.
+        Metadata are updated to reflect applied corrections.
+    """
+    logger = logging.getLogger(__name__)
+    _log.info('Adjusting CTD data')
+
+    atr = deploymentyaml.get("glider_devices", {}).get("ctd", {})
+    thermal = atr.get("Thermal_lag_constants_[alpha,tau]")
+    _log.info('CTD thermal lag constants from YAML: %s', thermal)
+    yaml_vals = {
+        "alpha": thermal[0] if thermal and len(thermal) > 0 else None,
+        "tau":   thermal[1] if thermal and len(thermal) > 1 else None,
+        "dTdC":  atr.get("dTdC"),
+    }
+
+    kw_vals = {
+        "alpha": alpha,
+        "tau": tau,
+        "dTdC": dTdC,
+    }
+
+    out = {}
+    for key in yaml_vals:
+        y = yaml_vals[key]
+        k = kw_vals[key]
+
+        if k is not None:
+            if y is not None and y != k and logger is not None:
+                logger.warning(
+                    "%s differs between YAML (%r) and kwargs (%r); using kwargs.",
+                    key, y, k
+                )
+            out[key] = k
+        else:
+            out[key] = y
+
+    alpha = out.get("alpha", {})
+    tau = out.get("tau", {})
+    dTdC = out.get("dTdC", {})
+
+    if all(out.get(k) is None for k in ["alpha", "tau", "dTdC"]):
+        raise ValueError(
+            "Missing required CTD constants after checking kwargs and YAML: alpha, tau, dTdC"
+        )
+
+    temp_adj = ts.temperature.copy()
+    temp_adj.attrs = ts.temperature.attrs.copy()
+    temp_adj.attrs["comment"] = "temperature [degC]"
+
+    if dTdC not in (None, 0):
+        _log.info('Interpolating temperature data forward by %s seconds', dTdC)
+        dt = np.timedelta64(dTdC, "s")
+        temp_adj = temp_adj.interp(time=ts.time + dt)
+
+        temp_adj.attrs["history"] = "temperature [degC] adjusted by CT lag"
+        temp_adj.attrs["time_lag"] = f"{dTdC} second CT lag corrected"
+        ts.attrs["dTdC"] = f"{dTdC} second CT lag corrected"
+    else:
+        temp_adj.attrs["comment"] = "equivalent to raw temperature"
+        ts.attrs["dTdC"] = "No CT lag applied"
+
+    ts["temperature_adjusted"] = temp_adj
+
+    if tau is not None:
+        dt = np.diff(ts.time.values).astype("timedelta64[s]").astype(int)
+        vals, counts = np.unique(dt, return_counts=True)
+        srate = vals[np.argmax(counts)]
+
+        fs = 1 / float(srate)
+        fn = 0.5 * fs
+
+        s = apply_thermal_lag(ts, fn, alpha=alpha, tau=tau, interpolate_filter=interpolate_filter)
+
+        sal_adj = xr.where(ts.salinity_QC == 1, s, ts.salinity)
+        sal_adj.attrs = ts.salinity.attrs.copy()
+        sal_adj.attrs["history"] = (
+            f"adjusted salinity [psu] using thermal lag correction "
+            f"(alpha={alpha}, tau={tau})"
+        )
+
+        if dTdC not in (None, 0):
+            sal_adj.attrs["sources"] = (
+                f"conductivity pressure temperature_adjusted "
+                f"(corrected for {dTdC} second CT lag)"
+            )
+
+        ts["salinity_adjusted"] = sal_adj
+        ts.attrs['correction_constants_alpha'] = alpha 
+        ts.attrs['correction_constants_tau'] = tau 
+
+    else:
+        _log.info('No thermal lag correction applied; calculating salinity_adjusted using temperature_adjusted and raw conductivity')
+        sal_adj = xr.DataArray(
+            gsw.conversions.SP_from_C(
+                10 * ts["conductivity"],
+                ts["temperature_adjusted"],
+
+                ts.pressure,
+            ).values,
+            dims=ts.salinity.dims,
+            coords=ts.salinity.coords,
+        )
+        ts.attrs['correction_constants_alpha'] = "None"
+        ts.attrs['correction_constants_tau'] =  "None"
+
+        sal_adj.attrs = ts.salinity.attrs.copy()
+
+        if dTdC is not None:
+            sal_adj.attrs["time_lag"] = "found using temperature_adjusted"
+
+        ts["salinity_adjusted"] = sal_adj
+
+    ts["salinity_adjusted"].attrs = sal_adj.attrs
+
+    ts.attrs["quality_flags"] = (
+        "1 = good data; 3 = bad data, potentially correctable; "
+        "4 = bad data; 8 = estimated data"
+    )
+
+    ts["conductivity"].attrs["comment"] = "raw conductivity"
+    ts["conductivity_QC"] = ts.conductivity_QC
+
+    ts["temperature"].attrs["comment"] = "raw temperature [degC]"
+    ts["temperature_QC"] = ts.temperature_QC
+
+    ts["temperature_adjusted_QC"] = ts["temperature_QC"]
+
+    ts["salinity"].attrs["comment"] = "raw salinity [psu]"
+    ts["salinity_adjusted_QC"] = ts["salinity_QC"]
+
+    ts["density"].attrs["comment"] = "raw density"
+    ts["density_QC"] = ts["salinity_QC"]
+
+    ts["potential_density"].attrs["history"] = (
+        "calculated using raw salinity and temperature"
+    )
+    ts["potential_temperature"].attrs["history"] = (
+        "calculated using raw salinity and temperature"
+    )
+
+    long = ts.longitude.fillna(ts.longitude.mean(skipna=True))
+    lat = ts.latitude.fillna(ts.latitude.mean(skipna=True))
+
+    sa_adj = gsw.SA_from_SP(ts["salinity_adjusted"], ts["pressure"], long, lat)
+    ct_adj = gsw.CT_from_t(sa_adj, ts["temperature_adjusted"], ts["pressure"])
+
+    _log.info('Calculating potential density and potential temperature using adjusted salinity and temperature')
+    ts["potential_density_adjusted"] = (
+        ("time"), 1000 + gsw.density.sigma0(sa_adj, ct_adj).values
+    )
+
+    ts["potential_density"].attrs = ts.potential_density.attrs.copy()
+
+    ts["potential_density_adjusted"].attrs["history"] = (
+        "calculated using salinity_adjusted and temperature_adjusted"
+    )
+    ts["potential_density_adjusted"].attrs["sources"] = (
+        "salinity_adjusted temperature_adjusted pressure"
+    )
+
+    ts["potential_density_adjusted_QC"] = ts["salinity_adjusted_QC"]
+    ts["potential_density_adjusted_QC"].attrs = ts.salinity_adjusted_QC.attrs.copy()
+
+    ts["potential_temperature_adjusted"] = (
+        ("time"),
+        gsw.conversions.pt0_from_t(
+            ts.salinity_adjusted,
+            ts.temperature_adjusted,
+            ts.pressure,
+        ).values,
+    )
+
+    ts["potential_temperature_adjusted"].attrs = (
+        ts.potential_temperature.attrs.copy()
+    )
+    ts["potential_temperature_adjusted"].attrs["history"] = (
+        "calculated using salinity_adjusted and temperature_adjusted"
+    )
+    ts["potential_temperature_adjusted"].attrs["sources"] = (
+        "salinity_adjusted temperature_adjusted pressure"
+    )
+
+    ts["potential_temperature_adjusted_QC"] = ts["salinity_adjusted_QC"]
+    ts["potential_temperature_adjusted_QC"].attrs = (
+        ts.salinity_adjusted_QC.attrs.copy()
+    )
+
+    processing_date = date.today().strftime("%Y%m%d")
+
+    vars_ = [
+        "salinity_adjusted",
+        "temperature_adjusted",
+        "potential_density_adjusted",
+        "potential_temperature_adjusted",
+    ]
+
+    for var in vars_:
+        ts[var].attrs["processing_date"] = processing_date
+
+    QC_COMMENT = (
+        "1 = good data; 3 = bad data, potentially correctable; "
+        "4 = bad data; 8 = estimated data"
+    )
+
+    for k in ts.data_vars:
+        if k.endswith("_QC"):
+            ts[k].attrs["comment"] = QC_COMMENT
+
+    return ts
+
+def maskQC4(ds):
+    """
+    Optional: 
+    Masks QC4 samples in data variables (set to NaN) so gridding ignores them. Only QC1 (good) data 
+    are gridded
+    
+    Parameters
+    ----------
+    ds: DataArray
+        Timeseries of a data   
+
+    Returns
+    ----------
+    ds: DataArray
+        Timeseries of a data with QC4 data masked    
+
+    
+    """
+    _log = logging.getLogger(__name__)
+
+    ds = ds.copy() 
+    _log.info('Masking QC4 data in dataset')
+    for k in list(ds.data_vars):
+        # skip QC variables themselves
+        if k.endswith("_QC"):
+            continue
+
+        qc_name = f"{k}_QC"
+        if qc_name not in ds:
+            continue
+
+        # mask data where QC == 4, preserving dims/coords
+        ds[k] = ds[k].where(ds[qc_name] != 4)
+        ds[qc_name] = ds[qc_name].where(ds[qc_name] != 4)
+        
+    return ds
+
+def interpolate_vertical(var, attr):
+    """
+    Optional: Interpolates variables over gaps of 50m. If the variable has 'QC_protocol' in the metadata, NaN gaps are filled
+    with QC1 (good flag) 
+
+    Parameters
+    ----------
+    var: DataArray
+        Timeseries of a data variable
+
+    attr: 
+    
+    """ 
+    _log.info('Interpolating variable %s over depth with max gap of 50m', var.name)
+    # QC variables: fill interpolatable NaN gaps with 1
+    if 'QC_protocol' in attr.attrs.values():
+        interp = var.interpolate_na(dim="depth", method="nearest", max_gap=50)
+        filled = np.isnan(var) & np.isfinite(interp)
+        return xr.where(filled, 1, var)
+
+    # Continuous variables: linear interpolation
+    return var.interpolate_na(dim="depth", method="linear", max_gap=50)
 
 __all__ = [
     'get_distance_over_ground',
@@ -854,4 +1417,11 @@ __all__ = [
     'nmea2deg',
     'gappy_fill_vertical',
     'oxygen_concentration_correction',
+    'flag_conductivity_in_depth_space',
+    'interpolate_over_salinity_NANs'
+    'apply_thermal_lag',
+    'flag_CTD_data',
+    'adjust_CTD',
+    'maskQC4',
+    'interpolate_vertical'
 ]
