@@ -321,7 +321,7 @@ def make_gridfiles(
     if interp_variables is not None:
         dsout[k] = interp_variables(dsout[k],ds[k])
     else: 
-        dsout[k].interpolate_na( dim="depth",method="linear")
+        dsout[k] = dsout[k].interpolate_na( dim="depth",method="linear")
         
     # fix u and v, because they should really not be gridded...
     if ('water_velocity_eastward' in dsout.keys()) and ('u' in profile_meta.keys()):
