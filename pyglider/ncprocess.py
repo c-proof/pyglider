@@ -192,7 +192,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 def make_gridfiles(
-    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=None, interp_variables=None):
+    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=None, max_gap=50):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
@@ -214,7 +214,9 @@ def make_gridfiles(
     maskfunction : callable or None, optional
         Function applied to the dataset before gridding, usually to choose what data will be set to NaN based on quality flags. 
 
-    Returns
+    max_gap : int, default = 50
+        Maximum number of consecutive NaN values to fill when interpolating.  This is used to
+        prevent interpolation across large gaps in the data.
     -------
     outname : str
         Name of gridded netCDF file. The gridded netCDF file has coordinates of
@@ -318,10 +320,8 @@ def make_gridfiles(
         _log.debug(f'dat{np.shape(dat)}')
         dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
 
-    if interp_variables is not None:
-        dsout[k] = interp_variables(dsout[k],ds[k])
-    else: 
-        dsout[k] = dsout[k].interpolate_na( dim="depth",method="linear")
+
+        dsout[k] = dsout[k].interpolate_na( dim="depth",method="linear", max_gap=max_gap)
         
     # fix u and v, because they should really not be gridded...
     if ('water_velocity_eastward' in dsout.keys()) and ('u' in profile_meta.keys()):

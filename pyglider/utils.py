@@ -1385,29 +1385,6 @@ def maskQC4(ds):
         
     return ds
 
-def interpolate_vertical(var, attr):
-    """
-    Optional: Interpolates variables over gaps of 50m. If the variable has 'QC_protocol' in the metadata, NaN gaps are filled
-    with QC1 (good flag) 
-
-    Parameters
-    ----------
-    var: DataArray
-        Timeseries of a data variable
-
-    attr: 
-    
-    """ 
-    _log.info('Interpolating variable %s over depth with max gap of 50m', var.name)
-    # QC variables: fill interpolatable NaN gaps with 1
-    if 'QC_protocol' in attr.attrs.values():
-        interp = var.interpolate_na(dim="depth", method="nearest", max_gap=50)
-        filled = np.isnan(var) & np.isfinite(interp)
-        return xr.where(filled, 1, var)
-
-    # Continuous variables: linear interpolation
-    return var.interpolate_na(dim="depth", method="linear", max_gap=50)
-
 __all__ = [
     'get_distance_over_ground',
     'get_glider_depth',
@@ -1422,6 +1399,5 @@ __all__ = [
     'apply_thermal_lag',
     'flag_CTD_data',
     'adjust_CTD',
-    'maskQC4',
-    'interpolate_vertical'
+    'maskQC4'
 ]
