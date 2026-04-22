@@ -192,7 +192,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
 def make_gridfiles(
-    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=None, max_gap=50):
+    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=None, max_gap=100):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
@@ -319,7 +319,6 @@ def make_gridfiles(
 
         _log.debug(f'dat{np.shape(dat)}')
         dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
-
 
         dsout[k] = dsout[k].interpolate_na( dim="depth",method="linear", max_gap=max_gap)
         
