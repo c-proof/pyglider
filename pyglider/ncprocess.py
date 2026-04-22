@@ -219,6 +219,11 @@ def make_gridfiles(
         location of deployment yaml file for the netCDF file.  This should
         be the same yaml file that was used to make the timeseries file.
 
+    depth_bins : array, default = None
+        User-defined depth bins, for instance ``np.arange(0, 1000.1, 1)``.
+        If not None, these are the depth bins into which the data will be 
+        gridded.  If None, ``dz`` is used to generate bins between 0 and 1100m
+        
     dz : float, default = 1
         Vertical grid spacing in meters.
 
