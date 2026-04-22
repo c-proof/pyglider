@@ -225,7 +225,7 @@ def make_gridfiles(
         Function applied to the dataset before gridding,
         usually to choose what data will be set to NaN based on quality flags.
 
-    max_gap : int, default = 50
+    max_gap : int, default = 100
         Maximum number of consecutive NaN values to fill when interpolating.  This is used to
         prevent interpolation across large gaps in the data.
     -------

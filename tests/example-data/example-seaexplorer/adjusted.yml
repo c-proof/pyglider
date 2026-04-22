@@ -1,0 +1,10 @@
+ls tests/expected/example-seaexplorer/L0-timeseries/metadata:
+  quality_flags: '1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data'
+
+glider_devices:
+  ctd:
+    Thermal_lag_constants_[alpha,tau] : [0.34,4.6]
+    dTdC : 0 
+    comment: Constants were found using dfo-bb046-20220707. A detailed report of how the constants are defined can be found on https://cproof.uvic.ca. There is no lag between temperature and conductivity. 
+ 
+ 
