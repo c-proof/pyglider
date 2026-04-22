@@ -293,7 +293,7 @@ def make_gridfiles(
             dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs)
-    ds.drop('time_1970')
+    ds.drop_vars('time_1970')
     good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
     _log.info(f'Done times! {len(dat)}')
     dsout['profile_time_start'] = ((xdimname), dat, profile_meta['profile_time_start'])
