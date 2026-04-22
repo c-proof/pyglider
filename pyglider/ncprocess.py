@@ -9,9 +9,9 @@ import os
 import netCDF4
 import numpy as np
 import scipy.stats as stats
-from scipy import signal 
+from scipy import signal
 import xarray as xr
-import gsw  
+import gsw
 import yaml
 from datetime import date
 
@@ -191,8 +191,18 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
 
+
 def make_gridfiles(
-    inname, outdir, deploymentyaml, *, fnamesuffix='', dz=1, starttime='1970-01-01', maskfunction=None, max_gap=100):
+    inname,
+    outdir,
+    deploymentyaml,
+    *,
+    fnamesuffix='',
+    dz=1,
+    starttime='1970-01-01',
+    maskfunction=None,
+    max_gap=100,
+):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
@@ -212,7 +222,8 @@ def make_gridfiles(
         Vertical grid spacing in meters.
 
     maskfunction : callable or None, optional
-        Function applied to the dataset before gridding, usually to choose what data will be set to NaN based on quality flags. 
+        Function applied to the dataset before gridding,
+        usually to choose what data will be set to NaN based on quality flags.
 
     max_gap : int, default = 50
         Maximum number of consecutive NaN values to fill when interpolating.  This is used to
@@ -221,8 +232,8 @@ def make_gridfiles(
     outname : str
         Name of gridded netCDF file. The gridded netCDF file has coordinates of
         'depth' and 'profile', so each variable is gridded in depth bins and by
-        profile number.  Each profile has a time, latitude, and longitude. 
-        If deploymentyaml is a list, attributes 
+        profile number.  Each profile has a time, latitude, and longitude.
+        If deploymentyaml is a list, attributes
     """
     try:
         os.mkdir(outdir)
@@ -234,10 +245,10 @@ def make_gridfiles(
     profile_meta = deployment['profile_variables']
 
     ds = xr.open_dataset(inname, decode_times=True)
-    
+
     if maskfunction is not None:
         ds = maskfunction(ds)
-        
+
     ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
     _log.info(f'Working on: {inname}')
     _log.debug(str(ds))
@@ -260,7 +271,9 @@ def make_gridfiles(
         'units': 'm',
         'long_name': 'Depth',
         'standard_name': 'depth',
-        'positive': 'down',        'source': ds.depth.attrs["source"],         'coverage_content_type': 'coordinate',
+        'positive': 'down',
+        'source': ds.depth.attrs["source"],
+        'coverage_content_type': 'coordinate',
         'comment': 'center of depth bins',
     }
 
@@ -285,14 +298,14 @@ def make_gridfiles(
     _log.info(f'Done times! {len(dat)}')
     dsout['profile_time_start'] = ((xdimname), dat, profile_meta['profile_time_start'])
     dsout['profile_time_end'] = ((xdimname), dat, profile_meta['profile_time_end'])
-    
+
     for k in ds.keys():
         if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
             continue
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
         if len(good) <= 0:
-            continue        
+            continue
         if 'QC_protocol' in ds[k].attrs.values():
             # QC variables are treated as discrete flags rather than continuous data.
             # If a variable has a QC_protocol attribute, it is gridded using the
@@ -301,27 +314,31 @@ def make_gridfiles(
         else:
             # variables are treated as continuous data.
             # If a variable has a average_method attribute, it is gridded using the
-            # mean in each bin  
+            # mean in each bin
             if 'average_method' in ds[k].attrs.values():
                 method = ds[k].attrs['average_method']
                 if method == 'geometric mean':
                     method = stats.gmean
             else:
                 method = 'mean'
-        
+
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
-                ds['profile_index'].values[good],
-                ds['depth'].values[good],
-                values=ds[k].values[good],
-                statistic=method,
-                bins=[profile_bins, depth_bins],
-            )
+            ds['profile_index'].values[good],
+            ds['depth'].values[good],
+            values=ds[k].values[good],
+            statistic=method,
+            bins=[profile_bins, depth_bins],
+        )
 
         _log.debug(f'dat{np.shape(dat)}')
         dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
 
-        dsout[k] = dsout[k].interpolate_na( dim="depth",method="linear", max_gap=max_gap)
-        
+        dsout[k] = dsout[k].interpolate_na(
+            dim="depth",
+            method="linear",
+            max_gap=max_gap,
+        )
+
     # fix u and v, because they should really not be gridded...
     if ('water_velocity_eastward' in dsout.keys()) and ('u' in profile_meta.keys()):
         _log.debug(str(ds.water_velocity_eastward))
