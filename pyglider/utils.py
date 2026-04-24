@@ -1384,8 +1384,11 @@ def adjust_CTD(
         "1 = good data; 3 = bad data, potentially correctable; "
         "4 = bad data; 8 = estimated data"
     )
+    ncvars = deploymentyaml.get("netcdf_variables", {})
 
     for k in ts.data_vars:
+        if k in ts and k in ncvars:
+            ts[k].attrs.update(ncvars[k])
         if k.endswith("_QC"):
             ts[k].attrs["comment"] = QC_COMMENT
 
