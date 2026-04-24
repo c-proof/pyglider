@@ -1,0 +1,14 @@
+metadata:
+  quality_flags: '1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data'
+
+glider_devices:
+  ctd:
+    Thermal_lag_constants_[alpha,tau]: [&alpha 0.2, &tau 2]
+    dTdC: &dTdC 0
+    comment: 'Constants for ctd_9507 are found using dfo-rosie713-20230810. A detailed report of how the constants are defined can be found on https://cproof.uvic.ca. There is no lag between temperature and conductivity.'
+
+  oxygen:
+    calibration_constants[c0, c1, c2, c3, c4, c5, c6]: [2.768177E-03, 1.173389E-04, 2.355152E-06, 2.292242E+02, -4.113573E-01, -5.832774E+01, 4.551447E+00]
+    Comment: 'Calibration constants from manufacturer'
+
+ 
