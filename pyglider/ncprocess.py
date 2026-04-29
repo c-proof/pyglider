@@ -221,9 +221,9 @@ def make_gridfiles(
 
     depth_bins : array, default = None
         User-defined depth bins, for instance ``np.arange(0, 1000.1, 1)``.
-        If not None, these are the depth bins into which the data will be 
+        If not None, these are the depth bins into which the data will be
         gridded.  If None, ``dz`` is used to generate bins between 0 and 1100m
-        
+
     dz : float, default = 1
         Vertical grid spacing in meters.
 
@@ -275,7 +275,7 @@ def make_gridfiles(
     else:
         # sanity check user-provided bins
         if (
-            depth_bins.ndim != 1 
+            depth_bins.ndim != 1
             or not np.all(np.isfinite(depth_bins))
             or not np.issubdtype(depth_bins.dtype, np.number)
         ):
@@ -284,7 +284,7 @@ def make_gridfiles(
             raise ValueError('There must be at least two depth bins edges')
         if not np.all(np.diff(depth_bins) > 0):
             raise ValueError('Depth bin edges must be strictly increasing and non-overlapping')
-    
+
     # calculate bin centers
     depths = 0.5*(depth_bins[:-1] + depth_bins[1:])
     _log.debug(f'depth bins and centers {depth_bins} {{depths}}')
@@ -298,7 +298,7 @@ def make_gridfiles(
         'long_name': 'Depth',
         'standard_name': 'depth',
         'positive': 'down',
-        'source': ds.depth.attrs["source"], 
+        'source': ds.depth.attrs["source"],
         'coverage_content_type': 'coordinate',
         'comment': 'center of depth bins',
     }
@@ -306,17 +306,24 @@ def make_gridfiles(
     # Bin by profile index, for the mean time, lat, and lon values for each profile
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
+    # print(ds.time_1970.values)
+    # print(ds.profile_index.values)
     for td in ('time_1970', 'longitude', 'latitude'):
+
         good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
-        dat, xedges, binnumber = stats.binned_statistic(
-            ds['profile_index'].values[good],
-            ds[td].values[good],
-            statistic='mean',
-            bins=[profile_bins],
-        )
-        if td == 'time_1970':
-            td = 'time'
-            dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
+        if len(good) > 1:
+            dat, xedges, binnumber = stats.binned_statistic(
+                ds['profile_index'].values[good],
+                ds[td].values[good],
+                statistic='mean',
+                bins=[profile_bins],
+            )
+            if td == 'time_1970':
+                td = 'time'
+                dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
+        else:
+            dat = np.full(len(profiles), np.nan)
+            _log.info(f'Only {len(good)} good values for {td}, filling with NaN')
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs)
 

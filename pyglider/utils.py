@@ -1220,7 +1220,7 @@ def adjust_CTD(
     temp_adj.attrs["comment"] = "temperature [degC]"
 
     if dTdC not in (None, 0):
-        _log.info('Interpolating temperature data forward by %s seconds', dTdC)
+        _log.info('Interpolating temperature data back by %s seconds', dTdC)
         dt = np.timedelta64(dTdC, "s")
         temp_adj = temp_adj.interp(time=ts.time + dt)
 
