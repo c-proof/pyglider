@@ -341,7 +341,7 @@ def make_gridfiles(
             _log.info(f'{td} {len(dat)}')
             dsout[td] = ((xdimname), dat, profile_meta[td])
 
-    ds = ds.drop('time_1970')
+    ds = ds.drop_vars('time_1970')
     _log.info(f'Done times!')
 
     grid_exclude_vars = (
@@ -352,14 +352,12 @@ def make_gridfiles(
         if (k in grid_exclude_vars) or ('time' in k):
             _log.debug('Not gridding %s', k)
             continue
-        if 'grid_exclude' in ncvar[k]:
-            if ncvar[k]['grid_exclude'] == 'true':
-                _log.debug(
-                    'Not gridding %s due to grid_exclude flag'
-                    + 'in the deployment yaml', 
-                    k
-                )
-                continue
+        if k in ncvar and 'grid_exclude' in ncvar[k] and ncvar[k]['grid_exclude'] == 'true':
+            _log.debug(
+                'Not gridding %s due to grid_exclude flag in the deployment yaml',
+                k
+            )
+            continue
 
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
@@ -399,7 +397,7 @@ def make_gridfiles(
         dsout['u'].attrs = profile_meta['u']
         dsout['v'] = dsout.water_velocity_northward.mean(axis=0)
         dsout['v'].attrs = profile_meta['v']
-        dsout = dsout.drop(['water_velocity_eastward', 'water_velocity_northward'])
+        dsout = dsout.drop_vars(['water_velocity_eastward', 'water_velocity_northward'])
     dsout.attrs = ds.attrs
     dsout.attrs.pop('cdm_data_type')
 

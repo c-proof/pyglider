@@ -7,8 +7,6 @@ import pyglider.utils as pgutils
 
 logging.basicConfig(level='INFO')
 
-os.chdir("/home/sam_woodman_noaa_gov/pyglider/tests/example-data/example-slocum")
-
 binarydir = './realtime_raw/'
 rawdir = './realtime_rawnc/'
 cacdir = './cac/'
