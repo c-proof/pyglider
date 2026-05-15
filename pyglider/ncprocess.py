@@ -9,7 +9,13 @@ import os
 import netCDF4
 import numpy as np
 import scipy.stats as stats
+from scipy import signal
 import xarray as xr
+import gsw
+import yaml
+from datetime import date
+
+
 
 import pyglider.utils as utils
 
@@ -187,14 +193,16 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 
 
 def make_gridfiles(
-    inname, 
-    outdir, 
-    deploymentyaml, 
-    *, 
-    fnamesuffix='', 
-    depth_bins=None, 
-    dz=1, 
-    starttime='1970-01-01', 
+    inname,
+    outdir,
+    deploymentyaml,
+    *,
+    fnamesuffix='',
+    depth_bins=None,
+    dz=1,
+    starttime='1970-01-01',
+    maskfunction=None,
+    max_gap=100,
 ):
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
@@ -213,19 +221,25 @@ def make_gridfiles(
 
     depth_bins : array, default = None
         User-defined depth bins, for instance ``np.arange(0, 1000.1, 1)``.
-        If not None, these are the depth bins into which the data will be 
+        If not None, these are the depth bins into which the data will be
         gridded.  If None, ``dz`` is used to generate bins between 0 and 1100m
 
     dz : float, default = 1
-        Vertical grid spacing in meters.  Ignored if ``depth_bins`` is not None
+        Vertical grid spacing in meters.
 
-    Returns
+    maskfunction : callable or None, optional
+        Function applied to the dataset before gridding,
+        usually to choose what data will be set to NaN based on quality flags.
+
+    max_gap : int, default = 100
+        Maximum number of consecutive NaN values to fill when interpolating.  This is used to
+        prevent interpolation across large gaps in the data.
     -------
     outname : str
-        Name of gridded netCDF file.  The gridded netCDF file has dimensions of
+        Name of gridded netCDF file. The gridded netCDF file has coordinates of
         'depth' and 'profile', so each variable is gridded in depth bins and by
-        profile number.  Each profile has a time, latitude, and longitude. 
-        The depth values are the bin centers
+        profile number.  Each profile has a time, latitude, and longitude.
+        If deploymentyaml is a list, attributes
     """
     try:
         os.mkdir(outdir)
@@ -235,6 +249,11 @@ def make_gridfiles(
     deployment = utils._get_deployment(deploymentyaml)
 
     profile_meta = deployment['profile_variables']
+
+    ds = xr.open_dataset(inname, decode_times=True)
+
+    if maskfunction is not None:
+        ds = maskfunction(ds)
 
     ds = xr.open_dataset(inname, decode_times=True)
     ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
@@ -256,7 +275,7 @@ def make_gridfiles(
     else:
         # sanity check user-provided bins
         if (
-            depth_bins.ndim != 1 
+            depth_bins.ndim != 1
             or not np.all(np.isfinite(depth_bins))
             or not np.issubdtype(depth_bins.dtype, np.number)
         ):
@@ -265,7 +284,7 @@ def make_gridfiles(
             raise ValueError('There must be at least two depth bins edges')
         if not np.all(np.diff(depth_bins) > 0):
             raise ValueError('Depth bin edges must be strictly increasing and non-overlapping')
-    
+
     # calculate bin centers
     depths = 0.5*(depth_bins[:-1] + depth_bins[1:])
     _log.debug(f'depth bins and centers {depth_bins} {{depths}}')
@@ -279,7 +298,7 @@ def make_gridfiles(
         'long_name': 'Depth',
         'standard_name': 'depth',
         'positive': 'down',
-        'source': ds.depth.attrs["source"], 
+        'source': ds.depth.attrs["source"],
         'coverage_content_type': 'coordinate',
         'comment': 'center of depth bins',
     }
@@ -287,17 +306,24 @@ def make_gridfiles(
     # Bin by profile index, for the mean time, lat, and lon values for each profile
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
+    # print(ds.time_1970.values)
+    # print(ds.profile_index.values)
     for td in ('time_1970', 'longitude', 'latitude'):
+
         good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
-        dat, xedges, binnumber = stats.binned_statistic(
-            ds['profile_index'].values[good],
-            ds[td].values[good],
-            statistic='mean',
-            bins=[profile_bins],
-        )
-        if td == 'time_1970':
-            td = 'time'
-            dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
+        if len(good) > 1:
+            dat, xedges, binnumber = stats.binned_statistic(
+                ds['profile_index'].values[good],
+                ds[td].values[good],
+                statistic='mean',
+                bins=[profile_bins],
+            )
+            if td == 'time_1970':
+                td = 'time'
+                dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
+        else:
+            dat = np.full(len(profiles), np.nan)
+            _log.info(f'Only {len(good)} good values for {td}, filling with NaN')
         _log.info(f'{td} {len(dat)}')
         dsout[td] = (('time'), dat, ds[td].attrs)
 
@@ -316,8 +342,9 @@ def make_gridfiles(
         _log.info(f'{td} {len(dat)}')
         dsout[td] = ((xdimname), dat, profile_meta[td])
 
-    ds = ds.drop('time_1970')
+    ds = ds.drop_vars('time_1970')
     _log.info(f'Done times!')
+
 
     for k in ds.keys():
         if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
@@ -326,32 +353,38 @@ def make_gridfiles(
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
         if len(good) <= 0:
             continue
-        if 'average_method' in ds[k].attrs:
-            average_method = ds[k].attrs['average_method']
-            ds[k].attrs['processing'] = (
-                f'Using average method {average_method} for '
-                f'variable {k} following deployment yaml.'
-            )
-            if average_method == 'geometric mean':
-                average_method = stats.gmean
-                ds[k].attrs['processing'] += (
-                    ' Using geometric mean implementation ' 'scipy.stats.gmean'
-                )
+        if 'QC_protocol' in ds[k].attrs.values():
+            # QC variables are treated as discrete flags rather than continuous data.
+            # If a variable has a QC_protocol attribute, it is gridded using the
+            # maximum flag in each bin (e.g. any QC3 in a bin makes the gridded bin QC3).
+            method = np.nanmax
         else:
-            average_method = 'mean'
+            # variables are treated as continuous data.
+            # If a variable has a average_method attribute, it is gridded using the
+            # mean in each bin
+            if 'average_method' in ds[k].attrs.values():
+                method = ds[k].attrs['average_method']
+                if method == 'geometric mean':
+                    method = stats.gmean
+            else:
+                method = 'mean'
+
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds['profile_index'].values[good],
             ds['depth'].values[good],
             values=ds[k].values[good],
-            statistic=average_method,
+            statistic=method,
             bins=[profile_bins, depth_bins],
         )
 
         _log.debug(f'dat{np.shape(dat)}')
         dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
 
-        # fill gaps in data:
-        dsout[k].values = utils.gappy_fill_vertical(dsout[k].values)
+        dsout[k] = dsout[k].interpolate_na(
+            dim="depth",
+            method="linear",
+            max_gap=max_gap,
+        )
 
     # fix u and v, because they should really not be gridded...
     if ('water_velocity_eastward' in dsout.keys()) and ('u' in profile_meta.keys()):
@@ -413,16 +446,16 @@ def make_gridfiles(
     dsout.to_netcdf(
         outname,
         encoding={
-            'time': time_encoding, 
-            'profile_time_start': time_encoding, 
-            'profile_time_end': time_encoding, 
+            'time': time_encoding,
+            'profile_time_start': time_encoding,
+            'profile_time_end': time_encoding,
         },
     )
     _log.info('Done gridding')
 
     return outname
 
-
+    _log.info('Done gridding')
 # aliases
 extract_L0timeseries_profiles = extract_timeseries_profiles
 make_L0_gridfiles = make_gridfiles
