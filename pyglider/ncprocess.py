@@ -324,6 +324,15 @@ def make_gridfiles(
         # Convert timestamps back to datetime if dealing with time variables
         if 'time' in td:
             dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
+
+        # Add processing attribute
+        bin_stat_str = 'mode' if td in ['profile_direction'] else bin_stat
+        proc_attr = f'Using average method {bin_stat_str}'
+        if 'processing' in attrs:
+            attrs['processing'] += (' ' + proc_attr)
+        else:
+            attrs['processing'] = proc_attr
+
         _log.info(f'{out_var} {len(dat)}')
         dsout[out_var] = (xdimname, dat, attrs)
 
@@ -360,7 +369,7 @@ def make_gridfiles(
                 proc_attr = 'Using geometric mean implementation scipy.stats.gmean'
         else:
             average_method = 'mean'
-            proc_attr = 'Using average method mean from scipy.stats.binned_statistic_2d'
+            proc_attr = 'Using average method mean'
 
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds['profile_index'].values[good],
