@@ -199,6 +199,12 @@ def make_gridfiles(
     """
     Turn a timeseries netCDF file into a vertically gridded netCDF.
 
+    Timeseries variables can be excluded from the gridded netCDF file
+    by including ``grid_exclude: 'true'`` in the deployment yaml.
+    'distance_over_ground', if it exists, will always be excluded. 
+    'profile_direction', 'profile_time_start', and 'profile_time_end' 
+    will always be included, but will only have one dimension ('profile'). 
+
     Parameters
     ----------
     inname : str or Path
@@ -219,13 +225,17 @@ def make_gridfiles(
     dz : float, default = 1
         Vertical grid spacing in meters.  Ignored if ``depth_bins`` is not None
 
+    starttime : str, default = '1970-01-01'
+        The minimum time of data that will be gridded.  All data before this 
+        time will be dropped
+
     Returns
     -------
     outname : str
         Name of gridded netCDF file.  The gridded netCDF file has dimensions of
         'depth' and 'profile', so each variable is gridded in depth bins and by
         profile number.  Each profile has a time, latitude, and longitude. 
-        The depth values are the bin centers
+        The depth values are the bin centers. 
     """
     try:
         os.mkdir(outdir)
@@ -234,6 +244,7 @@ def make_gridfiles(
 
     deployment = utils._get_deployment(deploymentyaml)
 
+    ncvar = deployment['netcdf_variables']
     profile_meta = deployment['profile_variables']
 
     ds = xr.open_dataset(inname, decode_times=True)
@@ -274,6 +285,7 @@ def make_gridfiles(
     dsout = xr.Dataset(
         coords={'depth': ('depth', depths), 'profile': (xdimname, profiles)}
     )
+    dsout['profile'].attrs = ds.profile_index.attrs
     dsout['depth'].attrs = {
         'units': 'm',
         'long_name': 'Depth',
@@ -284,61 +296,81 @@ def make_gridfiles(
         'comment': 'center of depth bins',
     }
 
-    # Bin by profile index, for the mean time, lat, and lon values for each profile
-    ds['time_1970'] = ds.temperature.copy()
+    # Bin by profile index, for:
+    # - the mean time, lat, and lon values for each profile
+    # - the profile direction (mode), and profile start (min) and end (max) times
+    ds['time_1970'] = ds.longitude.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
-    for td in ('time_1970', 'longitude', 'latitude'):
-        good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
-        dat, xedges, binnumber = stats.binned_statistic(
-            ds['profile_index'].values[good],
-            ds[td].values[good],
-            statistic='mean',
-            bins=[profile_bins],
-        )
-        if td == 'time_1970':
-            td = 'time'
-            dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
-        _log.info(f'{td} {len(dat)}')
-        dsout[td] = (('time'), dat, ds[td].attrs)
 
-    # Bin by profile index, for the profile start (min) and end (max) times
-    profile_lookup = {'profile_time_start': "min", 'profile_time_end': "max"}
-    good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
-    for td, bin_stat in profile_lookup.items():
-        _log.debug(f'td, bin_stat {td}, {bin_stat}')
+    # Format: 'variable_key': (statistic, output_name, metadata_source)
+    td_lookup = {
+        'time_1970': ('mean', 'time', ds['time'].attrs), 
+        'longitude': ('mean', 'longitude', ds['longitude'].attrs),
+        'latitude': ('mean', 'latitude', ds['latitude'].attrs), 
+        'profile_direction': (lambda x: stats.mode(x, keepdims=True)[0][0], 'profile_direction', ds['profile_direction'].attrs), 
+        'profile_time_start': ('min', 'profile_time_start', profile_meta['profile_time_start']), 
+        'profile_time_end': ('max', 'profile_time_end', profile_meta['profile_time_end']), 
+    }
+
+    for td, (bin_stat, out_var, attrs) in td_lookup.items():        
+        src_data_key = 'time_1970' if td in ['profile_time_start', 'profile_time_end'] else td
+        good = np.where(~np.isnan(ds[src_data_key]) & (ds['profile_index'] % 1 == 0))[0]
         dat, xedges, binnumber = stats.binned_statistic(
             ds['profile_index'].values[good],
-            ds['time_1970'].values[good],
+            ds[src_data_key].values[good],
             statistic=bin_stat,
             bins=[profile_bins],
         )
-        dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
-        _log.info(f'{td} {len(dat)}')
-        dsout[td] = ((xdimname), dat, profile_meta[td])
+        # Convert timestamps back to datetime if dealing with time variables
+        if 'time' in td:
+            dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
 
-    ds = ds.drop('time_1970')
-    _log.info(f'Done times!')
+        # Add processing attribute
+        bin_stat_str = 'mode' if td in ['profile_direction'] else bin_stat
+        proc_attr = f'Using average method {bin_stat_str}'
+        if 'processing' in attrs:
+            attrs['processing'] += (' ' + proc_attr)
+        else:
+            attrs['processing'] = proc_attr
 
-    for k in ds.keys():
-        if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
+        _log.info(f'{out_var} {len(dat)}')
+        dsout[out_var] = (xdimname, dat, attrs)
+
+    ds = ds.drop_vars('time_1970')
+    _log.info('Done times!')
+
+    grid_exclude_vars = (
+        list(dsout.keys())
+        + ["depth", "profile_index", "distance_over_ground"]
+    )
+    for k in ds.keys():       
+        if (k in grid_exclude_vars) or ('time' in k):
+            _log.debug('Not gridding %s', k)
             continue
+        if k in ncvar and 'grid_exclude' in ncvar[k] and ncvar[k]['grid_exclude'] == 'true':
+            _log.debug(
+                'Not gridding %s due to grid_exclude flag in the deployment yaml',
+                k
+            )
+            continue
+
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
         if len(good) <= 0:
             continue
         if 'average_method' in ds[k].attrs:
             average_method = ds[k].attrs['average_method']
-            ds[k].attrs['processing'] = (
-                f'Using average method {average_method} for '
+            proc_attr = (
+                f' Using average method {average_method} for ' + 
                 f'variable {k} following deployment yaml.'
             )
             if average_method == 'geometric mean':
                 average_method = stats.gmean
-                ds[k].attrs['processing'] += (
-                    ' Using geometric mean implementation ' 'scipy.stats.gmean'
-                )
+                proc_attr = 'Using geometric mean implementation scipy.stats.gmean'
         else:
             average_method = 'mean'
+            proc_attr = 'Using average method mean'
+
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds['profile_index'].values[good],
             ds['depth'].values[good],
@@ -346,6 +378,11 @@ def make_gridfiles(
             statistic=average_method,
             bins=[profile_bins, depth_bins],
         )
+
+        if 'processing' in ds[k].attrs:
+            ds[k].attrs['processing'] += (' ' + proc_attr)
+        else:
+            ds[k].attrs['processing'] = proc_attr
 
         _log.debug(f'dat{np.shape(dat)}')
         dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
@@ -360,7 +397,7 @@ def make_gridfiles(
         dsout['u'].attrs = profile_meta['u']
         dsout['v'] = dsout.water_velocity_northward.mean(axis=0)
         dsout['v'].attrs = profile_meta['v']
-        dsout = dsout.drop(['water_velocity_eastward', 'water_velocity_northward'])
+        dsout = dsout.drop_vars(['water_velocity_eastward', 'water_velocity_northward'])
     dsout.attrs = ds.attrs
     dsout.attrs.pop('cdm_data_type')
 
@@ -370,16 +407,15 @@ def make_gridfiles(
         dsout.attrs['deployment_end'] = dsout.attrs['deployment_end'][:19]
         dsout.attrs['time_coverage_start'] = dsout.attrs['time_coverage_start'][:19]
         dsout.attrs['time_coverage_end'] = dsout.attrs['time_coverage_end'][:19]
-    # fix standard_name so they don't overlap!
+    # fix standard_name so they don't overlap, and remove units to be encoded later
     try:
         dsout['waypoint_latitude'].attrs.pop('standard_name')
         dsout['waypoint_longitude'].attrs.pop('standard_name')
-        dsout['profile_time_start'].attrs.pop('standard_name')
-        dsout['profile_time_end'].attrs.pop('standard_name')
     except:
         pass
-    # remove, so they can be encoded later:
     try:
+        dsout['profile_time_start'].attrs.pop('standard_name')
+        dsout['profile_time_end'].attrs.pop('standard_name')
         dsout['profile_time_start'].attrs.pop('units')
         dsout['profile_time_end'].attrs.pop('units')
         dsout['profile_time_start'].attrs.pop('_FillValue')
@@ -398,6 +434,8 @@ def make_gridfiles(
     for k in dsout:
         if k in ['profile', 'depth', 'latitude', 'longitude', 'time', 'mission_number']:
             dsout[k].attrs['coverage_content_type'] = 'coordinate'
+        elif k in grid_exclude_vars:
+            dsout[k].attrs['coverage_content_type'] = 'auxiliaryInformation'
         else:
             dsout[k].attrs['coverage_content_type'] = 'physicalMeasurement'
 
