@@ -201,7 +201,7 @@ def make_gridfiles(
 
     Timeseries variables can be excluded from the gridded netCDF file
     by including ``grid_exclude: 'true'`` in the deployment yaml.
-    'distance_over_ground' will always be excluded. 
+    'distance_over_ground', if it exists, will always be excluded. 
     'profile_direction', 'profile_time_start', and 'profile_time_end' 
     will always be included, but will only have one dimension ('profile'). 
 
@@ -245,10 +245,7 @@ def make_gridfiles(
     deployment = utils._get_deployment(deploymentyaml)
 
     ncvar = deployment['netcdf_variables']
-    if 'profile_variables' in deployment.keys():
-        profile_meta = deployment['profile_variables']
-    else:
-        profile_meta = {}
+    profile_meta = deployment['profile_variables']
 
     ds = xr.open_dataset(inname, decode_times=True)
     ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
@@ -299,50 +296,39 @@ def make_gridfiles(
         'comment': 'center of depth bins',
     }
 
-    # Bin by profile index, for the mean time, lat, and lon values for each profile
+    # Bin by profile index, for:
+    # - the mean time, lat, and lon values for each profile
+    # - the profile direction (mode), and profile start (min) and end (max) times
     ds['time_1970'] = ds.longitude.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
+
+    # Format: 'variable_key': (statistic, output_name, metadata_source)
     td_lookup = {
-        'time_1970': 'mean', 
-        'longitude': 'mean',
-        'latitude': 'mean', 
-        'profile_direction': lambda x: stats.mode(x, keepdims=True)[0][0], 
+        'time_1970': ('mean', 'time', ds['time'].attrs), 
+        'longitude': ('mean', 'longitude', ds['longitude'].attrs),
+        'latitude': ('mean', 'latitude', ds['latitude'].attrs), 
+        'profile_direction': (lambda x: stats.mode(x, keepdims=True)[0][0], 'profile_direction', ds['profile_direction'].attrs), 
+        'profile_time_start': ('min', 'profile_time_start', profile_meta['profile_time_start']), 
+        'profile_time_end': ('max', 'profile_time_end', profile_meta['profile_time_end']), 
     }
-    for td, bin_stat in td_lookup.items():
-        good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
+
+    for td, (bin_stat, out_var, attrs) in td_lookup.items():        
+        src_data_key = 'time_1970' if td in ['profile_time_start', 'profile_time_end'] else td
+        good = np.where(~np.isnan(ds[src_data_key]) & (ds['profile_index'] % 1 == 0))[0]
         dat, xedges, binnumber = stats.binned_statistic(
             ds['profile_index'].values[good],
-            ds[td].values[good],
+            ds[src_data_key].values[good],
             statistic=bin_stat,
             bins=[profile_bins],
         )
-        if td == 'time_1970':
-            td = 'time'
+        # Convert timestamps back to datetime if dealing with time variables
+        if 'time' in td:
             dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
-        _log.info(f'{td} {len(dat)}')
-        dsout[td] = (xdimname, dat, ds[td].attrs)
-
-    # Bin by profile index, for the profile start (min) and end (max) times
-    if 'profile_time_start' in profile_meta.keys():
-        profile_time_lookup = {
-            'profile_time_start': "min", 
-            'profile_time_end': "max"
-        }
-        good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
-        for td, bin_stat in profile_time_lookup.items():
-            _log.debug(f'td, bin_stat {td}, {bin_stat}')
-            dat, xedges, binnumber = stats.binned_statistic(
-                ds['profile_index'].values[good],
-                ds['time_1970'].values[good],
-                statistic=bin_stat,
-                bins=[profile_bins],
-            )
-            dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
-            _log.info(f'{td} {len(dat)}')
-            dsout[td] = ((xdimname), dat, profile_meta[td])
+        _log.info(f'{out_var} {len(dat)}')
+        dsout[out_var] = (xdimname, dat, attrs)
 
     ds = ds.drop_vars('time_1970')
-    _log.info(f'Done times!')
+    _log.info('Done times!')
 
     grid_exclude_vars = (
         list(dsout.keys())
@@ -365,17 +351,17 @@ def make_gridfiles(
             continue
         if 'average_method' in ds[k].attrs:
             average_method = ds[k].attrs['average_method']
-            ds[k].attrs['processing'] = (
-                f'Using average method {average_method} for '
+            proc_attr = (
+                f' Using average method {average_method} for ' + 
                 f'variable {k} following deployment yaml.'
             )
             if average_method == 'geometric mean':
                 average_method = stats.gmean
-                ds[k].attrs['processing'] += (
-                    ' Using geometric mean implementation ' 'scipy.stats.gmean'
-                )
+                proc_attr = 'Using geometric mean implementation scipy.stats.gmean'
         else:
             average_method = 'mean'
+            proc_attr = 'Using average method mean from scipy.stats.binned_statistic_2d'
+
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds['profile_index'].values[good],
             ds['depth'].values[good],
@@ -383,6 +369,11 @@ def make_gridfiles(
             statistic=average_method,
             bins=[profile_bins, depth_bins],
         )
+
+        if 'processing' in ds[k].attrs:
+            ds[k].attrs['processing'] += (' ' + proc_attr)
+        else:
+            ds[k].attrs['processing'] = proc_attr
 
         _log.debug(f'dat{np.shape(dat)}')
         dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
@@ -407,17 +398,15 @@ def make_gridfiles(
         dsout.attrs['deployment_end'] = dsout.attrs['deployment_end'][:19]
         dsout.attrs['time_coverage_start'] = dsout.attrs['time_coverage_start'][:19]
         dsout.attrs['time_coverage_end'] = dsout.attrs['time_coverage_end'][:19]
-    # fix standard_name so they don't overlap!
+    # fix standard_name so they don't overlap, and remove units to be encoded later
     try:
         dsout['waypoint_latitude'].attrs.pop('standard_name')
         dsout['waypoint_longitude'].attrs.pop('standard_name')
     except:
         pass
-
     try:
         dsout['profile_time_start'].attrs.pop('standard_name')
         dsout['profile_time_end'].attrs.pop('standard_name')
-        # remove, so they can be encoded later:
         dsout['profile_time_start'].attrs.pop('units')
         dsout['profile_time_end'].attrs.pop('units')
         dsout['profile_time_start'].attrs.pop('_FillValue')
@@ -450,17 +439,14 @@ def make_gridfiles(
         'calendar': 'gregorian',
         'dtype': 'float64',
     }
-    try:
-        netcdf_encoding = {
+    dsout.to_netcdf(
+        outname,
+        encoding={
             'time': time_encoding, 
             'profile_time_start': time_encoding, 
             'profile_time_end': time_encoding, 
-        }
-    except:
-        netcdf_encoding = {'time': time_encoding}
-
-
-    dsout.to_netcdf(outname, encoding=netcdf_encoding)
+        },
+    )
     _log.info('Done gridding')
 
     return outname
