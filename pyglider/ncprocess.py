@@ -255,7 +255,6 @@ def make_gridfiles(
     if maskfunction is not None:
         ds = maskfunction(ds)
 
-    ds = xr.open_dataset(inname, decode_times=True)
     ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
     _log.info(f'Working on: {inname}')
     _log.debug(str(ds))
@@ -412,13 +411,10 @@ def make_gridfiles(
     except:
         pass
     # remove, so they can be encoded later:
-    try:
-        dsout['profile_time_start'].attrs.pop('units')
-        dsout['profile_time_end'].attrs.pop('units')
-        dsout['profile_time_start'].attrs.pop('_FillValue')
-        dsout['profile_time_end'].attrs.pop('_FillValue')
-    except:
-        pass
+    for var in ['time', 'profile_time_start', 'profile_time_end']:
+        if var in dsout:
+            for attr in ['units', 'calendar', '_FillValue']:
+                dsout[var].attrs.pop(attr, None)
 
     # set some attributes for cf guidance
     # see H.6.2. Profiles along a single trajectory
