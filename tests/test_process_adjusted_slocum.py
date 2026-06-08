@@ -53,8 +53,12 @@ def test_process_adjusted_timeseries(var):
 
 
 def test_process_adjusted_metadata():
-    output.attrs.pop('date_created', None)
-    output.attrs.pop('date_issued', None)
-    test_data.attrs.pop('date_created', None)
-    test_data.attrs.pop('date_issued', None)
-    assert output.attrs == test_data.attrs
+    output_attrs = output.attrs.copy()
+    test_attrs = test_data.attrs.copy()
+
+    output_attrs.pop('date_created', None)
+    output_attrs.pop('date_issued', None)
+    test_attrs.pop('date_created', None)
+    test_attrs.pop('date_issued', None)
+
+    assert output_attrs == test_attrs

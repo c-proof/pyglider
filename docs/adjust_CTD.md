@@ -84,7 +84,7 @@ outname2 = ncprocess.make_gridfiles(
     deploymentyaml,
     fnamesuffix='_adjusted',
     maskfunction=None,
-    max_gap=50
+    max_gap=100
 )
 ```
 
