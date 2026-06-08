@@ -1120,7 +1120,6 @@ def flag_CTD_data(
 
     return ts
 
-
 def adjust_CTD(
     ts,
     deploymentyaml,
@@ -1214,6 +1213,18 @@ def adjust_CTD(
             "Missing required CTD constants after checking kwargs and YAML:'"
             "alpha, tau, dTdC"
         )
+        
+    # Realtime files can have duplicate or non-monotonic time values,
+    # especially around profile 0. xarray.interp requires monotonic time.
+    if not ts.indexes["time"].is_monotonic_increasing:
+        _log.warning("Time index is not monotonic; sorting by time before interpolation.")
+        ts = ts.sortby("time")
+
+    _, unique_index = np.unique(ts.time.values, return_index=True)
+
+    if len(unique_index) != ts.sizes["time"]:
+        _log.warning("Duplicate time values found; keeping first occurrence.")
+        ts = ts.isel(time=np.sort(unique_index))
 
     temp_adj = ts.temperature.copy()
     temp_adj.attrs = ts.temperature.attrs.copy()
@@ -1342,7 +1353,6 @@ def adjust_CTD(
     )
 
     ts["potential_density_adjusted_QC"] = ts["salinity_adjusted_QC"]
-    ts["potential_density_adjusted_QC"].attrs = ts.salinity_adjusted_QC.attrs.copy()
 
     ts["potential_temperature_adjusted"] = (
         ("time"),
@@ -1353,9 +1363,6 @@ def adjust_CTD(
         ).values,
     )
 
-    ts["potential_temperature_adjusted"].attrs = (
-        ts.potential_temperature.attrs.copy()
-    )
     ts["potential_temperature_adjusted"].attrs["history"] = (
         "calculated using salinity_adjusted and temperature_adjusted"
     )
@@ -1364,34 +1371,16 @@ def adjust_CTD(
     )
 
     ts["potential_temperature_adjusted_QC"] = ts["salinity_adjusted_QC"]
-    ts["potential_temperature_adjusted_QC"].attrs = (
-        ts.salinity_adjusted_QC.attrs.copy()
-    )
 
     processing_date = date.today().strftime("%Y%m%d")
 
-    vars_ = [
-        "salinity_adjusted",
-        "temperature_adjusted",
-        "potential_density_adjusted",
-        "potential_temperature_adjusted",
-    ]
-
-    for var in vars_:
-        ts[var].attrs["processing_date"] = processing_date
-
-    QC_COMMENT = (
-        "1 = good data; 3 = bad data, potentially correctable; "
-        "4 = bad data; 8 = estimated data"
-    )
+    #Update metadata 
     ncvars = deploymentyaml.get("netcdf_variables", {})
 
-    for k in ts.data_vars:
-        if k in ts and k in ncvars:
-            ts[k].attrs.update(ncvars[k])
-        if k.endswith("_QC"):
-            ts[k].attrs["comment"] = QC_COMMENT
-
+    for var in ts.data_vars:
+        if var in ncvars:
+            ts[var].attrs.update(ncvars[var])
+	
     return ts
 
 
