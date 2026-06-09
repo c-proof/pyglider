@@ -305,7 +305,6 @@ def make_gridfiles(
     # Bin by profile index, for the mean time, lat, and lon values for each profile
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
-    # print(ds.time_1970.values)
     # print(ds.profile_index.values)
     for td in ('time_1970', 'longitude', 'latitude'):
 
