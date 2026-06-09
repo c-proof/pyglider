@@ -34,7 +34,7 @@ The following parameters can be customized:
 - **alpha, tau**  
   Thermal lag correction constants.
   - Can be provided as function arguments
-  - Or stored in the deployment YAML file
+  - Or stored in the deployment YAML file or an ``adjusted`` YML file. Note that utils._get_deployment() 
   - If neither is provided, thermal lag correction is not applied
 
 - **dTdC**  
