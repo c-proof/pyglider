@@ -239,7 +239,19 @@ def make_gridfiles(
         Name of gridded netCDF file. The gridded netCDF file has coordinates of
         'depth' and 'profile', so each variable is gridded in depth bins and by
         profile number.  Each profile has a time, latitude, and longitude.
-        If deploymentyaml is a list, attributes
+        If deploymentyaml is a list, data is parsed for deployment information, 
+        with subsequent files overwriting previous files.
+
+    Note: 
+    By default, the arithmetic mean is used for all variables except those with an
+    average_method attribute. For example, if a variable has
+    average_method: geometric mean, the geometric mean will be used instead when
+    gridding that variable. Variables with an
+    average_method: QC_protocol attribute are treated as discrete quality flags
+    rather than continuous data, and the maximum flag within each bin is used for
+    gridding (e.g., if any value in a bin is QC3, the gridded bin is assigned QC3).
+
+
     """
     try:
         os.mkdir(outdir)
@@ -305,11 +317,7 @@ def make_gridfiles(
     # Bin by profile index, for the mean time, lat, and lon values for each profile
     ds['time_1970'] = ds.temperature.copy()
     ds['time_1970'].values = ds.time.values.astype(np.float64)
-<<<<<<< HEAD
-    # print(ds.profile_index.values)
-=======
-
->>>>>>> 16288c2 (update documentation)
+    
     for td in ('time_1970', 'longitude', 'latitude'):
 
         good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
