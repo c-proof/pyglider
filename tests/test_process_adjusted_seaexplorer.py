@@ -14,8 +14,7 @@ yaml_dir = library_dir / 'tests/example-data/example-seaexplorer'
 outname = run_process_adjusted(
     example_dir,
     deploy_name = 'dfo-eva035-20190718',
-    deployfile=yaml_dir / 'deploymentRealtime.yml',
-    adjustedyaml=yaml_dir / 'adjusted.yml',
+    deployfile=yaml_dir / 'deploymentRealtime.yml'
 )
 output = xr.open_dataset(outname)
 

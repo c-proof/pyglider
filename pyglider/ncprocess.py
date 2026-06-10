@@ -250,8 +250,6 @@ def make_gridfiles(
     average_method: QC_protocol attribute are treated as discrete quality flags
     rather than continuous data, and the maximum flag within each bin is used for
     gridding (e.g., if any value in a bin is QC3, the gridded bin is assigned QC3).
-
-
     """
     try:
         os.mkdir(outdir)

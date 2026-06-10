@@ -34,8 +34,9 @@ The following parameters can be customized:
 - **alpha, tau**  
   Thermal lag correction constants.
   - Can be provided as function arguments
-  - Or stored in the deployment YAML file or an ``adjusted`` YML file. Note that utils._get_deployment() 
-  - If neither is provided, thermal lag correction is not applied
+  - Or stored in the deployment YAML file or an new YML file. Note that `utils._get_deployment(deploymentyaml)` can take a list of files in *deploymentyaml* and parse them
+    for deployment information, with subsequent files overwriting previous files.
+  - If information is provided in either method, a thermal lag correction is not applied.
 
 - **dTdC**  
   Time lag (seconds) between temperature and conductivity sensors
@@ -153,9 +154,9 @@ If `alpha` and `tau` are provided, `apply_thermal_lag` is used to:
 
 ## Optional: interpolate_filter
 
-An optional preprocessing step can be applied to reduce noise and prevent spikes from propagating during filtering. This function should take and return an xarray Dataset (e.g., linear interpolation over short gaps).
+An optional preprocessing step can be applied to reduce noise and prevent spikes from propagating when applying the thermal lag correction. This function should take and return an xarray Dataset if salinity (e.g., linear interpolation over short gaps). 
 
----
+Example: `utils.interpolate_over_salinity_NANs` 
 
 ---
 
