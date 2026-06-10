@@ -195,7 +195,6 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 def make_gridfiles(
     inname,
     outdir,
-    deploymentyaml,
     *,
     fnamesuffix='',
     depth_bins=None,
@@ -214,10 +213,6 @@ def make_gridfiles(
 
     outdir : str or Path
         directory to place profiles
-
-    deploymentyaml : str or Path
-        location of deployment yaml file for the netCDF file.  This should
-        be the same yaml file that was used to make the timeseries file.
 
     depth_bins : array, default = None
         User-defined depth bins, for instance ``np.arange(0, 1000.1, 1)``.
@@ -243,20 +238,18 @@ def make_gridfiles(
         with subsequent files overwriting previous files.
 
     Note: 
-    By default, the arithmetic mean is used for all variables except those with an
-    average_method attribute. For example, if a variable has
-    average_method: geometric mean, the geometric mean will be used instead when
-    gridding that variable. Variables with an
-    average_method: QC_protocol attribute are treated as discrete quality flags
-    rather than continuous data, and the maximum flag within each bin is used for
-    gridding (e.g., if any value in a bin is QC3, the gridded bin is assigned QC3).
+    By default, the arithmetic mean is used to bin all variables, except for those with 
+    an average_method attribute inherited from the timeseries. This attribute is specified
+    in the YAML configuration file when the timeseries is created. For example, if a variable 
+    has average_method: geometric mean, the geometric mean is used when gridding that variable. 
+    Variables with average_method: QC_protocol are treated as discrete quality flags rather than
+    continuous data, and the maximum flag within each bin is used for gridding (e.g., if any 
+    value in a bin is QC3, the gridded bin is assigned QC3).
     """
     try:
         os.mkdir(outdir)
     except FileExistsError:
         pass
-
-    deployment = utils._get_deployment(deploymentyaml)
 
     profile_meta = deployment['profile_variables']
 
@@ -362,14 +355,8 @@ def make_gridfiles(
         if len(good) <= 0:
             continue
         if 'QC_protocol' in ds[k].attrs.values():
-            # QC variables are treated as discrete flags rather than continuous data.
-            # If a variable has a QC_protocol attribute, it is gridded using the
-            # maximum flag in each bin (e.g. any QC3 in a bin makes the gridded bin QC3).
             method = np.nanmax
         else:
-            # variables are treated as continuous data.
-            # If a variable has a average_method attribute, it is gridded using the
-            # mean in each bin
             if 'average_method' in ds[k].attrs.values():
                 method = ds[k].attrs['average_method']
                 if method == 'geometric mean':

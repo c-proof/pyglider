@@ -154,7 +154,7 @@ If `alpha` and `tau` are provided, `apply_thermal_lag` is used to:
 
 ## Optional: interpolate_filter
 
-An optional preprocessing step can be applied to reduce noise and prevent spikes from propagating when applying the thermal lag correction. This function should take and return an xarray Dataset if salinity (e.g., linear interpolation over short gaps). 
+An optional preprocessing step can be applied to reduce noise and prevent spikes from propagating when applying the thermal lag correction. This function should take and return an xarray Dataset of salinity (e.g., linear interpolation over short gaps). 
 
 Example: `utils.interpolate_over_salinity_NANs` 
 
