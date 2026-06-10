@@ -981,6 +981,27 @@ def interpolate_over_salinity_NANs(ds):
 
     return interp
 
+
+def _coerce_optional_float(value, name):
+    """Return None for empty/none-like values, else coerce to finite float."""
+    if value is None:
+        return None
+
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {'', 'none', 'null', 'nan'}:
+            return None
+
+    try:
+        value = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f'{name} must be numeric or None, got {value!r}') from exc
+
+    if not np.isfinite(value):
+        return None
+
+    return value
+
 def apply_thermal_lag(
     ds,
     fn,
@@ -1204,16 +1225,16 @@ def adjust_CTD(
         else:
             out[key] = y
 
-    alpha = out.get("alpha", {})
-    tau = out.get("tau", {})
-    dTdC = out.get("dTdC", {})
+    alpha = _coerce_optional_float(out.get("alpha"), "alpha")
+    tau = _coerce_optional_float(out.get("tau"), "tau")
+    dTdC = _coerce_optional_float(out.get("dTdC"), "dTdC")
 
     if all(out.get(k) is None for k in ["alpha", "tau", "dTdC"]):
         raise ValueError(
             "Missing required CTD constants after checking kwargs and YAML:'"
             "alpha, tau, dTdC"
         )
-        
+
     # Realtime files can have duplicate or non-monotonic time values,
     # especially around profile 0. xarray.interp requires monotonic time.
     if not ts.indexes["time"].is_monotonic_increasing:
@@ -1232,7 +1253,7 @@ def adjust_CTD(
 
     if dTdC not in (None, 0):
         _log.info('Interpolating temperature data back by %s seconds', dTdC)
-        dt = np.timedelta64(dTdC, "s")
+        dt = np.timedelta64(int(1000*dTdC), "ms")
         temp_adj = temp_adj.interp(time=ts.time + dt)
 
         temp_adj.attrs["history"] = "temperature [degC] adjusted by CT lag"
@@ -1244,7 +1265,7 @@ def adjust_CTD(
 
     ts["temperature_adjusted"] = temp_adj
 
-    if tau is not None:
+    if alpha is not None and tau is not None:
         dt = np.diff(ts.time.values).astype("timedelta64[s]").astype(int)
         vals, counts = np.unique(dt, return_counts=True)
         srate = vals[np.argmax(counts)]
@@ -1374,13 +1395,13 @@ def adjust_CTD(
 
     processing_date = date.today().strftime("%Y%m%d")
 
-    #Update metadata 
+    #Update metadata
     ncvars = deploymentyaml.get("netcdf_variables", {})
 
     for var in ts.data_vars:
         if var in ncvars:
             ts[var].attrs.update(ncvars[var])
-	
+
     return ts
 
 
