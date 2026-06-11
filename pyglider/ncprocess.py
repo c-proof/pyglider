@@ -195,6 +195,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
 def make_gridfiles(
     inname,
     outdir,
+    deploymentyaml,
     *,
     fnamesuffix='',
     depth_bins=None,
@@ -213,6 +214,10 @@ def make_gridfiles(
 
     outdir : str or Path
         directory to place profiles
+
+    deploymentyaml : str or Path
+        location of deployment yaml file for the netCDF file.  This should
+        be the same yaml file that was used to make the timeseries file.
 
     depth_bins : array, default = None
         User-defined depth bins, for instance ``np.arange(0, 1000.1, 1)``.
