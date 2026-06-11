@@ -255,7 +255,7 @@ def make_gridfiles(
         os.mkdir(outdir)
     except FileExistsError:
         pass
-
+    deployment = utils._get_deployment(deploymentyaml)
     profile_meta = deployment['profile_variables']
 
     ds = xr.open_dataset(inname, decode_times=True)
