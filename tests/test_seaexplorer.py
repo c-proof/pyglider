@@ -6,11 +6,11 @@ import polars as pl
 import pytest
 import yaml
 
+import pyglider.seaexplorer as seaexplorer
+
 os.system('rm tests/data/realtime_rawnc/*')
 library_dir = Path(__file__).parent.parent.absolute()
 example_dir = library_dir / 'tests/example-data/'
-
-import pyglider.seaexplorer as seaexplorer
 
 
 def test__outputname():
