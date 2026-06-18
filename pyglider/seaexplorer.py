@@ -712,6 +712,232 @@ def raw_to_timeseries(
     return outname
 
 
+def parse_surfacing_logfile(fn):
+    """
+    Parse the surfacing log file from a seaexplorer deployment.  This is not
+    used in the processing, but is useful to track the glider behaviour if nav
+    data not being sent back.
+
+    Parameters
+    ----------
+    fn : str
+        Path to the log file.
+
+    Returns
+    -------
+    df : polars.DataFrame
+        Dataframe with the log data.
+
+    """
+
+    """
+        "18.05.2026 01:07:07.296";TRACE;"module-IrisCom";"Glider";"SEA035";"done (a): Waiting for GO"
+        "18.05.2026 01:07:07.499";TRACE;"module-IrisCom";"Glider";"SEA035";"$SEAMRS,SEA035,143,273,0,275,180526,010709,4825.877,-12522.708*1106;"
+        "18.05.2026 01:07:07.499";TRACE;"module-IrisCom";"Glider";"SEA035";"$SEANAV,1,41,1020,-1020,1020,-1020,1000,2,10,10*5a46;"
+        "18.05.2026 01:07:07.702";TRACE;"module-IrisCom";"Glider";"SEA035";"$SEADST,116,279,16,-48,-7,-0.3,76078,9.6,275,100,0,500*fdfa;"
+        "18.05.2026 01:07:10.718";TRACE;"module-IrisCom";"Glider";"SEA035";"$SEALOG,1,0,148.4,75897,78006,8.3,9.6,27.1,27.7,-0.18,0.18,-19.4,19.4,44.8,30.3,-4
+        78.1,260.1*db10;"
+        "18.05.2026 01:07:10.718";TRACE;"module-IrisCom";"Glider";"SEA035";"$SEADEV,1,1,1,1,1*2c63;"
+        "18.05.2026 01:07:10.718";TRACE;"module-IrisCom";"Glider";"SEA035";"$SEADRK,0,4825.877,-12522.708,0.00,3142,0.22,113*5d1b;"
+        "18.05.2026 01:07:27.374";TRACE;"module-IrisCom";"Glider";"SEA035";"done (a): Waiting for GO"
+        "18.05.2026 01:07:30.077";TRACE;"module-IrisCom";"Glider";"SEA035";"$SEAMRS,SEA035,143,273,0,276,180526,010729,4825.873,-12522.705*5ad5;"
+        "18.05.2026 01:07:30.077";TRACE;"module-IrisCom";"Glider";"SEA035";"$SEANAV,1,41,1020,-1020,1020,-1020,1000,2,10,10*5a46;"
+
+        Translated as
+        $SEAMRS,<ID>,<MSN>,<CYCLE>,<STATUS>,<BATTERIES>,<DATE>,<TIME>,<LAT>,<LON>*<CKS>;
+        $SEANAV,<MODE>,<HEADING>,<PU>,<PD>,<BU>,<BD>,<ZB>,<ZT>,<AL>,<RATE>*<CKS>;
+        $SEADST,<NAVSTATE>,<HEADING>,<DECLINATION>,<PITCH>,<ROLL>,<DEPTH>,<VACUUM>,<TEMP>,<VOLTAGE>,<LPOS>,<APOS>,<BPOS>*<CKS>;
+        $SEALOG,<CALLS>,<CALLS_FAILED>,<ZMAX>,<VAC_MIN>,<VAC_MAX>,<TEMP_MIN>,<TEMP_MAX>,<VOLT_MIN>,<VOLT_MAX>,<VEL_D>,<VEL_A>,<PITCH_D>,<PITCH_A>,<LIN_D>,<LIN_A>,<BAL_D>,<BAL_A>*<CKS>;
+        $SEADEV,<RADIO>,<GPS>,<IRIDIUM>*<CKS>
+    """
+
+    # we need to go through this file and extract from each line a time series of
+    # time, lat, lon, battery and heading commanded (from SEANAV):
+    # each SEAMRS should have a correspondiong SEANAV so use the SEAMRS as the index and
+    # pull out the time, lat, lon, battery from it, and then pull out the heading from
+    # the corresponding SEANAV.  We can also pull out the NAVSTATE from SEADST if we want
+    # to know when the glider is dead reckoning.
+
+    df = pl.read_csv(
+        fn,
+        separator=';',
+        has_header=False,
+        new_columns=[
+            'timestamp',
+            'log_level',
+            'module',
+            'device_type',
+            'device_id',
+            'message',
+        ],
+    )
+    df = df.with_columns(
+        pl.col('timestamp').str.strptime(
+            pl.Datetime,
+            format='%d.%m.%Y %H:%M:%S.%3f',
+            strict=False,
+        )
+    )
+    df = df.rename({'timestamp': 'time'})
+    df = df.filter(pl.col('time').is_not_null())
+
+    # Parse only Iris/SEA NMEA-like payloads in the message column.
+    parsed = (
+        df.with_row_count('row_id')
+        .with_columns(
+            pl.col('message')
+            .str.strip_chars()
+            .str.strip_prefix('"')
+            .str.strip_suffix('"')
+            .str.strip_suffix(';')
+            .str.strip_prefix('$')
+            .alias('message_clean')
+        )
+        .with_columns(
+            pl.col('message_clean').str.extract(r'\*([0-9A-Fa-f]+)$', 1).alias('checksum'),
+            pl.col('message_clean')
+            .str.replace(r'\*[0-9A-Fa-f]+$', '')
+            .alias('payload')
+        )
+        .filter(pl.col('payload').str.starts_with('SEA'))
+        .with_columns(pl.col('payload').str.split(',').alias('parts'))
+        .with_columns(pl.col('parts').list.get(0).alias('record_type'))
+    )
+
+    seamrs = parsed.filter(
+        (pl.col('record_type') == 'SEAMRS') & (pl.col('parts').list.len() >= 10)
+    ).select(
+        'row_id',
+        'time',
+        pl.col('checksum').alias('seamrs_checksum'),
+        pl.col('parts').list.get(1).alias('id'),
+        pl.col('parts').list.get(2).cast(pl.Int64, strict=False).alias('msn'),
+        pl.col('parts').list.get(3).cast(pl.Int64, strict=False).alias('cycle'),
+        pl.col('parts').list.get(4).cast(pl.Int64, strict=False).alias('status'),
+        (
+            pl.col('parts').list.get(5).cast(pl.Float64, strict=False) / 10.0
+        ).alias('battery'),
+        pl.col('parts').list.get(8).cast(pl.Float64, strict=False).alias('lat'),
+        pl.col('parts').list.get(9).cast(pl.Float64, strict=False).alias('lon'),
+    )
+
+
+
+    if seamrs.is_empty():
+        return seamrs
+
+    seanav = parsed.filter(
+        (pl.col('record_type') == 'SEANAV') & (pl.col('parts').list.len() >= 5)
+    ).select(
+        'row_id',
+        pl.col('checksum').alias('seanav_checksum'),
+        pl.col('parts').list.get(1, null_on_oob=True).cast(pl.Int64, strict=False).alias('mode'),
+        pl.col('parts').list.get(2, null_on_oob=True).cast(pl.Float64, strict=False).alias('heading_cmd'),
+        pl.col('parts').list.get(3, null_on_oob=True).cast(pl.Float64, strict=False).alias('pu'),
+        pl.col('parts').list.get(4, null_on_oob=True).cast(pl.Float64, strict=False).alias('pd'),
+        pl.col('parts').list.get(5, null_on_oob=True).cast(pl.Float64, strict=False).alias('bu'),
+        pl.col('parts').list.get(6, null_on_oob=True).cast(pl.Float64, strict=False).alias('bd'),
+        pl.col('parts').list.get(8, null_on_oob=True).cast(pl.Float64, strict=False).alias('zt'),
+        pl.col('parts').list.get(9, null_on_oob=True).cast(pl.Float64, strict=False).alias('al'),
+        pl.col('parts').list.get(10, null_on_oob=True).cast(pl.Float64, strict=False).alias('rate'),
+    )
+
+    seadst = parsed.filter(
+        (pl.col('record_type') == 'SEADST') & (pl.col('parts').list.len() >= 2)
+    ).select(
+        'row_id',
+        pl.col('checksum').alias('seadst_checksum'),
+        pl.col('parts').list.get(1).cast(pl.Int64, strict=False).alias('navstate'),
+    )
+
+    out = seamrs.sort('row_id')
+    if not seanav.is_empty():
+        out = out.join_asof(
+            seanav.sort('row_id'),
+            on='row_id',
+            strategy='forward',
+        )
+    if not seadst.is_empty():
+        out = out.join_asof(
+            seadst.sort('row_id'),
+            on='row_id',
+            strategy='forward',
+        )
+
+    out = out.drop('row_id').sort('time')
+
+    # Lat and Lon are NMEA lat and lon so need to be converted to decimal degrees:
+    out = out.with_columns(
+        pl.col('lat').map_elements(lambda x: utils.nmea2deg(x) if x is not None else None, return_dtype=pl.Float64).alias('lat'),
+        pl.col('lon').map_elements(lambda x: utils.nmea2deg(x) if x is not None else None, return_dtype=pl.Float64).alias('lon'),
+    )
+
+    print(out[['time', 'lat', 'lon']])
+    return out
+
+def add_latlon_to_gridfiles(outname, df):
+    """
+    Add lat and lon to the grid files.  This is needed for the glider toolbox
+    gridding to work.
+
+    Parameters
+    ----------
+    outname : str
+        Path to the output netcdf file.
+
+    df : polars.DataFrame
+        Dataframe with the lat and lon data.  Must have columns 'time', 'lat',
+        and 'lon'.
+    """
+    with xr.open_dataset(outname, mode='r') as ds:
+        ds.load()
+        # interpolate lat and lon to the grid file time steps
+        # Filter to only good (non-NaN) lat/lon values
+        df_good = df.filter((pl.col('lat').is_not_null()) & (pl.col('lon').is_not_null()))
+
+        # Convert both time arrays to same units (nanoseconds) for interpolation
+        ds_time_ns = ds['time'].values.astype('datetime64[ns]').astype(float)
+        df_time_ns = df_good['time'].to_numpy().astype('datetime64[ns]').astype(float)
+
+        lat_interp = np.interp(
+            ds_time_ns,
+            df_time_ns,
+            df_good['lat'].to_numpy(),
+        )
+        lon_interp = np.interp(
+            ds_time_ns,
+            df_time_ns,
+            df_good['lon'].to_numpy(),
+        )
+
+        # Replace latitude and longitude only where they match the previous value
+        # (indicating forward-filled bad values)
+        lat_orig = ds['latitude'].values.copy()
+        lon_orig = ds['longitude'].values.copy()
+
+        # Find where current value matches previous value within tolerance
+        # (forward-filled bad values can differ by tiny roundoff amounts).
+        tol = 1e-6
+        lat_repeated = np.concatenate(
+            ([False], np.isclose(lat_orig[1:], lat_orig[:-1], atol=tol, rtol=0.0))
+        )
+        lon_repeated = np.concatenate(
+            ([False], np.isclose(lon_orig[1:], lon_orig[:-1], atol=tol, rtol=0.0))
+        )
+
+        # Create new arrays, replacing only the repeated values
+        lat_new = lat_orig.copy()
+        lon_new = lon_orig.copy()
+        lat_new[lat_repeated] = lat_interp[lat_repeated]
+        lon_new[lon_repeated] = lon_interp[lon_repeated]
+
+        ds['latitude'].values = lat_new
+        ds['longitude'].values = lon_new
+
+    ds.to_netcdf(outname, mode='w')
+
+
+
 # aliases:
 raw_to_L1timeseries = raw_to_L0timeseries = raw_to_timeseries
 merge_rawnc = merge_parquet
