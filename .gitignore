@@ -7,3 +7,6 @@ dist
 *.png
 .DS_Store
 pyglider/_version.py
+# pixi environments
+.pixi/*
+!.pixi/config.toml
