@@ -1400,7 +1400,12 @@ def adjust_CTD(
 
     for var in ts.data_vars:
         if var in ncvars:
-            ts[var].attrs.update(ncvars[var])
+            for key, value in ncvars[var].items():
+                if key == "coordinates":
+                    continue
+
+                if key not in ts[var].attrs:
+                    ts[var].attrs[key] = value
 
     return ts
 
