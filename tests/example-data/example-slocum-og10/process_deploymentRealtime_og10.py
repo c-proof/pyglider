@@ -17,6 +17,7 @@ import os
 import pyglider.ncprocess as ncprocess
 import pyglider.slocum as slocum
 import pyglider.utils as pgutils
+import pyglider.plotting as pgplot
 
 logging.basicConfig(level='INFO')
 
@@ -76,10 +77,3 @@ outname = slocum.binary_to_timeseries(
 #   - call _save_dataset when writing the gridded file
 # ------------------------------------------------------------------------
 outname2 = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
-
-pgutils.example_gridplot(
-    outname2,
-    './gridplot_og10.png',
-    ylim=[150, 0],
-    toplot=['POTENTIAL_TEMPERATURE', 'PSAL', 'DOXY', 'CHLA'],
-)

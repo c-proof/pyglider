@@ -257,8 +257,13 @@ def make_gridfiles(
         pass
     deployment = utils._get_deployment(deploymentyaml)
     profile_meta = deployment['profile_variables']
+    varnames = utils._get_varnames(deployment)
+    depth_varname = varnames.get('depth', 'depth')
+    profile_index_varname = varnames.get('profile_index', 'profile_index')
+    lat_varname = varnames.get('latitude', 'latitude')
+    lon_varname = varnames.get('longitude', 'longitude')
 
-    ds = xr.open_dataset(inname, decode_times=True)
+    ds = utils._load_dataset(inname)
 
     if maskfunction is not None:
         ds = maskfunction(ds)
@@ -269,7 +274,7 @@ def make_gridfiles(
     _log.debug(str(ds.time[0]))
     _log.debug(str(ds.time[-1]))
 
-    profiles = np.unique(ds.profile_index)
+    profiles = np.unique(ds[profile_index_varname])
     profiles = [p for p in profiles if (~np.isnan(p) and not (p % 1) and (p > 0))]
     profile_bins = np.hstack((np.array(profiles) - 0.5, [profiles[-1] + 0.5]))
     _log.debug(profile_bins)
@@ -298,28 +303,29 @@ def make_gridfiles(
 
     xdimname = 'time'
     dsout = xr.Dataset(
-        coords={'depth': ('depth', depths), 'profile': (xdimname, profiles)}
+        coords={depth_varname: (depth_varname, depths), 'profile': (xdimname, profiles)}
     )
-    dsout['depth'].attrs = {
+    dsout[depth_varname].attrs = {
         'units': 'm',
         'long_name': 'Depth',
         'standard_name': 'depth',
         'positive': 'down',
-        'source': ds.depth.attrs["source"],
+        'source': ds[depth_varname].attrs.get('source', ''),
         'coverage_content_type': 'coordinate',
         'comment': 'center of depth bins',
     }
 
     # Bin by profile index, for the mean time, lat, and lon values for each profile
-    ds['time_1970'] = ds.temperature.copy()
-    ds['time_1970'].values = ds.time.values.astype(np.float64)
-    
-    for td in ('time_1970', 'longitude', 'latitude'):
+    ds['time_1970'] = xr.DataArray(
+        ds.time.values.astype(np.float64), dims=['time'], attrs={}
+    )
 
-        good = np.where(~np.isnan(ds[td]) & (ds['profile_index'] % 1 == 0))[0]
+    for td in ('time_1970', lon_varname, lat_varname):
+
+        good = np.where(~np.isnan(ds[td]) & (ds[profile_index_varname] % 1 == 0))[0]
         if len(good) > 1:
             dat, xedges, binnumber = stats.binned_statistic(
-                ds['profile_index'].values[good],
+                ds[profile_index_varname].values[good],
                 ds[td].values[good],
                 statistic='mean',
                 bins=[profile_bins],
@@ -335,11 +341,11 @@ def make_gridfiles(
 
     # Bin by profile index, for the profile start (min) and end (max) times
     profile_lookup = {'profile_time_start': "min", 'profile_time_end': "max"}
-    good = np.where(~np.isnan(ds['time']) & (ds['profile_index'] % 1 == 0))[0]
+    good = np.where(~np.isnan(ds['time']) & (ds[profile_index_varname] % 1 == 0))[0]
     for td, bin_stat in profile_lookup.items():
         _log.debug(f'td, bin_stat {td}, {bin_stat}')
         dat, xedges, binnumber = stats.binned_statistic(
-            ds['profile_index'].values[good],
+            ds[profile_index_varname].values[good],
             ds['time_1970'].values[good],
             statistic=bin_stat,
             bins=[profile_bins],
@@ -352,11 +358,12 @@ def make_gridfiles(
     _log.info(f'Done times!')
 
 
+    skip_vars = {'time', lat_varname, lon_varname, depth_varname, profile_index_varname}
     for k in ds.keys():
-        if k in ['time', 'profile', 'longitude', 'latitude', 'depth'] or 'time' in k:
+        if k in skip_vars or 'time' in k:
             continue
         _log.info('Gridding %s', k)
-        good = np.where(~np.isnan(ds[k]) & (ds['profile_index'] % 1 == 0))[0]
+        good = np.where(~np.isnan(ds[k]) & (ds[profile_index_varname] % 1 == 0))[0]
         if len(good) <= 0:
             continue
         if 'QC_protocol' in ds[k].attrs.values():
@@ -370,18 +377,18 @@ def make_gridfiles(
                 method = 'mean'
 
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
-            ds['profile_index'].values[good],
-            ds['depth'].values[good],
+            ds[profile_index_varname].values[good],
+            ds[depth_varname].values[good],
             values=ds[k].values[good],
             statistic=method,
             bins=[profile_bins, depth_bins],
         )
 
         _log.debug(f'dat{np.shape(dat)}')
-        dsout[k] = (('depth', xdimname), dat.T, ds[k].attrs)
+        dsout[k] = ((depth_varname, xdimname), dat.T, ds[k].attrs)
 
         dsout[k] = dsout[k].interpolate_na(
-            dim="depth",
+            dim=depth_varname,
             method="linear",
             max_gap=max_gap,
         )
@@ -424,9 +431,9 @@ def make_gridfiles(
     dsout['profile'].attrs['cf_role'] = 'profile_id'
     dsout['mission_number'] = np.int32(1)
     dsout['mission_number'].attrs['cf_role'] = 'trajectory_id'
-    dsout = dsout.set_coords(['latitude', 'longitude', 'time'])
+    dsout = dsout.set_coords([lat_varname, lon_varname, 'time'])
     for k in dsout:
-        if k in ['profile', 'depth', 'latitude', 'longitude', 'time', 'mission_number']:
+        if k in ['profile', depth_varname, lat_varname, lon_varname, 'time', 'mission_number']:
             dsout[k].attrs['coverage_content_type'] = 'coordinate'
         else:
             dsout[k].attrs['coverage_content_type'] = 'physicalMeasurement'
