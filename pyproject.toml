@@ -1,3 +1,41 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyglider"
+dynamic = ["version"]
+description = "Glider data to netCDF translation in python"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+  { name = "Jody Klymak", email = "jklymak@gmail.com" },
+]
+requires-python = ">=3.9"
+dependencies = [
+  "xarray",
+  "dask",
+  "netcdf4",
+  "gsw",
+  "scipy",
+  "bitstring",
+  "bottleneck",
+  "pooch",
+  "polars>=1.1",
+  "numpy",
+  "dbdreader",
+]
+
+[project.urls]
+Homepage = "https://pyglider.readthedocs.io"
+Repository = "https://github.com/c-proof/pyglider"
+
+[tool.setuptools.packages.find]
+exclude = ["tests*"]
+
+[tool.setuptools_scm]
+version_file = "pyglider/_version.py"
+
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
 testpaths = ["tests"]

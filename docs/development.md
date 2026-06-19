@@ -121,6 +121,34 @@ The diff should show only the changes you intended. If unrelated variables or da
 | `test_seaexplorer.py` | SeaExplorer-specific unit tests |
 | `test_utils.py` | Utility function unit tests |
 
+## Making a release
+
+Releases are published to PyPI automatically when a version tag is pushed. The
+GitHub Actions workflow builds the package, publishes to TestPyPI, then PyPI,
+and creates a GitHub Release with auto-generated notes.
+
+The version number is derived from git tags via `setuptools-scm` — there is no
+version to manually bump.
+
+**Step 1: Tag the commit you want to release:**
+
+```bash
+git tag v1.2.3
+git push --tags
+```
+
+That's it. The workflow triggers on any `v*` tag.
+
+**TestPyPI** runs first as a smoke test. If it fails (e.g. the package already
+exists at that version on TestPyPI), you can re-tag after fixing, but note that
+TestPyPI does not allow re-uploading the same version — use a new tag.
+
+**Trusted Publishing** must be configured on both PyPI and TestPyPI for the
+`pypi` and `testpypi` GitHub Environments respectively. If the workflow's
+publish step fails with a permissions error, check that the environment is
+configured in the repo settings and that the PyPI trusted publisher entry
+matches the repo and workflow file name.
+
 ## Numerical tolerances
 
 Statistics comparisons use relative tolerance `rtol=1e-5` and `atol=0.0`. Integer counts (`n_valid`, `n_nan`) are compared exactly. Time monotonicity is checked as a separate test. The `date_created`, `date_issued`, and `history` global attributes are excluded from comparison because they change on every run.
