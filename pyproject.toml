@@ -1,6 +1,7 @@
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
 testpaths = ["tests"]
+pythonpath = ["tests"]
 xfail_strict = true
 minversion = "7"
 markers = [ # can be skipped by doing `pytest -m "not slow"` etc.
