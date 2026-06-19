@@ -18,6 +18,7 @@ setup(
         'gsw',
         'scipy',
         'bitstring',
+        'bottleneck',
         'pooch',
         'polars',
     ],
