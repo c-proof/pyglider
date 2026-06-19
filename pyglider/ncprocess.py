@@ -258,12 +258,13 @@ def make_gridfiles(
     deployment = utils._get_deployment(deploymentyaml)
     profile_meta = deployment.get('profile_variables', {})
     varnames = utils._get_varnames(deployment)
-    depth_varname = varnames.get('depth', 'depth')
-    profile_index_varname = varnames.get('profile_index', 'profile_index')
-    lat_varname = varnames.get('latitude', 'latitude')
-    lon_varname = varnames.get('longitude', 'longitude')
 
     ds = utils._load_dataset(inname)
+
+    depth_varname = utils._resolve_role(ds, varnames, 'depth')
+    profile_index_varname = utils._resolve_role(ds, varnames, 'profile_index')
+    lat_varname = utils._resolve_role(ds, varnames, 'latitude')
+    lon_varname = utils._resolve_role(ds, varnames, 'longitude')
 
     if maskfunction is not None:
         ds = maskfunction(ds)

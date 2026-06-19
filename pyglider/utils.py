@@ -866,6 +866,40 @@ def _get_varnames(deployment):
     return varnames
 
 
+def _resolve_role(ds, varnames, role):
+    """
+    Resolve a processing role to its variable name and verify it exists in *ds*.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to check against.
+    varnames : dict
+        Role → variable-name mapping from :func:`_get_varnames`.
+    role : str
+        The role to look up (e.g. ``'latitude'``, ``'depth'``).
+
+    Returns
+    -------
+    str
+        The variable name in *ds* that corresponds to *role*.
+
+    Raises
+    ------
+    ValueError
+        If the resolved name is not present in *ds*.  The message names the
+        role, the resolved variable name, and how to fix the YAML.
+    """
+    name = varnames.get(role, role)
+    if name not in ds:
+        raise ValueError(
+            f"Role '{role}' resolved to variable '{name}' but '{name}' is not "
+            f"in the dataset.  Add `processing_role: {role}` to the correct "
+            f"variable in netcdf_variables of your deployment YAML."
+        )
+    return name
+
+
 def _practical_salinity(ds, inputs):
     """Compute practical salinity from conductivity, temperature, pressure."""
     cond = ds[inputs['conductivity']]
@@ -1812,6 +1846,7 @@ __all__ = [
     'adjust_CTD',
     'maskQC4',
     '_get_varnames',
+    '_resolve_role',
     '_load_dataset',
     '_save_dataset',
     '_dispatch_processing_methods',

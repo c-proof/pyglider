@@ -624,6 +624,8 @@ def raw_to_timeseries(
             ds[name] = (('time'), val, attrs)
 
     # fix lon and lat to be linearly interpolated between fixes
+    lat_name = utils._resolve_role(ds, varnames, 'latitude')
+    lon_name = utils._resolve_role(ds, varnames, 'longitude')
     good = (
         np.where(
             np.abs(np.diff(ds[lon_name])) + np.abs(np.diff(ds[lat_name])) > 0
