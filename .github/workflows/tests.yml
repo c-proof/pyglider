@@ -5,6 +5,7 @@ jobs:
     name: pyglider (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      # Note: netcdf artifacts are uploaded for 3.12 only (see "Upload netcdf artifacts" step)
       matrix:
         os: ["ubuntu-latest"]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
@@ -35,5 +36,12 @@ jobs:
       - name: Run tests
         shell: micromamba-shell {0}
         run: which python; pytest --cov --cov-report xml
+      - name: Upload netcdf artifacts (3.12 only)
+        if: always() && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: netcdf-outputs
+          path: tests/example-data/**/*.nc
+          retention-days: 7
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
