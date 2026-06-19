@@ -161,7 +161,8 @@ def test_profiles_compliant():
     assert cc_data['cf:1.8']['low_count'] == 0
 
 
-@pytest.mark.xfail(reason='compliance_checker is confused by trajectory variables')
+@pytest.mark.xfail(strict=False,
+                   reason='compliance_checker result varies across versions')
 def test_timeseries_compliant():
     cc_data = _run_compliance(outname, ['cf:1.8'])
     assert cc_data['cf:1.8']['high_count'] == 0
