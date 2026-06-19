@@ -6,3 +6,4 @@ dist
 
 *.png
 .DS_Store
+pyglider/_version.py
