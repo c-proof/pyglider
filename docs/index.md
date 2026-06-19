@@ -30,6 +30,7 @@ getting-started-seaexplorer
 getting-started-slocum
 pyglider/pyglider
 adjust_CTD
+testing
 ```
 
 ## Acknowledgements
