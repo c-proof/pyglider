@@ -12,6 +12,8 @@ filterwarnings = [
   "error",
   "default::DeprecationWarning",
   "error::DeprecationWarning:pyglider",
+  # Advisory suggestion to update deployment YAML; not a bug
+  "ignore:For deadreckon=False:UserWarning",
 ]
 
 [tool.ruff.lint]

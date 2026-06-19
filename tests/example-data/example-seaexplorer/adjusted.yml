@@ -1,0 +1,42 @@
+#ls tests/expected/example-seaexplorer/L0-timeseries/metadata
+
+glider_devices:
+  ctd:
+    Thermal_lag_constants_[alpha,tau] : [0.34,4.6]
+    dTdC : 0 
+    comment: Constants were found using dfo-bb046-20220707. A detailed report of how the constants are defined can be found on https://cproof.uvic.ca. There is no lag between temperature and conductivity. 
+ 
+netcdf_variables:
+  conductivity_QC:
+      average_method: 'QC_protocol'
+      comment: 'QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average.'
+      flags:   "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data"
+  temperature_QC:
+    average_method: 'QC_protocol'
+    comment: 'QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average.'
+    flags:   "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data"
+  salinity_QC:
+    average_method: 'QC_protocol'
+    comment: 'QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average.'
+    flags:   "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data"
+  density_QC:
+    average_method: 'QC_protocol'
+    comment: 'QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average.'
+    flags:   "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data"
+  potential_temperature_adjusted_QC:
+    average_method: 'QC_protocol' 
+    comment: 'QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average.'
+    flags:   "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data"
+  potential_density_adjusted_QC:
+    average_method: 'QC_protocol'
+    comment: 'QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average.'
+    flags:   "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data"
+  temperature_adjusted_QC:
+    average_method: 'QC_protocol'
+    comment: 'QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average.'
+    flags:   "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data"
+  salinity_adjusted_QC:
+    long_name: 'Adjusted salinity QC flags'
+    average_method: 'QC_protocol'
+    comment: 'QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average.'
+    flags:   "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data"
