@@ -97,13 +97,21 @@ if __name__ == '__main__':
         example_data / 'example-seaexplorer-raw/L0-timeseries-test/dfo-bb046-20200908.nc':
             expected_yaml / 'example-seaexplorer-raw/L0-timeseries/dfo-bb046-20200908.yml',
 
-        # --- slocum process_adjusted output (written directly to expected/) ---
+        # --- slocum process_adjusted timeseries (written directly to expected/) ---
         expected_yaml / 'example-slocum/L0-timeseries/dfo-rosie713-20190615_adjusted.nc':
             expected_yaml / 'example-slocum/L0-timeseries/dfo-rosie713-20190615_adjusted.yml',
 
-        # --- seaexplorer process_adjusted output (written directly to expected/) ---
+        # --- slocum process_adjusted gridfile (written directly to expected/) ---
+        expected_yaml / 'example-slocum/L0-gridfiles/dfo-rosie713-20190615_grid_adjusted.nc':
+            expected_yaml / 'example-slocum/L0-gridfiles/dfo-rosie713-20190615_grid_adjusted.yml',
+
+        # --- seaexplorer process_adjusted timeseries (written directly to expected/) ---
         expected_yaml / 'example-seaexplorer/L0-timeseries/dfo-eva035-20190718_adjusted.nc':
             expected_yaml / 'example-seaexplorer/L0-timeseries/dfo-eva035-20190718_adjusted.yml',
+
+        # --- seaexplorer process_adjusted gridfile (written directly to expected/) ---
+        expected_yaml / 'example-seaexplorer/L0-gridfiles/dfo-eva035-20190718_grid_adjusted.nc':
+            expected_yaml / 'example-seaexplorer/L0-gridfiles/dfo-eva035-20190718_grid_adjusted.yml',
     }
 
     for nc, yml in todo.items():
