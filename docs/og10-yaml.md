@@ -59,7 +59,11 @@ netcdf_variables:
     ...
 ```
 
-Known roles and the variable names they replace in the IOOS GDAC default:
+### Required roles
+
+The following roles are used directly by the processing pipeline regardless of
+any `processing_method` entries.  If you use non-standard variable names (i.e.
+OG 1.0), you **must** declare these roles explicitly:
 
 | Role | Default IOOS GDAC name | Typical OG 1.0 name |
 |---|---|---|
@@ -67,16 +71,23 @@ Known roles and the variable names they replace in the IOOS GDAC default:
 | `latitude` | `latitude` | `LATITUDE` |
 | `longitude` | `longitude` | `LONGITUDE` |
 | `pressure` | `pressure` | `PRES` |
-| `temperature` | `temperature` | `TEMP` |
-| `conductivity` | `conductivity` | `CNDC` |
 | `depth` | `depth` | `DEPTH` |
 | `profile_index` | `profile_index` | `PROFILE_NUMBER` |
-| `profile_direction` | `profile_direction` | `PROFILE_DIRECTION` |
-| `oxygen_concentration` | `oxygen_concentration` | `DOXY` |
 
-If `processing_role` is absent, pyglider falls back to looking for a variable
-whose name matches the role string (the old behaviour), so existing IOOS GDAC
-YAMLs continue to work without modification.
+If a required role cannot be resolved to a variable that exists in the dataset,
+pyglider raises a `ValueError` with a message pointing to the YAML fix needed.
+
+### Legacy fallback roles
+
+Variables like temperature, conductivity, and oxygen are only looked up by role
+in the legacy processing path (when no `processing_method` entries cover
+thermodynamic variables).  If you supply `processing_method` blocks for salinity
+and density — as OG 1.0 YAMLs should — you do **not** need `processing_role` on
+these variables; the method inputs name them explicitly.
+
+If `processing_role` is absent and no `processing_method` covers a variable,
+pyglider falls back to looking for a variable whose name matches the role string,
+so existing IOOS GDAC YAMLs continue to work without modification.
 
 ## Derived variables via `processing_method`
 

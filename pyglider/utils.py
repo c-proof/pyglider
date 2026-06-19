@@ -841,9 +841,16 @@ def _get_varnames(deployment):
 
     Notes
     -----
-    Known roles: ``time``, ``latitude``, ``longitude``, ``pressure``,
-    ``temperature``, ``conductivity``, ``salinity``, ``depth``,
-    ``profile_index``, ``oxygen_concentration``.
+    **Required roles** — looked up directly by the pipeline; must be declared
+    with ``processing_role`` when non-standard variable names are used:
+    ``time``, ``latitude``, ``longitude``, ``pressure``, ``depth``,
+    ``profile_index``.
+
+    **Legacy fallback roles** — only used when no ``processing_method`` covers
+    the relevant derived variable; do not need ``processing_role`` if
+    ``processing_method`` entries name their inputs explicitly:
+    ``temperature``, ``conductivity``, ``salinity``, ``profile_direction``,
+    ``oxygen_concentration``.
     """
     known_roles = {
         'time', 'latitude', 'longitude', 'pressure', 'temperature',
