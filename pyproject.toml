@@ -45,3 +45,41 @@ convention = "numpy"
 
 [tool.ruff.lint.isort]
 known-first-party = ["pyglider"]
+
+[tool.pixi.workspace]
+name = "pyglider"
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+pyglider = { path = ".", editable = true }
+bitstring = "*"
+dbdreader = "*"
+dask = "*"
+gsw = "*"
+netcdf4 = "*"
+numpy = "*"
+pooch = "*"
+scipy = "*"
+xarray = "*"
+polars = ">=1.1"
+
+[tool.pixi.dependencies]
+matplotlib = ">=3.11.0,<4"
+jupyterlab = ">=4.6.0,<5"
+ipykernel = ">=7.3.0,<8"
+ipympl = ">=0.10.0,<0.11"
+bottleneck = ">=1.6.0,<2"
+
+[tool.pixi.tasks]
+
+[tool.pixi.feature.test.dependencies]
+pytest = "*"
+pytest-cov = "*"
+compliance-checker = "*"
+
+[tool.pixi.feature.test.tasks]
+test = { cmd = "pytest" }
+
+[tool.pixi.environments]
+test = { features = ["test"], solve-group = "default" }
