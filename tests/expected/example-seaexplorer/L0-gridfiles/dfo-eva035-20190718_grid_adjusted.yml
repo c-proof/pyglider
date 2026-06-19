@@ -15,9 +15,8 @@ attrs:
     ''Seabird SlocumCTD'', ''make_model'': ''Seabird SlocumCTD'', ''factory_calibrated'':
     ''Yes'', ''calibration_date'': ''02/11/2018'', ''calibration_report'': '' '',
     ''Thermal_lag_constants_[alpha,tau]'': [0.34, 4.6], ''dTdC'': 0, ''comment'':
-    ''Constants were found using dfo-bb046-20220707. A detailed report of how the
-    constants are defined can be found on https://cproof.uvic.ca. There is no lag
-    between temperature and conductivity.''}'
+    ''Constants were found using dfo-bb046-20220707. There is no lag between temperature
+    and conductivity.''}'
   dTdC: No CT lag applied
   date_modified: ' '
   deployment_end: '2019-07-23T21:25:46'
