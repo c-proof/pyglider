@@ -31,7 +31,7 @@ Homepage = "https://pyglider.readthedocs.io"
 Repository = "https://github.com/c-proof/pyglider"
 
 [tool.setuptools.packages.find]
-exclude = ["tests*"]
+include = ["pyglider*"]
 
 [tool.setuptools_scm]
 version_file = "pyglider/_version.py"
@@ -111,6 +111,7 @@ jupyterlab = ">=4.6.0,<5"
 ipykernel = ">=7.3.0,<8"
 ipympl = ">=0.10.0,<0.11"
 bottleneck = ">=1.6.0,<2"
+pip = ">=26.1.2,<27"
 
 [tool.pixi.tasks]
 
