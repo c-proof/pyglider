@@ -28,6 +28,7 @@ maxdepth: 1
 Install
 getting-started-seaexplorer
 getting-started-slocum
+og10-yaml
 pyglider/pyglider
 adjust_CTD
 development
