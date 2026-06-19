@@ -15,7 +15,10 @@ attrs:
   ctd: '{''make'': ''Seabird'', ''model'': ''SlocumCTD'', ''serial'': ''9507'', ''long_name'':
     ''Seabird SlocumCTD'', ''make_model'': ''Seabird SlocumCTD'', ''factory_calibrated'':
     '' '', ''calibration_date'': '' '', ''calibration_report'': '' '', ''comment'':
-    '' ''}'
+    ''Constants for ctd_9507 are found using dfo-rosie713-20230810. A detailed report
+    of how the constants are defined can be found on https://cproof.uvic.ca. There
+    is no lag between temperature and conductivity.'', ''Thermal_lag_constants_[alpha,tau]'':
+    [0.2, 2], ''dTdC'': 0}'
   dTdC: No CT lag applied
   data_mode: R
   date_modified: ' '
@@ -81,7 +84,7 @@ variables:
       resolution: ' '
       source: sci_flbbcd_bb_units
       units: '1'
-    diff_mean: 1.2055773288401488e-07
+    diff_mean: 1.205577328840145e-07
     diff_std: 0.00016158585946726936
     max: 0.002275402902254697
     mean: 0.0005751543784815236
@@ -120,7 +123,7 @@ variables:
       source: sci_flbbcd_chlor_units
       standard_name: concentration_of_chlorophyll_in_sea_water
       units: mg m-3
-    diff_mean: -0.0007603915549926317
+    diff_mean: -0.000760391554992632
     diff_std: 0.3198315107104051
     max: 3.4919384864804495
     mean: 0.3810855262199953
@@ -180,13 +183,13 @@ variables:
       valid_max: '1040.0'
       valid_min: '990.0'
     diff_mean: -5.182584944540442e-05
-    diff_std: 0.18336395500495187
+    diff_std: 0.18336395500495384
     max: 1027.1668243496802
     mean: 1025.7625279624694
     min: 1023.773162969079
     n_nan: 6
     n_valid: 1161
-    std: 1.0542162966646453
+    std: 1.0542162966646476
   density_QC:
     attrs: {}
     diff_mean: 0.0
@@ -214,14 +217,14 @@ variables:
       units: m
       valid_max: '2000.0'
       valid_min: '0.0'
-    diff_mean: 0.0027884787826532257
+    diff_mean: 0.0027884787826532136
     diff_std: 6.38638228550453
     max: 141.17962818838868
     mean: 72.86269066632886
     min: 0.17843073010230148
     n_nan: 0
     n_valid: 1167
-    std: 40.72017517536634
+    std: 40.72017517536635
   distance_over_ground:
     attrs:
       long_name: distance over ground flown since mission start
@@ -248,11 +251,11 @@ variables:
       source: m_heading
       standard_name: platform_orientation
       units: degrees
-    diff_mean: -0.0006954433771643954
+    diff_mean: -0.0006954433771643981
     diff_std: 0.6803833477793301
     max: 6.2710751361777906
     mean: 4.720066171264031
-    min: 0.00042548574153758456
+    min: 0.0004254857415375748
     n_nan: 7
     n_valid: 1160
     std: 2.054664833166137
@@ -320,7 +323,7 @@ variables:
       source: sci_oxy4_oxygen
       standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
       units: umol l-1
-    diff_mean: -0.009934329426526346
+    diff_mean: -0.009934329426526297
     diff_std: 11.634591690873734
     max: 273.04890656990915
     mean: 148.3927207315578
@@ -340,10 +343,10 @@ variables:
       source: m_pitch
       standard_name: platform_pitch_angle
       units: degrees
-    diff_mean: 0.000843213762245836
+    diff_mean: 0.0008432137622458366
     diff_std: 0.09267605656195022
     max: 0.5144294746640816
-    mean: 0.02062781408469261
+    mean: 0.020627814084692612
     min: -0.5166575868580561
     n_nan: 7
     n_valid: 1160
@@ -365,25 +368,25 @@ variables:
       standard_name: sea_water_potential_density
       units: kg m-3
     diff_mean: -6.50133782310855e-05
-    diff_std: 0.15852823377340236
-    max: 1026.6550488558544
-    mean: 1025.544771285793
+    diff_std: 0.1585282337734028
+    max: 1026.6550488558541
+    mean: 1025.5447712857929
     min: 1023.8620471283876
     n_nan: 6
     n_valid: 1161
-    std: 0.8768137097394648
+    std: 0.8768137097394649
   potential_density_adjusted:
     attrs:
       history: calculated using salinity_adjusted and temperature_adjusted
       sources: salinity_adjusted temperature_adjusted pressure
     diff_mean: -0.0002301017407049734
-    diff_std: 0.1583960535852489
+    diff_std: 0.15839605358524894
     max: 1026.65796259066
     mean: 1025.5448696265053
     min: 1023.7888116470377
     n_nan: 6
     n_valid: 1161
-    std: 0.8765839495612264
+    std: 0.8765839495612263
   potential_density_adjusted_QC:
     attrs: {}
     diff_mean: 0.0
@@ -422,7 +425,7 @@ variables:
     attrs:
       history: calculated using salinity_adjusted and temperature_adjusted
       sources: salinity_adjusted temperature_adjusted pressure
-    diff_mean: -5.692442049823619e-05
+    diff_mean: -5.692442049823466e-05
     diff_std: 0.45154725410423635
     max: 13.210769941792769
     mean: 8.463630724097998
@@ -512,7 +515,7 @@ variables:
       source: m_roll
       standard_name: platform_roll_angle
       units: degrees
-    diff_mean: -1.4679841192070708e-05
+    diff_mean: -1.4679841192070704e-05
     diff_std: 0.0036751166850053233
     max: -0.02356455784656918
     mean: -0.051656028111140874
@@ -537,14 +540,14 @@ variables:
       units: 1e-3
       valid_max: '40.0'
       valid_min: '0.0'
-    diff_mean: -9.842150636057863e-05
-    diff_std: 0.12714095823432298
-    max: 33.913173277341805
-    mean: 32.90067517167079
-    min: 31.723929415119038
+    diff_mean: -9.842150636058475e-05
+    diff_std: 0.1271409582343228
+    max: 33.9131732773418
+    mean: 32.900675171670784
+    min: 31.723929415119034
     n_nan: 6
     n_valid: 1161
-    std: 0.7499104130916728
+    std: 0.749910413091672
   salinity_QC:
     attrs: {}
     diff_mean: 0.0
@@ -574,7 +577,7 @@ variables:
       valid_max: '40.0'
       valid_min: '0.0'
     diff_mean: -0.0003118237704584943
-    diff_std: 0.128440741487158
+    diff_std: 0.12844074148715803
     max: 33.916865262561714
     mean: 32.900803344367
     min: 31.645108424153353

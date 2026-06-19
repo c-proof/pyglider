@@ -15,7 +15,10 @@ attrs:
   ctd: '{''make'': ''Seabird'', ''model'': ''GPCTD'', ''serial'': ''0278'', ''long_name'':
     ''Seabird SlocumCTD'', ''make_model'': ''Seabird SlocumCTD'', ''factory_calibrated'':
     ''Yes'', ''calibration_date'': ''02/11/2018'', ''calibration_report'': '' '',
-    ''comment'': '' ''}'
+    ''Thermal_lag_constants_[alpha,tau]'': [0.34, 4.6], ''dTdC'': 0, ''comment'':
+    ''Constants were found using dfo-bb046-20220707. A detailed report of how the
+    constants are defined can be found on https://cproof.uvic.ca. There is no lag
+    between temperature and conductivity.''}'
   dTdC: No CT lag applied
   date_modified: ' '
   deployment_end: '2019-07-23T21:25:46.402000000'
@@ -334,11 +337,11 @@ variables:
       source: AROD_FT_DO
       standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
       units: umol l-1
-    diff_mean: -0.014956748188405828
-    diff_std: 3.525902788988838
+    diff_mean: -0.014956748188405762
+    diff_std: 3.5259027889888372
     max: 355.91345651549045
     mean: 180.39353799294474
-    min: 11.175699105413344
+    min: 11.175699105413342
     n_nan: 0
     n_valid: 5521
     std: 125.64101918629515
@@ -722,14 +725,14 @@ variables:
       source: AROD_FT_TEMP
       standard_name: temperature_of_sensor_for_oxygen_in_sea_water
       units: Celsius
-    diff_mean: 0.0032523097826086954
+    diff_mean: 0.003252309782608696
     diff_std: 0.11915374876512894
     max: 34.826470760264336
     mean: 11.078284555754102
     min: 4.21655434311708
     n_nan: 0
     n_valid: 5521
-    std: 6.531517418264329
+    std: 6.531517418264328
   time:
     attrs: {}
     diff_mean: 30007910326.075363

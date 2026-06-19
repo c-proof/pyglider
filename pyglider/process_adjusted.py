@@ -14,8 +14,10 @@ def run_process_adjusted(
     deploy_name=None,
     deployfile=None,
     adjustedyaml=None,
+    input_dir=None,
 ):
     base_dir = Path(base_dir)
+    input_dir = Path(input_dir) if input_dir else base_dir
 
     deploy_name = deploy_name or base_dir.name
 
@@ -23,7 +25,7 @@ def run_process_adjusted(
     ts_path = base_dir / 'L0-timeseries'
     gridpath = base_dir / 'L0-gridfiles'
 
-    openfile = ts_path / f'{deploy_name}.nc'
+    openfile = input_dir / 'L0-timeseries' / f'{deploy_name}.nc'
     deployfile = Path(deployfile) if deployfile else base_dir / 'deploymentRealtime.yml'
     adjustedyaml = Path(adjustedyaml) if adjustedyaml else base_dir / 'adjusted.yml'
 

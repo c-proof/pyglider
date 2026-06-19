@@ -34,6 +34,7 @@ outname = run_process_adjusted(
     deploy_name='dfo-rosie713-20190615',
     deployfile=yaml_dir / 'deploymentRealtime.yml',
     adjustedyaml=yaml_dir / 'adjusted.yml',
+    input_dir=yaml_dir,
 )
 output = xr.open_dataset(outname)
 

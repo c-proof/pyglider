@@ -224,7 +224,7 @@ variables:
       source: Heading
       standard_name: platform_orientation
       units: degrees
-    diff_mean: -0.010486927917634776
+    diff_mean: -0.010486927917634765
     diff_std: 12.812836758153264
     max: 353.999194961152
     mean: 161.12570728080678
@@ -299,7 +299,7 @@ variables:
       source: AROD_FT_DO
       standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
       units: umol l-1
-    diff_mean: -0.014956748188405776
+    diff_mean: -0.014956748188405762
     diff_std: 3.5259027889888372
     max: 355.91345651549045
     mean: 180.39353799294474
@@ -319,7 +319,7 @@ variables:
       source: Pitch
       standard_name: platform_pitch_angle
       units: degrees
-    diff_mean: -0.007554216140243479
+    diff_mean: -0.0075542161402434825
     diff_std: 4.935187918009719
     max: 40.689173100544004
     mean: -12.122869151407711
@@ -369,7 +369,7 @@ variables:
     diff_std: 0.18784220143650265
     max: 33.084409723429516
     mean: 11.025940620459533
-    min: 4.128828583377353
+    min: 4.128828583377354
     n_nan: 2
     n_valid: 5519
     std: 6.4419024994850185
@@ -444,7 +444,7 @@ variables:
       source: Roll
       standard_name: platform_roll_angle
       units: degrees
-    diff_mean: -0.0002023835173101469
+    diff_mean: -0.0002023835173101453
     diff_std: 2.622994330707355
     max: 29.931898971392
     mean: 0.42036135209426767
