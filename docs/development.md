@@ -1,8 +1,33 @@
-# Testing
+# Development
+
+## Installation for development
+
+PyGlider uses [pixi](https://pixi.sh/) to manage environments. To get started, clone the repo and install in editable mode:
+
+```bash
+git clone https://github.com/c-proof/pyglider.git
+cd pyglider
+pixi install
+```
+
+This installs pyglider itself as an editable package (changes to source files take effect immediately without reinstalling). The default environment includes the library and its dependencies. To also get the test dependencies:
+
+```bash
+pixi install -e test
+```
+
+If you prefer conda/pip without pixi, install the dependencies with conda and then do an editable pip install:
+
+```bash
+conda create -n pyglider-dev
+conda activate pyglider-dev
+conda install -c conda-forge dask netcdf4 xarray numpy scipy gsw
+pip install -e .
+```
 
 ## Running the tests
 
-PyGlider uses [pytest](https://docs.pytest.org/). The test environment is managed with [pixi](https://pixi.sh/):
+PyGlider uses [pytest](https://docs.pytest.org/). To run the tests with pixi:
 
 ```bash
 pixi run -e test pytest tests/
