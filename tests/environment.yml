@@ -16,6 +16,7 @@ dependencies:
   - pytest-cov
   - pooch
   - matplotlib
+  - bottleneck
   - compliance-checker
   - cc-plugin-glider
   - pip:

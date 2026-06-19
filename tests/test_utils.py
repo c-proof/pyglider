@@ -12,7 +12,7 @@ example_dir = library_dir / 'tests/example-data/'
 
 test_data = xr.open_dataset(
     library_dir
-    / 'tests/expected/example-seaexplorer/L0-timeseries/dfo-eva035-20190718.nc'
+    / 'tests/data/l0-timeseries/dfo-eva035-20190718.nc'
 )
 deploymentyaml = (
     example_dir / 'example-seaexplorer-legato-flntu-arod-ad2cp/deploymentRealtime.yml'

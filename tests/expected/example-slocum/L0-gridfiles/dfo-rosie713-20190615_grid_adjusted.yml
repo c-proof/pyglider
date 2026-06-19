@@ -1,0 +1,785 @@
+attrs:
+  Conventions: CF-1.8
+  Metadata_Conventions: CF-1.8, Unidata Dataset Discovery v1.0
+  acknowledgement: Funding from Fisheries and Oceans Canada, Canadian Foundation for
+    Innovation, BC Knowledge Development Fund
+  comment: Calvert Island test deeployment June 2019.
+  contributor_name: James Pegg, Jody Klymak, Tetjana Ross, Cailin Burmaster
+  contributor_role: Lead Technician, Principal Investigator, Co-PI, Technician
+  correction_constants_alpha: '0.2'
+  correction_constants_tau: '2.0'
+  creator_email: jklymak@uvic.ca
+  creator_name: Jody Klymak
+  creator_url: http://cproof.uvic.ca
+  ctd: '{''make'': ''Seabird'', ''model'': ''SlocumCTD'', ''serial'': ''9507'', ''long_name'':
+    ''Seabird SlocumCTD'', ''make_model'': ''Seabird SlocumCTD'', ''factory_calibrated'':
+    '' '', ''calibration_date'': '' '', ''calibration_report'': '' '', ''comment'':
+    ''Constants for ctd_9507 are found using dfo-rosie713-20230810. A detailed report
+    of how the constants are defined can be found on https://cproof.uvic.ca. There
+    is no lag between temperature and conductivity.'', ''Thermal_lag_constants_[alpha,tau]'':
+    [0.2, 2], ''dTdC'': 0}'
+  dTdC: No CT lag applied
+  data_mode: R
+  date_modified: ' '
+  deployment_end: '2019-06-20T17:55:47'
+  deployment_id: '1'
+  deployment_name: dfo-rosie713-20190615
+  deployment_start: '2019-06-20T06:20:53'
+  featureType: trajectoryProfile
+  format_version: IOOS_Glider_NetCDF_v2.0.nc
+  geospatial_lat_max: '51.66317908885487'
+  geospatial_lat_min: '51.588121762806786'
+  geospatial_lat_units: degrees_north
+  geospatial_lon_max: '-128.29037038584036'
+  geospatial_lon_min: '-128.31356375854713'
+  geospatial_lon_units: degrees_east
+  glider_instrument_name: slocum
+  glider_model: Slocum G3 Deep
+  glider_name: dfo-rosie
+  glider_serial: '713'
+  glider_wmo: '999999'
+  id: dfo-rosie713-20190620T0620
+  institution: C-PROOF
+  keywords: AUVS, Autonomous Underwater Vehicles, Oceans, Ocean Pressure, Water Pressure,
+    Oceans, Ocean Temperature, Water Temperature, Oceans, Salinity/Density, Conductivity,
+    Oceans, Salinity/Density, Density, Oceans, Salinity/Density, Salinity
+  keywords_vocabulary: GCMD Science Keywords
+  license: This data may be redistributed and used without restriction or warranty
+  metadata_link: https://cproof.uvic.ca
+  naming_authority: ca.uvic.cproof
+  netcdf_version: '4.0'
+  optics: '{''make'': ''Wetlabs'', ''model'': ''FLBBCDSLC'', ''serial'': ''5059''}'
+  oxygen: '{''make'': ''AADI'', ''model'': ''Optode4831'', ''serial'': ''665''}'
+  platform_type: Slocum Glider
+  pressure: '{''make'': ''Micron'', ''model'': ''Pressure'', ''serial'': ''104702''}'
+  processing_level: Level 0 (L0) processed data timeseries; no corrections or data
+    screening
+  project: SaanichInletTest19
+  project_url: http://cproof.uvic.ca
+  publisher_email: jklymak@uvic.ca
+  publisher_name: Jody Klymak
+  publisher_url: http://cproof.uvic.ca
+  quality_flags: 1 = good data; 3 = bad data, potentially correctable; 4 = bad data;
+    8 = estimated data
+  references: cproof toolbox URL
+  sea_name: Coastal Waters of Southeast Alaska and British Columbia
+  source: Observational data from a profiling glider.
+  standard_name_vocabulary: CF Standard Name Table v72
+  summary: Manufacturer test in Saanich Inlet.
+  time_coverage_end: '2019-06-20T17:55:47'
+  time_coverage_start: '2019-06-20T06:20:53'
+  title: dfo-rosie713-20190620T0620
+  transmission_system: IRRIDIUM
+  wmo_id: '999999'
+variables:
+  backscatter_700:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: 700 nm wavelength backscatter
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: sci_flbbcd_bb_units
+      units: '1'
+    diff_mean: -7.9956088714e-09
+    diff_std: 6.93905393746e-05
+    max: 0.00227540290225
+    mean: 0.000500039876038
+    min: 0.000232820330901
+    n_nan: 53669
+    n_valid: 6831
+    std: 0.000275400196916
+  cdom:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: CDOM
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: sci_flbbcd_cdom_units
+      units: ppb
+    diff_mean: -1.41343584076e-05
+    diff_std: 0.0932053377964
+    max: 2.16599881562
+    mean: 1.77388375451
+    min: 1.45401222432
+    n_nan: 53669
+    n_valid: 6831
+    std: 0.117420033305
+  chlorophyll:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: chlorophyll
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: sci_flbbcd_chlor_units
+      standard_name: concentration_of_chlorophyll_in_sea_water
+      units: mg m-3
+    diff_mean: -0.000205639550981
+    diff_std: 0.122052965056
+    max: 3.49193848648
+    mean: 0.354509648459
+    min: 0.0890542143518
+    n_nan: 53669
+    n_valid: 6831
+    std: 0.509331478911
+  conductivity:
+    attrs:
+      accuracy: '0.0003'
+      ancillary_variables: ' '
+      comment: raw conductivity
+      coverage_content_type: physicalMeasurement
+      instrument: instrument_ctd
+      long_name: water conductivity
+      observation_type: measured
+      platform: platform
+      precision: '0.0001'
+      resolution: 2e-05
+      source: sci_water_cond
+      standard_name: sea_water_electrical_conductivity
+      units: S m-1
+      valid_max: '10.0'
+      valid_min: '0.0'
+    diff_mean: -5.64386130008e-05
+    diff_std: 0.00862184905131
+    max: 3.78253006935
+    mean: 3.46330410315
+    min: 3.37807671229
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.0932660387829
+  conductivity_QC:
+    attrs:
+      coverage_content_type: physicalMeasurement
+    diff_mean: 0.0
+    diff_std: 0.0
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.0
+  density:
+    attrs:
+      accuracy: '0.01'
+      ancillary_variables: ' '
+      comment: raw density
+      coverage_content_type: physicalMeasurement
+      instrument: instrument_ctd
+      long_name: Density
+      method: get_derived_eos_raw
+      observation_type: calulated
+      platform: platform
+      precision: '0.01'
+      resolution: '0.001'
+      sources: salinity temperature pressure
+      standard_name: sea_water_density
+      units: kg m-3
+      valid_max: '1040.0'
+      valid_min: '990.0'
+    diff_mean: 0.000489510814613
+    diff_std: 0.0399097578351
+    max: 1027.16632357
+    mean: 1025.72147912
+    min: 1023.78295813
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.961809540684
+  density_QC:
+    attrs:
+      coverage_content_type: physicalMeasurement
+    diff_mean: 0.0
+    diff_std: 0.0
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.0
+  depth:
+    attrs:
+      comment: center of depth bins
+      coverage_content_type: coordinate
+      long_name: Depth
+      positive: down
+      source: pressure
+      standard_name: depth
+      units: m
+    diff_mean: 1.0
+    diff_std: 0.0
+    max: 1099.5
+    mean: 550.0
+    min: 0.5
+    n_nan: 0
+    n_valid: 1100
+    std: 317.542516838
+  distance_over_ground:
+    attrs:
+      coverage_content_type: physicalMeasurement
+      long_name: distance over ground flown since mission start
+      method: get_distance_over_ground
+      sources: latitude longitude
+      units: km
+    diff_mean: -0.000261243529441
+    diff_std: 2.23393689425
+    max: 16.4552597485
+    mean: 8.16802493246
+    min: 0.29945273331
+    n_nan: 53664
+    n_valid: 6836
+    std: 4.93581691855
+  heading:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: glider heading angle
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: m_heading
+      standard_name: platform_orientation
+      units: degrees
+    diff_mean: 8.54773765533e-05
+    diff_std: 2.45884159487
+    max: 6.27107513618
+    mean: 4.6872420948
+    min: 0.000425485741538
+    n_nan: 53671
+    n_valid: 6829
+    std: 2.07482909256
+  latitude:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      axis: Y
+      comment: Estimated between surface fixes
+      coordinate_reference_frame: urn:ogc:crs:EPSG::4326
+      long_name: latitude
+      observation_type: measured
+      platform: platform
+      precision: ' '
+      reference: WGS84
+      resolution: ' '
+      source: m_lat
+      standard_name: latitude
+      units: degrees_north
+      valid_max: '90.0'
+      valid_min: '-90.0'
+    diff_mean: 0.00130583190942
+    diff_std: 0.00258760301163
+    max: 51.662367809
+    mean: 51.6329947722
+    min: 51.5918528858
+    n_nan: 0
+    n_valid: 55
+    std: 0.0179909805121
+  longitude:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      axis: X
+      comment: Estimated between surface fixes
+      coordinate_reference_frame: urn:ogc:crs:EPSG::4326
+      long_name: longitude
+      observation_type: measured
+      platform: platform
+      precision: ' '
+      reference: WGS84
+      resolution: ' '
+      source: m_lon
+      standard_name: longitude
+      units: degrees_east
+      valid_max: '180.0'
+      valid_min: '-180.0'
+    diff_mean: 0.000412577386368
+    diff_std: 0.00139705610323
+    max: -128.290667936
+    mean: -128.301340535
+    min: -128.312947115
+    n_nan: 0
+    n_valid: 55
+    std: 0.00562999709631
+  mission_number:
+    attrs:
+      cf_role: trajectory_id
+      coverage_content_type: coordinate
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 0
+    n_valid: 1
+    std: 0.0
+  oxygen_concentration:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: oxygen concentration
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: sci_oxy4_oxygen
+      standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
+      units: umol l-1
+    diff_mean: -0.0296609119878
+    diff_std: 30.8966927116
+    max: 273.04890657
+    mean: 151.266742102
+    min: 59.962705119
+    n_nan: 53673
+    n_valid: 6827
+    std: 62.6892503071
+  pitch:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: glider pitch angle
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: m_pitch
+      standard_name: platform_pitch_angle
+      units: degrees
+    diff_mean: 8.02751756401e-05
+    diff_std: 0.870343993139
+    max: 0.514429474664
+    mean: 0.0266474458552
+    min: -0.516657586858
+    n_nan: 53671
+    n_valid: 6829
+    std: 0.443749866182
+  potential_density:
+    attrs:
+      accuracy: '0.01'
+      ancillary_variables: ' '
+      comment: raw, uncorrected salinity
+      coverage_content_type: physicalMeasurement
+      history: calculated using raw salinity and temperature
+      instrument: instrument_ctd
+      long_name: water potential density
+      method: get_derived_eos_raw
+      observation_type: calulated
+      platform: platform
+      precision: '0.01'
+      resolution: '0.001'
+      sources: salinity temperature pressure
+      standard_name: sea_water_potential_density
+      units: kg m-3
+    diff_mean: 0.000397161003291
+    diff_std: 0.040127971166
+    max: 1026.65369415
+    mean: 1025.51691892
+    min: 1023.86988244
+    n_nan: 53667
+    n_valid: 6833
+    std: 0.803365731353
+  potential_density_adjusted:
+    attrs:
+      coverage_content_type: physicalMeasurement
+      history: calculated using salinity_adjusted and temperature_adjusted
+      sources: salinity_adjusted temperature_adjusted pressure
+    diff_mean: 0.000396327845009
+    diff_std: 0.0408563050304
+    max: 1026.65462757
+    mean: 1025.51612821
+    min: 1023.85759761
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.803587837274
+  potential_density_adjusted_QC:
+    attrs:
+      coverage_content_type: physicalMeasurement
+    diff_mean: 0.0
+    diff_std: 0.0
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.0
+  potential_temperature:
+    attrs:
+      accuracy: '0.002'
+      ancillary_variables: ' '
+      comment: raw, uncorrected salinity
+      coverage_content_type: physicalMeasurement
+      history: calculated using raw salinity and temperature
+      instrument: instrument_ctd
+      long_name: water potential temperature
+      method: get_derived_eos_raw
+      observation_type: calulated
+      platform: platform
+      precision: '0.001'
+      resolution: '0.0001'
+      sources: salinity temperature pressure
+      standard_name: sea_water_potential_temperature
+      units: Celsius
+    diff_mean: -0.000976557330119
+    diff_std: 0.112398549188
+    max: 13.210769766
+    mean: 8.45161422307
+    min: 6.34517471228
+    n_nan: 53667
+    n_valid: 6833
+    std: 1.72535335819
+  potential_temperature_adjusted:
+    attrs:
+      coverage_content_type: physicalMeasurement
+      history: calculated using salinity_adjusted and temperature_adjusted
+      sources: salinity_adjusted temperature_adjusted pressure
+    diff_mean: -0.0009774157174
+    diff_std: 0.112445871249
+    max: 13.2107699418
+    mean: 8.45314801725
+    min: 6.34517448623
+    n_nan: 53673
+    n_valid: 6827
+    std: 1.72533553167
+  potential_temperature_adjusted_QC:
+    attrs:
+      coverage_content_type: physicalMeasurement
+    diff_mean: 0.0
+    diff_std: 0.0
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.0
+  pressure:
+    attrs:
+      accuracy: '1.0'
+      ancillary_variables: ' '
+      comment: ctd pressure sensor
+      conversion: bar2dbar
+      coverage_content_type: physicalMeasurement
+      instrument: instrument_ctd
+      long_name: water pressure
+      observation_type: measured
+      platform: platform
+      positive: down
+      precision: '2.0'
+      reference_datum: sea-surface
+      resolution: '0.02'
+      source: sci_water_pressure
+      standard_name: sea_water_pressure
+      units: dbar
+      valid_max: '2000.0'
+      valid_min: '0.0'
+    diff_mean: 0.0208160126297
+    diff_std: 0.385900130399
+    max: 142.424998283
+    mean: 71.1995497814
+    min: 0.179999992251
+    n_nan: 53667
+    n_valid: 6833
+    std: 36.5663069344
+  profile:
+    attrs:
+      cf_role: profile_id
+    diff_mean: 1.0
+    diff_std: 0.0
+    max: 55.0
+    mean: 28.0
+    min: 1.0
+    n_nan: 0
+    n_valid: 55
+    std: 15.8745078664
+  profile_direction:
+    attrs:
+      comment: -1 = ascending, 0 = inflecting or stalled, 1 = descending
+      coverage_content_type: physicalMeasurement
+      long_name: glider vertical speed direction
+      method: get_profiles_new
+      sources: time pressure
+      units: '1'
+    diff_mean: -0.000292611558157
+    diff_std: 1.96069644908
+    max: 1.0
+    mean: -0.00994733762434
+    min: -1.0
+    n_nan: 53664
+    n_valid: 6836
+    std: 0.999950524013
+  profile_index:
+    attrs:
+      comment: N = inside profile N, N + 0.5 = between profiles N and N + 1
+      coverage_content_type: physicalMeasurement
+      filt_length: '0'
+      long_name: profile index
+      method: get_profiles_new
+      min_dp: '10.0'
+      min_nsamples: '0'
+      sources: time pressure
+      units: '1'
+    diff_mean: -0.000731528895391
+    diff_std: 7.47890470313
+    max: 55.0
+    mean: 27.376535986
+    min: 1.0
+    n_nan: 53664
+    n_valid: 6836
+    std: 15.7864386011
+  profile_time_end:
+    attrs:
+      comment: Timestamp corresponding to the end of the profile
+      coverage_content_type: physicalMeasurement
+      long_name: Profile End Time
+      observation_type: calculated
+      platform: platform
+    diff_mean: 729840089586.0
+    diff_std: 353863762608.0
+    max: 1.5610525478e+18
+    mean: 1.5610335314e+18
+    min: 1.56101313643e+18
+    n_nan: 0
+    n_valid: 55
+    std: 12056779347100.0
+  profile_time_start:
+    attrs:
+      comment: Timestamp corresponding to the start of the profile
+      coverage_content_type: physicalMeasurement
+      long_name: Profile Start Time
+      observation_type: calculated
+      platform: platform
+    diff_mean: 729854474103.0
+    diff_std: 380163308284.0
+    max: 1.56105197236e+18
+    mean: 1.56103285539e+18
+    min: 1.56101256022e+18
+    n_nan: 0
+    n_valid: 55
+    std: 12096125646900.0
+  roll:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: glider roll angle
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: m_roll
+      standard_name: platform_roll_angle
+      units: degrees
+    diff_mean: -8.19864965023e-07
+    diff_std: 0.0201150054062
+    max: -0.0235645578466
+    mean: -0.0525822971778
+    min: -0.117275413219
+    n_nan: 53671
+    n_valid: 6829
+    std: 0.0116659151938
+  salinity:
+    attrs:
+      accuracy: '0.01'
+      ancillary_variables: ' '
+      comment: raw salinity [psu]
+      coverage_content_type: physicalMeasurement
+      instrument: instrument_ctd
+      long_name: water salinity
+      method: get_derived_eos_raw
+      observation_type: calulated
+      platform: platform
+      precision: '0.01'
+      resolution: '0.001'
+      sources: conductivity temperature pressure
+      standard_name: sea_water_practical_salinity
+      units: 1e-3
+      valid_max: '40.0'
+      valid_min: '0.0'
+    diff_mean: 0.000304659806172
+    diff_std: 0.0346967459269
+    max: 33.9128808207
+    mean: 32.8580490831
+    min: 31.7327032544
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.698848107068
+  salinity_QC:
+    attrs:
+      coverage_content_type: physicalMeasurement
+    diff_mean: 0.0
+    diff_std: 0.0
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.0
+  salinity_adjusted:
+    attrs:
+      accuracy: '0.01'
+      ancillary_variables: ' '
+      comment: raw, uncorrected salinity
+      coverage_content_type: physicalMeasurement
+      history: adjusted salinity [psu] using thermal lag correction (alpha=0.2, tau=2.0)
+      instrument: instrument_ctd
+      long_name: water salinity
+      method: get_derived_eos_raw
+      observation_type: calulated
+      platform: platform
+      precision: '0.01'
+      resolution: '0.001'
+      sources: conductivity temperature pressure
+      standard_name: sea_water_practical_salinity
+      units: 1e-3
+      valid_max: '40.0'
+      valid_min: '0.0'
+    diff_mean: 0.000303131419939
+    diff_std: 0.0349625262788
+    max: 33.914171221
+    mean: 32.8579515053
+    min: 31.7168249147
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.699138627817
+  salinity_adjusted_QC:
+    attrs:
+      coverage_content_type: physicalMeasurement
+    diff_mean: 0.0
+    diff_std: 0.0
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 53673
+    n_valid: 6827
+    std: 0.0
+  temperature:
+    attrs:
+      accuracy: '0.002'
+      ancillary_variables: ' '
+      comment: raw temperature [degC]
+      coverage_content_type: physicalMeasurement
+      instrument: instrument_ctd
+      long_name: water temperature
+      observation_type: measured
+      platform: platform
+      precision: '0.001'
+      resolution: '0.0002'
+      source: sci_water_temp
+      standard_name: sea_water_temperature
+      units: Celsius
+      valid_max: '50.0'
+      valid_min: '-5.0'
+    diff_mean: -0.00097475115393
+    diff_std: 0.11242147765
+    max: 13.2118997574
+    mean: 8.45837164322
+    min: 6.35693327586
+    n_nan: 53667
+    n_valid: 6833
+    std: 1.7224960155
+  temperature_QC:
+    attrs:
+      coverage_content_type: physicalMeasurement
+    diff_mean: 0.0
+    diff_std: 0.0
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 53664
+    n_valid: 6836
+    std: 0.0
+  temperature_adjusted:
+    attrs:
+      accuracy: '0.002'
+      ancillary_variables: ' '
+      comment: equivalent to raw temperature
+      coverage_content_type: physicalMeasurement
+      instrument: instrument_ctd
+      long_name: water temperature
+      observation_type: measured
+      platform: platform
+      precision: '0.001'
+      resolution: '0.0002'
+      source: sci_water_temp
+      standard_name: sea_water_temperature
+      units: Celsius
+      valid_max: '50.0'
+      valid_min: '-5.0'
+    diff_mean: -0.00097475115393
+    diff_std: 0.11242147765
+    max: 13.2118997574
+    mean: 8.45837164322
+    min: 6.35693327586
+    n_nan: 53667
+    n_valid: 6833
+    std: 1.7224960155
+  temperature_adjusted_QC:
+    attrs:
+      coverage_content_type: physicalMeasurement
+    diff_mean: 0.0
+    diff_std: 0.0
+    max: 1.0
+    mean: 1.0
+    min: 1.0
+    n_nan: 53664
+    n_valid: 6836
+    std: 0.0
+  time:
+    attrs: {}
+    diff_mean: 729847048898.0
+    diff_std: 346696502563.0
+    max: 1.56105226006e+18
+    mean: 1.56103315918e+18
+    min: 1.56101284832e+18
+    n_nan: 0
+    n_valid: 55
+    std: 12085489832200.0
+  waypoint_latitude:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: waypoint latitude
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: c_wpt_lat
+      units: degree_north
+    diff_mean: 1.14950603177e-05
+    diff_std: 0.0220261148187
+    max: 51.709714975
+    mean: 51.6792833054
+    min: 51.65
+    n_nan: 59691
+    n_valid: 809
+    std: 0.0175486543747
+  waypoint_longitude:
+    attrs:
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: ' '
+      coverage_content_type: physicalMeasurement
+      long_name: waypoint longitude
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      source: c_wpt_lon
+      units: degree_east
+    diff_mean: 7.66337354509e-06
+    diff_std: 0.0146840765458
+    max: -128.260190017
+    mean: -128.280477796
+    min: -128.3
+    n_nan: 59691
+    n_valid: 809
+    std: 0.0116991029165
