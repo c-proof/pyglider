@@ -28,43 +28,7 @@ example_dir = library_dir / 'tests/example-data/'
 # ---------------------------------------------------------------------------
 # Tolerances and excluded attrs
 # ---------------------------------------------------------------------------
-RTOL = 1e-5
-ATOL = 0.0
-SKIP_ATTRS = {'date_created', 'date_issued', 'history'}
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _to_float(da):
-    """Return a flat float64 array; converts datetime64 via ns epoch."""
-    vals = da.values
-    if np.issubdtype(vals.dtype, np.datetime64):
-        vals = vals.astype('datetime64[ns]').astype('float64')
-    return vals.flatten().astype('float64')
-
-
-def _stats(vals):
-    valid = vals[~np.isnan(vals)]
-    diffs = np.diff(valid)
-    s = {
-        'n_valid': int(len(valid)),
-        'n_nan': int(np.sum(np.isnan(vals))),
-    }
-    if len(valid):
-        s.update(
-            min=float(np.min(valid)),
-            max=float(np.max(valid)),
-            mean=float(np.mean(valid)),
-            std=float(np.std(valid)),
-        )
-    if len(diffs):
-        s.update(
-            diff_mean=float(np.mean(diffs)),
-            diff_std=float(np.std(diffs)),
-        )
-    return s
+from yaml_test_helpers import RTOL, ATOL, SKIP_ATTRS, to_float, stats
 
 
 # ---------------------------------------------------------------------------
@@ -100,9 +64,9 @@ def test_variable_attrs(var):
 
 
 @pytest.mark.parametrize('var', sorted(expected['variables']))
-def test_variable_stats(var):
-    vals = _to_float(output[var])
-    actual = _stats(vals)
+def test_variablestats(var):
+    vals = to_float(output[var])
+    actual = stats(vals)
     exp = expected['variables'][var]
     assert actual['n_valid'] == exp['n_valid'], f'{var}: n_valid mismatch'
     assert actual['n_nan'] == exp['n_nan'], f'{var}: n_nan mismatch'
@@ -116,9 +80,9 @@ def test_variable_stats(var):
 
 
 @pytest.mark.parametrize('var', sorted(expected['variables']))
-def test_variable_diff_stats(var):
-    vals = _to_float(output[var])
-    actual = _stats(vals)
+def test_variable_diffstats(var):
+    vals = to_float(output[var])
+    actual = stats(vals)
     exp = expected['variables'][var]
     for stat in ('diff_mean', 'diff_std'):
         if stat not in exp:
@@ -154,8 +118,8 @@ output_interp = xr.open_dataset(outname_interp)
 @pytest.mark.parametrize('var', sorted(expected['variables']))
 def test_interp_nrt_matches_baseline(var):
     """Interpolation on NRT sub data must not change variable statistics."""
-    vals = _to_float(output_interp[var])
-    actual = _stats(vals)
+    vals = to_float(output_interp[var])
+    actual = stats(vals)
     exp = expected['variables'][var]
     assert actual['n_valid'] == exp['n_valid'], f'{var}: n_valid mismatch'
     assert actual['n_nan'] == exp['n_nan'], f'{var}: n_nan mismatch'
@@ -204,8 +168,8 @@ def test_variable_attrs_raw(var):
 
 @pytest.mark.parametrize('var', sorted(expected_raw['variables']))
 def test_variable_stats_raw(var):
-    vals = _to_float(output_raw[var])
-    actual = _stats(vals)
+    vals = to_float(output_raw[var])
+    actual = stats(vals)
     exp = expected_raw['variables'][var]
     assert actual['n_valid'] == exp['n_valid'], f'{var}: n_valid mismatch'
     assert actual['n_nan'] == exp['n_nan'], f'{var}: n_nan mismatch'
@@ -220,8 +184,8 @@ def test_variable_stats_raw(var):
 
 @pytest.mark.parametrize('var', sorted(expected_raw['variables']))
 def test_variable_diff_stats_raw(var):
-    vals = _to_float(output_raw[var])
-    actual = _stats(vals)
+    vals = to_float(output_raw[var])
+    actual = stats(vals)
     exp = expected_raw['variables'][var]
     for stat in ('diff_mean', 'diff_std'):
         if stat not in exp:
@@ -257,7 +221,7 @@ output_interp_raw = xr.open_dataset(outname_interp_raw)
 @pytest.mark.parametrize('var', sorted(expected_raw['variables']))
 def test_interp_raw_increases_valid(var):
     """Interpolation on raw delayed data must not reduce non-NaN counts."""
-    vals = _to_float(output_interp_raw[var])
+    vals = to_float(output_interp_raw[var])
     n_valid_interp = int(np.sum(~np.isnan(vals)))
     exp_n_valid = expected_raw['variables'][var]['n_valid']
     assert n_valid_interp >= exp_n_valid, (

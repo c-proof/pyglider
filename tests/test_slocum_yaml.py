@@ -27,6 +27,8 @@ from compliance_checker.runner import CheckSuite, ComplianceChecker
 import pyglider.ncprocess as ncprocess
 import pyglider.slocum as slocum
 
+from yaml_test_helpers import RTOL, ATOL, SKIP_ATTRS, to_float, stats
+
 library_dir = Path(__file__).parent.parent.absolute()
 example_dir = library_dir / 'tests/example-data/'
 
@@ -62,47 +64,7 @@ expected_yaml_path = (
 with open(expected_yaml_path) as f:
     expected = yaml.safe_load(f)
 
-# Tolerances
-RTOL = 1e-5
-ATOL = 0.0
 
-# Attributes excluded from global-attr comparison: dynamic fields and the
-# version-stamped history string.
-SKIP_ATTRS = {'date_created', 'date_issued', 'history'}
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _to_float(da):
-    """Return a flat float64 array, converting datetime64 to ns-float."""
-    vals = da.values
-    if np.issubdtype(vals.dtype, np.datetime64):
-        vals = vals.astype('datetime64[ns]').astype('float64')
-    return vals.flatten().astype('float64')
-
-
-def _stats(vals):
-    valid = vals[~np.isnan(vals)]
-    diffs = np.diff(valid)
-    s = {
-        'n_valid': int(len(valid)),
-        'n_nan': int(np.sum(np.isnan(vals))),
-    }
-    if len(valid):
-        s.update(
-            min=float(np.min(valid)),
-            max=float(np.max(valid)),
-            mean=float(np.mean(valid)),
-            std=float(np.std(valid)),
-        )
-    if len(diffs):
-        s.update(
-            diff_mean=float(np.mean(diffs)),
-            diff_std=float(np.std(diffs)),
-        )
-    return s
 
 
 def _run_compliance(path, checker_names):
@@ -144,9 +106,9 @@ def test_variable_attrs(var):
 
 
 @pytest.mark.parametrize('var', sorted(expected['variables']))
-def test_variable_stats(var):
-    vals = _to_float(output[var])
-    actual = _stats(vals)
+def test_variablestats(var):
+    vals = to_float(output[var])
+    actual = stats(vals)
     exp = expected['variables'][var]
 
     assert actual['n_valid'] == exp['n_valid'], f'{var}: n_valid mismatch'
@@ -162,10 +124,10 @@ def test_variable_stats(var):
 
 
 @pytest.mark.parametrize('var', sorted(expected['variables']))
-def test_variable_diff_stats(var):
+def test_variable_diffstats(var):
     """Time-derivative statistics catch temporal scrambling."""
-    vals = _to_float(output[var])
-    actual = _stats(vals)
+    vals = to_float(output[var])
+    actual = stats(vals)
     exp = expected['variables'][var]
 
     for stat in ('diff_mean', 'diff_std'):

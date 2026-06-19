@@ -57,42 +57,7 @@ expected_grid_yaml_path = (
 with open(expected_grid_yaml_path) as f:
     expected_grid = yaml.safe_load(f)
 
-RTOL = 1e-5
-ATOL = 0.0
-SKIP_ATTRS = {'date_created', 'date_issued', 'history'}
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _to_float(da):
-    vals = da.values
-    if np.issubdtype(vals.dtype, np.datetime64):
-        vals = vals.astype('datetime64[ns]').astype('float64')
-    return vals.flatten().astype('float64')
-
-
-def _stats(vals):
-    valid = vals[~np.isnan(vals)]
-    diffs = np.diff(valid)
-    s = {
-        'n_valid': int(len(valid)),
-        'n_nan': int(np.sum(np.isnan(vals))),
-    }
-    if len(valid):
-        s.update(
-            min=float(np.min(valid)),
-            max=float(np.max(valid)),
-            mean=float(np.mean(valid)),
-            std=float(np.std(valid)),
-        )
-    if len(diffs):
-        s.update(
-            diff_mean=float(np.mean(diffs)),
-            diff_std=float(np.std(diffs)),
-        )
-    return s
+from yaml_test_helpers import RTOL, ATOL, SKIP_ATTRS, to_float, stats
 
 
 # ---------------------------------------------------------------------------
@@ -116,9 +81,9 @@ def test_variable_attrs(var):
 
 
 @pytest.mark.parametrize('var', sorted(expected['variables']))
-def test_variable_stats(var):
-    vals = _to_float(output[var])
-    actual = _stats(vals)
+def test_variablestats(var):
+    vals = to_float(output[var])
+    actual = stats(vals)
     exp = expected['variables'][var]
     assert actual['n_valid'] == exp['n_valid'], f'{var}: n_valid mismatch'
     assert actual['n_nan'] == exp['n_nan'], f'{var}: n_nan mismatch'
@@ -132,9 +97,9 @@ def test_variable_stats(var):
 
 
 @pytest.mark.parametrize('var', sorted(expected['variables']))
-def test_variable_diff_stats(var):
-    vals = _to_float(output[var])
-    actual = _stats(vals)
+def test_variable_diffstats(var):
+    vals = to_float(output[var])
+    actual = stats(vals)
     exp = expected['variables'][var]
     for stat in ('diff_mean', 'diff_std'):
         if stat not in exp:
@@ -165,9 +130,9 @@ def test_grid_variable_attrs(var):
 
 
 @pytest.mark.parametrize('var', sorted(expected_grid['variables']))
-def test_grid_variable_stats(var):
-    vals = _to_float(output_grid[var])
-    actual = _stats(vals)
+def test_grid_variablestats(var):
+    vals = to_float(output_grid[var])
+    actual = stats(vals)
     exp = expected_grid['variables'][var]
     assert actual['n_valid'] == exp['n_valid'], f'{var}: n_valid mismatch'
     assert actual['n_nan'] == exp['n_nan'], f'{var}: n_nan mismatch'
@@ -181,9 +146,9 @@ def test_grid_variable_stats(var):
 
 
 @pytest.mark.parametrize('var', sorted(expected_grid['variables']))
-def test_grid_variable_diff_stats(var):
-    vals = _to_float(output_grid[var])
-    actual = _stats(vals)
+def test_grid_variable_diffstats(var):
+    vals = to_float(output_grid[var])
+    actual = stats(vals)
     exp = expected_grid['variables'][var]
     for stat in ('diff_mean', 'diff_std'):
         if stat not in exp:

@@ -51,15 +51,15 @@ def summarize(ds: xr.Dataset) -> dict:
         }
         if len(valid):
             entry.update(
-                min=float(np.min(valid)),
-                max=float(np.max(valid)),
-                mean=float(np.mean(valid)),
-                std=float(np.std(valid)),
+                min=float(f'{np.min(valid):.12g}'),
+                max=float(f'{np.max(valid):.12g}'),
+                mean=float(f'{np.mean(valid):.12g}'),
+                std=float(f'{np.std(valid):.12g}'),
             )
         if len(diffs):
             entry.update(
-                diff_mean=float(np.mean(diffs)),
-                diff_std=float(np.std(diffs)),
+                diff_mean=float(f'{np.mean(diffs):.12g}'),
+                diff_std=float(f'{np.std(diffs):.12g}'),
             )
         result['variables'][var] = entry
     return result

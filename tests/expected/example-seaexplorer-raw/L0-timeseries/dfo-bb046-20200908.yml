@@ -77,14 +77,14 @@ variables:
       resolution: ' '
       source: FLBBCD_BB_700_SCALED
       units: '1'
-    diff_mean: -1.0594647887323933e-06
-    diff_std: 0.000748084340832925
+    diff_mean: -1.05946478873e-06
+    diff_std: 0.000748084340833
     max: 0.00730728
-    mean: 0.00046344217289719634
+    mean: 0.000463442172897
     min: 0.000119997
     n_nan: 12549
     n_valid: 214
-    std: 0.000596240807846927
+    std: 0.000596240807847
   cdom:
     attrs:
       accuracy: ' '
@@ -96,14 +96,14 @@ variables:
       resolution: ' '
       source: FLBBCD_CDOM_SCALED
       units: ppb
-    diff_mean: 0.0009718309859154923
-    diff_std: 0.3531626314843194
+    diff_mean: 0.000971830985915
+    diff_std: 0.353162631484
     max: 3.8295
-    mean: 2.037595794392523
+    mean: 2.03759579439
     min: 1.449
     n_nan: 12549
     n_valid: 214
-    std: 0.5369645139000531
+    std: 0.5369645139
   chlorophyll:
     attrs:
       accuracy: ' '
@@ -116,14 +116,14 @@ variables:
       source: FLBBCD_CHL_SCALED
       standard_name: concentration_of_chlorophyll_in_sea_water
       units: mg m-3
-    diff_mean: -0.0022666666666666608
-    diff_std: 0.6401748997127443
+    diff_mean: -0.00226666666667
+    diff_std: 0.640174899713
     max: 5.396
-    mean: 0.9002733644859813
+    mean: 0.900273364486
     min: 0.0284
     n_nan: 12549
     n_valid: 214
-    std: 1.3126522062492116
+    std: 1.31265220625
   conductivity:
     attrs:
       accuracy: '0.0003'
@@ -140,14 +140,14 @@ variables:
       units: S m-1
       valid_max: '10'
       valid_min: '0'
-    diff_mean: 3.4320639398215583e-07
-    diff_std: 0.005500890257882894
+    diff_mean: 3.43206393982e-07
+    diff_std: 0.00550089025788
     max: 3.9378
-    mean: 3.5276500830525737
+    mean: 3.52765008305
     min: 3.2217
     n_nan: 0
     n_valid: 12763
-    std: 0.18476699079714576
+    std: 0.184766990797
   density:
     attrs:
       accuracy: '0.01'
@@ -165,14 +165,14 @@ variables:
       units: kg m-3
       valid_max: '1040.0'
       valid_min: '990.0'
-    diff_mean: 4.9883622769758475e-06
-    diff_std: 0.029763056893933056
-    max: 1027.0608204071912
-    mean: 1024.6542390195152
-    min: 1019.8575193981104
+    diff_mean: 4.98836227698e-06
+    diff_std: 0.0297630568939
+    max: 1027.06082041
+    mean: 1024.65423902
+    min: 1019.8575194
     n_nan: 0
     n_valid: 12763
-    std: 1.986213877036714
+    std: 1.98621387704
   depth:
     attrs:
       accuracy: '1.0'
@@ -190,28 +190,28 @@ variables:
       units: m
       valid_max: '2000.0'
       valid_min: '0.0'
-    diff_mean: -4.03898007703699e-05
-    diff_std: 0.11715676268304073
-    max: 131.093814830718
-    mean: 56.18032952637815
-    min: 1.3679562086484582
+    diff_mean: -4.03898007704e-05
+    diff_std: 0.117156762683
+    max: 131.093814831
+    mean: 56.1803295264
+    min: 1.36795620865
     n_nan: 0
     n_valid: 12763
-    std: 41.464080096672916
+    std: 41.4640800967
   distance_over_ground:
     attrs:
       long_name: distance over ground flown since mission start
       method: get_distance_over_ground
       sources: latitude longitude
       units: km
-    diff_mean: 0.00011457168587970894
-    diff_std: 0.0001237204856135805
-    max: 1.4621638551968454
-    mean: 0.7619764061162662
+    diff_mean: 0.00011457168588
+    diff_std: 0.000123720485614
+    max: 1.4621638552
+    mean: 0.761976406116
     min: 0.0
     n_nan: 0
     n_valid: 12763
-    std: 0.5528230364883926
+    std: 0.552823036488
   heading:
     attrs:
       accuracy: ' '
@@ -224,14 +224,14 @@ variables:
       source: Heading
       standard_name: platform_orientation
       units: degrees
-    diff_mean: -0.001999967403228336
-    diff_std: 0.824119323477937
-    max: 288.11592000279273
-    mean: 232.77795016009912
-    min: 75.893395532544
+    diff_mean: -0.00199996740323
+    diff_std: 0.824119323478
+    max: 288.115920003
+    mean: 232.77795016
+    min: 75.8933955325
     n_nan: 0
     n_valid: 12763
-    std: 49.42087772582072
+    std: 49.4208777258
   latitude:
     attrs:
       accuracy: ' '
@@ -251,14 +251,14 @@ variables:
       units: degrees_north
       valid_max: '90.0'
       valid_min: '-90.0'
-    diff_mean: -1.69774852437678e-08
-    diff_std: 8.143704240226577e-07
-    max: 51.70596666666667
-    mean: 51.7053311746978
+    diff_mean: -1.69774852438e-08
+    diff_std: 8.14370424023e-07
+    max: 51.7059666667
+    mean: 51.7053311747
     min: 51.70475
     n_nan: 0
     n_valid: 12763
-    std: 0.00024850490870284824
+    std: 0.000248504908703
   longitude:
     attrs:
       accuracy: ' '
@@ -278,14 +278,14 @@ variables:
       units: degrees_east
       valid_max: '180.0'
       valid_min: '-180.0'
-    diff_mean: -1.4953246617557864e-06
-    diff_std: 1.4211139839465886e-06
+    diff_mean: -1.49532466176e-06
+    diff_std: 1.42111398395e-06
     max: -128.2389
-    mean: -128.24893314408226
-    min: -128.25798333333333
+    mean: -128.248933144
+    min: -128.257983333
     n_nan: 0
     n_valid: 12763
-    std: 0.007243086428611154
+    std: 0.00724308642861
   oxygen_concentration:
     attrs:
       accuracy: ' '
@@ -298,14 +298,14 @@ variables:
       source: AROD_FT_DO
       standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
       units: umol l-1
-    diff_mean: -0.0028515763372299065
-    diff_std: 2.1753909461562677
+    diff_mean: -0.00285157633723
+    diff_std: 2.17539094616
     max: 346.79
-    mean: 216.6149743226492
+    mean: 216.614974323
     min: 82.54
     n_nan: 7116
     n_valid: 5647
-    std: 81.83649361712553
+    std: 81.8364936171
   pitch:
     attrs:
       accuracy: ' '
@@ -318,14 +318,14 @@ variables:
       source: Pitch
       standard_name: platform_pitch_angle
       units: degrees
-    diff_mean: 0.0029094204670114406
-    diff_std: 0.8407227127058058
-    max: 25.281274993152
-    mean: -5.164818758628659
+    diff_mean: 0.00290942046701
+    diff_std: 0.840722712706
+    max: 25.2812749932
+    mean: -5.16481875863
     min: -65.89848
     n_nan: 0
     n_valid: 12763
-    std: 24.91385016671685
+    std: 24.9138501667
   potential_density:
     attrs:
       accuracy: '0.01'
@@ -341,14 +341,14 @@ variables:
       sources: salinity temperature pressure
       standard_name: sea_water_potential_density
       units: kg m-3
-    diff_mean: 5.224756660916238e-06
-    diff_std: 0.029949119608613076
-    max: 1026.588778233697
-    mean: 1024.5056957936638
-    min: 1019.9155268721371
+    diff_mean: 5.22475666092e-06
+    diff_std: 0.0299491196086
+    max: 1026.58877823
+    mean: 1024.50569579
+    min: 1019.91552687
     n_nan: 0
     n_valid: 12763
-    std: 1.8287592168961397
+    std: 1.8287592169
   potential_temperature:
     attrs:
       accuracy: '0.002'
@@ -364,14 +364,14 @@ variables:
       sources: salinity temperature pressure
       standard_name: sea_water_potential_temperature
       units: Celsius
-    diff_mean: -3.48918314016948e-06
-    diff_std: 0.030132800649246744
-    max: 15.330892491724507
-    mean: 10.244607769332106
-    min: 6.3348021612067535
+    diff_mean: -3.48918314017e-06
+    diff_std: 0.0301328006492
+    max: 15.3308924917
+    mean: 10.2446077693
+    min: 6.33480216121
     n_nan: 0
     n_valid: 12763
-    std: 3.212336409848177
+    std: 3.21233640985
   pressure:
     attrs:
       accuracy: '1'
@@ -390,14 +390,14 @@ variables:
       units: dbar
       valid_max: '2000'
       valid_min: '0'
-    diff_mean: -4.074596458235578e-05
-    diff_std: 0.11822360235811183
+    diff_mean: -4.07459645824e-05
+    diff_std: 0.118223602358
     max: 132.29
-    mean: 56.6868087440257
+    mean: 56.686808744
     min: 1.38
     n_nan: 0
     n_valid: 12763
-    std: 41.84140825614983
+    std: 41.8414082561
   profile_direction:
     attrs:
       comment: -1 = ascending, 0 = inflecting or stalled, 1 = descending
@@ -405,14 +405,14 @@ variables:
       method: get_profiles_new
       sources: time pressure
       units: '1'
-    diff_mean: -7.835762419683435e-05
-    diff_std: 0.04928569985487267
+    diff_mean: -7.83576241968e-05
+    diff_std: 0.0492856998549
     max: 1.0
-    mean: -0.10530439551829507
+    mean: -0.105304395518
     min: -1.0
     n_nan: 0
     n_valid: 12763
-    std: 0.9760298391137189
+    std: 0.976029839114
   profile_index:
     attrs:
       comment: N = inside profile N, N + 0.5 = between profiles N and N + 1
@@ -424,13 +424,13 @@ variables:
       sources: time pressure
       units: '1'
     diff_mean: 0.0
-    diff_std: 0.11810019943690406
+    diff_std: 0.118100199437
     max: 9.0
-    mean: 4.453811799733605
+    mean: 4.45381179973
     min: 0.0
     n_nan: 0
     n_valid: 12763
-    std: 2.9161748927873705
+    std: 2.91617489279
   roll:
     attrs:
       accuracy: ' '
@@ -443,14 +443,14 @@ variables:
       source: Roll
       standard_name: platform_roll_angle
       units: degrees
-    diff_mean: -0.00031154395862717434
-    diff_std: 0.3466813324660426
-    max: 13.449916966144
-    mean: 0.2309113470354593
-    min: -44.07453286107428
+    diff_mean: -0.000311543958627
+    diff_std: 0.346681332466
+    max: 13.4499169661
+    mean: 0.230911347035
+    min: -44.0745328611
     n_nan: 0
     n_valid: 12763
-    std: 7.394933221314157
+    std: 7.39493322131
   salinity:
     attrs:
       accuracy: '0.01'
@@ -468,14 +468,14 @@ variables:
       units: 1e-3
       valid_max: '40.0'
       valid_min: '0.0'
-    diff_mean: 5.8760753069992206e-06
-    diff_std: 0.03975876443669356
-    max: 33.827763014511355
-    mean: 31.966840511280996
-    min: 26.66466919809669
+    diff_mean: 5.876075307e-06
+    diff_std: 0.0397587644367
+    max: 33.8277630145
+    mean: 31.9668405113
+    min: 26.6646691981
     n_nan: 0
     n_valid: 12763
-    std: 1.7600160773381788
+    std: 1.76001607734
   temperature:
     attrs:
       accuracy: '0.002'
@@ -492,14 +492,14 @@ variables:
       units: Celsius
       valid_max: '50'
       valid_min: '-5'
-    diff_mean: -3.4947500391787406e-06
-    diff_std: 0.030133704044267955
+    diff_mean: -3.49475003918e-06
+    diff_std: 0.0301337040443
     max: 15.3322
-    mean: 10.250131685340437
+    mean: 10.2501316853
     min: 6.3461
     n_nan: 0
     n_valid: 12763
-    std: 3.2089979614625137
+    std: 3.20899796146
   temperature_oxygen:
     attrs:
       accuracy: ' '
@@ -512,14 +512,14 @@ variables:
       source: AROD_FT_TEMP
       standard_name: temperature_of_sensor_for_oxygen_in_sea_water
       units: Celsius
-    diff_mean: -7.438894792773612e-05
-    diff_std: 0.053633200055405186
+    diff_mean: -7.43889479277e-05
+    diff_std: 0.0536332000554
     max: 15.298
-    mean: 10.325583318576236
+    mean: 10.3255833186
     min: 6.406
     n_nan: 7116
     n_valid: 5647
-    std: 3.2139099597014673
+    std: 3.2139099597
   time:
     attrs:
       axis: T
@@ -527,11 +527,11 @@ variables:
       observation_type: measured
       source: time
       standard_name: time
-    diff_mean: 1002763438.3375646
-    diff_std: 159813017.46161246
-    max: 1.599599975119e+18
-    mean: 1.5995935760794934e+18
-    min: 1.599587177852e+18
+    diff_mean: 1002763438.34
+    diff_std: 159813017.462
+    max: 1.59959997512e+18
+    mean: 1.59959357608e+18
+    min: 1.59958717785e+18
     n_nan: 0
     n_valid: 12763
-    std: 3696878927959.836
+    std: 3696878927960.0
