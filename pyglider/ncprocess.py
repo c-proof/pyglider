@@ -70,7 +70,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                 dss['trajectory'].attrs['long_name'] = 'Trajectory/Deployment Name'
 
                 # profile-averaged variables....
-                profile_meta = deployment['profile_variables']
+                profile_meta = deployment.get('profile_variables', {})
                 if 'water_velocity_eastward' in dss.keys():
                     dss['u'] = dss.water_velocity_eastward.mean()
                     dss['u'].attrs = profile_meta['u']
@@ -256,7 +256,7 @@ def make_gridfiles(
     except FileExistsError:
         pass
     deployment = utils._get_deployment(deploymentyaml)
-    profile_meta = deployment['profile_variables']
+    profile_meta = deployment.get('profile_variables', {})
     varnames = utils._get_varnames(deployment)
     depth_varname = varnames.get('depth', 'depth')
     profile_index_varname = varnames.get('profile_index', 'profile_index')
@@ -352,7 +352,7 @@ def make_gridfiles(
         )
         dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
-        dsout[td] = ((xdimname), dat, profile_meta[td])
+        dsout[td] = ((xdimname), dat, profile_meta.get(td, {}))
 
     ds = ds.drop_vars('time_1970')
     _log.info(f'Done times!')
