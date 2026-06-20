@@ -389,7 +389,6 @@ netcdf_variables:
     sensor:        SENSOR_FLUOROMETER
     vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/CDOM/
 
-
   BBP700:
     source:        sci_flbbcd_bb_units
     long_name:     700 nm wavelength backscatter

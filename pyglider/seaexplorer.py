@@ -725,6 +725,42 @@ def raw_to_timeseries(
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data,
                              varnames=varnames)
 
+    # OG 1.0: add mandatory GPS fix variables on N_GPS dimension
+    if deployment.get('output_dimension') == 'N_MEASUREMENTS':
+        try:
+            gli_raw = pl.read_parquet(f'{indir}/{id}-rawgli.parquet')
+            if 'DeadReckoning' in gli_raw.columns:
+                gli_gps = gli_raw.filter(pl.col('DeadReckoning') == 0)
+            else:
+                gli_gps = gli_raw.filter(pl.col('NavState') != 116)
+            gli_gps = gli_gps.drop_nulls(subset=['Lat', 'Lon'])
+            lat_gps = utils.nmea2deg(gli_gps['Lat'].to_numpy())
+            lon_gps = utils.nmea2deg(gli_gps['Lon'].to_numpy())
+            t_gps = gli_gps['time'].to_numpy().astype('datetime64[ns]')
+            valid = np.isfinite(lat_gps) & np.isfinite(lon_gps) & (lat_gps != 0) & (lon_gps != 0)
+            ds['LATITUDE_GPS'] = (('N_GPS',), lat_gps[valid], {
+                'long_name': 'GPS latitude',
+                'standard_name': 'latitude',
+                'units': 'degrees_north',
+                'observation_type': 'measured',
+            })
+            ds['LONGITUDE_GPS'] = (('N_GPS',), lon_gps[valid], {
+                'long_name': 'GPS longitude',
+                'standard_name': 'longitude',
+                'units': 'degrees_east',
+                'observation_type': 'measured',
+            })
+            ds['TIME_GPS'] = (('N_GPS',), t_gps[valid], {
+                'long_name': 'GPS time',
+                'standard_name': 'time',
+                'observation_type': 'measured',
+            })
+            _log.info('Added %d GPS fixes as LATITUDE_GPS/LONGITUDE_GPS/TIME_GPS',
+                      valid.sum())
+        except Exception:
+            _log.warning('Could not extract GPS fix variables from gli data',
+                         exc_info=True)
+
     start = ds['time'].values[0]
     end = ds['time'].values[-1]
 

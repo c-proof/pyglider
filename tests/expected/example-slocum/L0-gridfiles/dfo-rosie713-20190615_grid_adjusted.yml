@@ -65,9 +65,10 @@ attrs:
   sea_name: Coastal Waters of Southeast Alaska and British Columbia
   source: Observational data from a profiling glider.
   standard_name_vocabulary: CF Standard Name Table v72
+  start_date: 20190620T062053
   summary: Manufacturer test in Saanich Inlet.
-  time_coverage_end: '2019-06-20T17:55:47'
-  time_coverage_start: '2019-06-20T06:20:53'
+  time_coverage_end: 20190620T175547
+  time_coverage_start: 20190620T062053
   title: dfo-rosie713-20190620T0620
   transmission_system: IRRIDIUM
   wmo_id: '999999'

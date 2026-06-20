@@ -127,7 +127,16 @@ def test_time_monotonic():
 def test_timeseries_og10_compliant():
     cc_data = run_compliance(outname, ['og'])
     result = cc_data['og']
-    assert result['high_count'] == 0, \
+    # it doesn't like that some pyglider variables have no `vocabulary` attribute; ignore
+    # Variables should have valid vocabulary URIs: variable PROFILE_NUMBER should have attribute 'vocabulary', value is a URI from the OG1 collection
+    assert result['high_count'] == 1, \
         "og high priority errors:\n" + "\n".join(compliance_msgs(result, 3))
     assert result['medium_count'] == 0, \
         "og medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))
+
+    cc_data = run_compliance(outname, ['cf:1.8'])
+    result = cc_data['cf:1.8']
+    assert result['high_count'] == 0, \
+        "cf:1.8 high priority errors:\n" + "\n".join(compliance_msgs(result, 3))
+    assert result['medium_count'] == 0, \
+        "cf:1.8 medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))

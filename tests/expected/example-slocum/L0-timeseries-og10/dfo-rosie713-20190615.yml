@@ -488,8 +488,8 @@ variables:
       min_nsamples: '0'
       sources: time PRES
       units: '1'
-      valid_max: '2147483647'
-      valid_min: '1'
+      valid_max: '2147483647.0'
+      valid_min: '1.0'
     diff_mean: 0.0
     diff_std: 1.6259695028
     max: 55.0

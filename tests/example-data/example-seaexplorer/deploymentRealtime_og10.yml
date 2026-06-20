@@ -33,6 +33,9 @@ metadata:
   glider_instrument_name: seaexplorer
   glider_wmo: '999999'
   institution: C-PROOF
+  contributing_institutions: C-PROOF
+  contributing_institutions_role: Operator
+  contributing_institutions_role_vocabulary: "http://vocab.nerc.ac.uk/collection/W08/current/CONT0003/"
   keywords: "AUVS, Autonomous Underwater Vehicles, Oceans, Ocean Pressure,
              Water Pressure, Oceans, Ocean Temperature, Water Temperature,
              Oceans, Salinity/Density, Conductivity, Oceans,
@@ -41,7 +44,7 @@ metadata:
   license: "This data may be redistributed and used without restriction or
             warranty"
   metadata_link: "https://cproof.uvic.ca"
-  Metadata_Conventions: CF-1.10, ACDD-1.3, OG-1.0
+  metadata_conventions: CF-1.10, ACDD-1.3, OG-1.0
   Conventions: CF-1.10, ACDD-1.3, OG-1.0
   naming_authority: "ca.uvic.cproof"
   platform:         "sub-surface gliders"
@@ -62,6 +65,8 @@ metadata:
   summary: Short deployment off Tully near Explorer Seamount.
   transmission_system: IRRIDIUM
   wmo_id: "999999"
+  deployment_latitude: "48.91"
+  deployment_longitude: "-130.61"
 
 
 glider_devices:
@@ -275,7 +280,7 @@ netcdf_variables:
     resolution:    0.001
     vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/PSAL/
 
-  POTENTIAL_TEMPERATURE:
+  THETA:
     processing_method:
       potential_temperature:
         salinity:     PSAL
@@ -288,9 +293,9 @@ netcdf_variables:
     accuracy:      0.002
     precision:     0.001
     resolution:    0.0001
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/THETA/
 
-  SIGMA0:
+  SIGTHETA:
     processing_method:
       potential_density_sigma0:
         salinity:     PSAL
@@ -305,7 +310,7 @@ netcdf_variables:
     accuracy:      0.01
     precision:     0.01
     resolution:    0.001
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/SIGTHETA/
 
   DENSITY:
     processing_method:
@@ -321,7 +326,7 @@ netcdf_variables:
     observation_type: calculated
     valid_min:     990.0
     valid_max:     1040.0
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/DENSITY/
 
   # -------------------------------------------------------------------------
   # Other measured variables
@@ -332,18 +337,21 @@ netcdf_variables:
     long_name:     Glider heading angle
     standard_name: platform_orientation
     units:         degrees
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/HEADING/
 
   PITCH:
     source:        Pitch
     long_name:     Glider pitch angle
     standard_name: platform_pitch_angle
     units:         degrees
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/PITCH/
 
   ROLL:
     source:        Roll
     long_name:     Glider roll angle
     standard_name: platform_roll_angle
     units:         degrees
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/ROLL/
 
   CHLA:
     source:        FLBBCD_CHL_SCALED
@@ -358,12 +366,14 @@ netcdf_variables:
     long_name:     CDOM
     units:         ppb
     sensor:        SENSOR_FLUOROMETER
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/CDOM/
 
   BBP700:
     source:        FLBBCD_BB_700_SCALED
     long_name:     700 nm wavelength backscatter
     units:         "1"
     sensor:        SENSOR_FLUOROMETER
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/BBP700/
 
   # -------------------------------------------------------------------------
   # QC variables
@@ -386,3 +396,33 @@ netcdf_variables:
 
   CHLA_QC:
     average_method: QC_protocol
+
+
+scalar_variables:
+
+  PLATFORM_MODEL:
+    from_metadata: glider_model
+    long_name: Glider model name
+
+  WMO_IDENTIFIER:
+    from_metadata: glider_wmo
+    long_name: WMO identifier
+
+  PLATFORM_SERIAL_NUMBER:
+    from_metadata: glider_serial
+    long_name: Glider serial number
+
+  DEPLOYMENT_TIME:
+    from_metadata: deployment_start
+    long_name: Deployment start time
+    units: seconds since 1970-01-01T00:00:00Z
+
+  DEPLOYMENT_LATITUDE:
+    from_metadata: deployment_latitude
+    long_name: Deployment latitude
+    units: degrees_north
+
+  DEPLOYMENT_LONGITUDE:
+    from_metadata: deployment_longitude
+    long_name: Deployment longitude
+    units: degrees_east

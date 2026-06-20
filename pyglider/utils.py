@@ -1070,6 +1070,11 @@ def _dispatch_processing_methods(ds, ncvar):
             if varname in ds:
                 extra_attrs = {k: v for k, v in attrs.items()
                                if k not in _EXPLICIT_ATTR_SKIP}
+                # CF §2.5: valid_min/valid_max must have the same dtype as the variable.
+                var_dtype = ds[varname].dtype
+                for bound in ('valid_min', 'valid_max'):
+                    if bound in extra_attrs:
+                        extra_attrs[bound] = var_dtype.type(extra_attrs[bound])
                 ds[varname].attrs.update(extra_attrs)
             continue
 
@@ -1144,6 +1149,11 @@ def _apply_explicit_yaml_attrs(ds, ncvar):
         if varname in ds:
             extra_attrs = {k: v for k, v in attrs.items()
                            if k not in _EXPLICIT_ATTR_SKIP}
+            # CF §2.5: valid_min/valid_max must have the same dtype as the variable.
+            var_dtype = ds[varname].dtype
+            for bound in ('valid_min', 'valid_max'):
+                if bound in extra_attrs:
+                    extra_attrs[bound] = var_dtype.type(extra_attrs[bound])
             ds[varname].attrs.update(extra_attrs)
     return ds
 
@@ -1426,6 +1436,33 @@ def _save_dataset(ds, filename, deployment, **kwargs):
     aux_coords = [c for c in aux_coords if c in ds.data_vars]
     if aux_coords:
         ds = ds.set_coords(aux_coords)
+
+    # Fix any hardcoded lowercase coordinate names in 'coordinates' attrs that
+    # were set before the rename (e.g. by get_profiles_new).
+    if time_name != 'time':
+        _coord_name_map = {
+            'time': time_name,
+            'latitude': vn.get('latitude', 'latitude'),
+            'longitude': vn.get('longitude', 'longitude'),
+            'depth': vn.get('depth', 'depth'),
+        }
+        for var in list(ds.data_vars) + list(ds.coords):
+            if 'coordinates' in ds[var].attrs:
+                old = ds[var].attrs['coordinates']
+                new = ' '.join(_coord_name_map.get(n, n) for n in old.split())
+                if new != old:
+                    ds[var].attrs['coordinates'] = new
+
+    # CF §2.2: TIME_GPS (on N_GPS dimension) must be float, not int64.
+    # Add encoding here so callers don't need to know about it.
+    if 'TIME_GPS' in ds:
+        enc = dict(kwargs.get('encoding', {}))
+        if 'TIME_GPS' not in enc:
+            enc['TIME_GPS'] = {
+                'units': 'seconds since 1970-01-01T00:00:00Z',
+                'dtype': 'float64',
+            }
+            kwargs = {**kwargs, 'encoding': enc}
 
     # CF §9.8: trajectory files require a scalar variable with cf_role = trajectory_id.
     # OG 1.0 requires the variable to be named TRAJECTORY (uppercase); other

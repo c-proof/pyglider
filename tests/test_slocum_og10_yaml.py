@@ -140,3 +140,10 @@ def test_timeseries_og10_compliant():
         "og medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))
     assert result['low_count'] == 0, \
         "og low priority errors:\n" + "\n".join(compliance_msgs(result, 1))
+
+    cc_data = run_compliance(outname, ['cf:1.8'])
+    result = cc_data['cf:1.8']
+    assert result['high_count'] == 0, \
+        "cf:1.8 high priority errors:\n" + "\n".join(compliance_msgs(result, 3))
+    assert result['medium_count'] == 0, \
+        "cf:1.8 medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))
