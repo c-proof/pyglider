@@ -15,8 +15,9 @@ attrs:
     ''Seabird SlocumCTD'', ''make_model'': ''Seabird SlocumCTD'', ''factory_calibrated'':
     ''Yes'', ''calibration_date'': ''02/11/2018'', ''calibration_report'': '' '',
     ''Thermal_lag_constants_[alpha,tau]'': [0.34, 4.6], ''dTdC'': 0, ''comment'':
-    ''Constants were found using dfo-bb046-20220707. There is no lag between temperature
-    and conductivity.''}'
+    ''Constants were found using dfo-bb046-20220707. A detailed report of how the
+    constants are defined can be found on https://cproof.uvic.ca. There is no lag
+    between temperature and conductivity.''}'
   dTdC: No CT lag applied
   date_modified: ' '
   deployment_end: '2019-07-23T21:25:46'
@@ -540,25 +541,6 @@ variables:
     n_nan: 9118
     n_valid: 15082
     std: 0.999999287808
-  profile_index:
-    attrs:
-      comment: N = inside profile N, N + 0.5 = between profiles N and N + 1
-      coverage_content_type: physicalMeasurement
-      filt_length: '3'
-      long_name: profile index
-      method: get_profiles_new
-      min_dp: '10.0'
-      min_nsamples: '9'
-      sources: time pressure
-      units: '1'
-    diff_mean: 0.0
-    diff_std: 4.65595025963
-    max: 22.0
-    mean: 11.4970163108
-    min: 1.0
-    n_nan: 9118
-    n_valid: 15082
-    std: 6.42936365405
   profile_time_end:
     attrs:
       comment: Timestamp corresponding to the end of the profile

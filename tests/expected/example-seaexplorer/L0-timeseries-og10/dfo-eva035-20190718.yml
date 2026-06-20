@@ -1,6 +1,6 @@
 attrs:
   Conventions: CF-1.8
-  Metadata_Conventions: CF-1.6, Unidata Dataset Discovery v1.0
+  Metadata_Conventions: CF-1.10, ACDD-1.3, OG-1.0
   acknowledgement: Funding from Fisheries and Oceans Canada, Canadian Foundation for
     Innovation, BC Knowledge Development Fund
   cdm_data_type: Trajectory
@@ -11,19 +11,17 @@ attrs:
   creator_name: Jody Klymak
   creator_url: http://cproof.uvic.ca
   ctd: '{''make'': ''Seabird'', ''model'': ''GPCTD'', ''serial'': ''0278'', ''long_name'':
-    ''Seabird SlocumCTD'', ''make_model'': ''Seabird SlocumCTD'', ''factory_calibrated'':
+    ''Seabird GPCTD'', ''make_model'': ''Seabird GPCTD'', ''factory_calibrated'':
     ''Yes'', ''calibration_date'': ''02/11/2018'', ''calibration_report'': '' '',
     ''Thermal_lag_constants_[alpha,tau]'': [0.34, 4.6], ''dTdC'': 0, ''comment'':
-    ''Constants were found using dfo-bb046-20220707. A detailed report of how the
-    constants are defined can be found on https://cproof.uvic.ca. There is no lag
-    between temperature and conductivity.''}'
+    ''Constants were found using dfo-bb046-20220707.''}'
+  data_mode: R
   date_modified: ' '
   deployment_end: '2019-07-23T21:25:46.402000000'
   deployment_id: '1'
   deployment_name: dfo-eva035-20190718
   deployment_start: '2019-07-21T23:25:02.737000000'
   featureType: trajectory
-  format_version: IOOS_Glider_NetCDF_v2.0.nc
   geospatial_lat_max: '49.127199999999995'
   geospatial_lat_min: '48.79203333333333'
   geospatial_lat_units: degrees_north
@@ -57,6 +55,7 @@ attrs:
   publisher_name: Jody Klymak
   publisher_url: http://cproof.uvic.ca
   references: cproof toolbox URL
+  rtqc_method: No QC applied
   sea_name: BC Coastal Waters
   source: Observational data from a profiling glider.
   standard_name_vocabulary: CF Standard Name Table v72
@@ -67,7 +66,7 @@ attrs:
   transmission_system: IRRIDIUM
   wmo_id: '999999'
 variables:
-  backscatter_700:
+  BBP700:
     attrs:
       accuracy: ' '
       ancillary_variables: ' '
@@ -76,6 +75,7 @@ variables:
       platform: platform
       precision: ' '
       resolution: ' '
+      sensor: SENSOR_FLUOROMETER_4741
       source: FLBBCD_BB_700_SCALED
       units: '1'
     diff_mean: 1.71623188406e-08
@@ -86,7 +86,7 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 0.000179507908801
-  cdom:
+  CDOM:
     attrs:
       accuracy: ' '
       ancillary_variables: ' '
@@ -95,6 +95,7 @@ variables:
       platform: platform
       precision: ' '
       resolution: ' '
+      sensor: SENSOR_FLUOROMETER_4741
       source: FLBBCD_CDOM_SCALED
       units: ppb
     diff_mean: 1.8731884058e-05
@@ -105,18 +106,20 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 1.14455582374
-  chlorophyll:
+  CHLA:
     attrs:
       accuracy: ' '
       ancillary_variables: ' '
       comment: ' '
-      long_name: chlorophyll
+      long_name: Chlorophyll-a concentration
       platform: platform
       precision: ' '
       resolution: ' '
+      sensor: SENSOR_FLUOROMETER_4741
       source: FLBBCD_CHL_SCALED
-      standard_name: concentration_of_chlorophyll_in_sea_water
+      standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
       units: mg m-3
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/CHLA/
     diff_mean: -5.60869565217e-05
     diff_std: 0.125672239273
     max: 3.1089
@@ -125,22 +128,24 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 0.414541647787
-  conductivity:
+  CNDC:
     attrs:
       accuracy: '0.0003'
       ancillary_variables: ' '
       comment: ' '
-      instrument: instrument_ctd
-      long_name: water conductivity
+      long_name: Electrical conductivity of the water body by CTD
       observation_type: measured
       platform: platform
       precision: '0.0001'
+      processing_role: conductivity
       resolution: 2e-05
+      sensor: SENSOR_CTD_0278
       source: GPCTD_CONDUCTIVITY
       standard_name: sea_water_electrical_conductivity
       units: S m-1
-      valid_max: '10'
-      valid_min: '0'
+      valid_max: '10.0'
+      valid_min: '0.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/CNDC/
     diff_mean: -8.03405797101e-05
     diff_std: 0.0737959606868
     max: 4.08942
@@ -149,32 +154,32 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 1.06860256065
-  density:
+  DENSITY:
     attrs:
-      accuracy: '0.01'
+      accuracy: ' '
       ancillary_variables: ' '
-      comment: raw, uncorrected salinity
-      instrument: instrument_ctd
+      comment: Computed by density from salinity=PSAL, temperature=TEMP, pressure=PRES,
+        latitude=LATITUDE, longitude=LONGITUDE
       long_name: Density
-      method: get_derived_eos_raw
-      observation_type: calulated
+      method: density
+      observation_type: calculated
       platform: platform
-      precision: '0.01'
-      resolution: '0.001'
-      sources: salinity temperature pressure
+      precision: ' '
+      resolution: ' '
+      sources: PSAL TEMP PRES LATITUDE LONGITUDE
       standard_name: sea_water_density
       units: kg m-3
       valid_max: '1040.0'
       valid_min: '990.0'
-    diff_mean: -0.00107139051727
-    diff_std: 0.443501763913
-    max: 1030.29553473
-    mean: 1023.99522615
-    min: 995.191316741
+    diff_mean: -0.00114027168051
+    diff_std: 0.44774744321
+    max: 1030.44157974
+    mean: 1024.08105611
+    min: 994.680055341
     n_nan: 2
     n_valid: 5519
-    std: 8.54058132181
-  depth:
+    std: 8.66542468361
+  DEPTH:
     attrs:
       accuracy: '1.0'
       comment: from science pressure and interpolated
@@ -186,7 +191,7 @@ variables:
       precision: '2.0'
       reference_datum: surface
       resolution: '0.02'
-      source: pressure
+      source: PRES
       standard_name: depth
       units: m
       valid_max: '2000.0'
@@ -199,11 +204,17 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 233.773621636
-  distance_over_ground:
+  DISTANCE_OVER_GROUND:
     attrs:
-      long_name: distance over ground flown since mission start
-      method: get_distance_over_ground
-      sources: latitude longitude
+      accuracy: ' '
+      ancillary_variables: ' '
+      comment: Computed by distance_over_ground from latitude=LATITUDE, longitude=LONGITUDE
+      long_name: Distance over ground flown since mission start
+      method: distance_over_ground
+      platform: platform
+      precision: ' '
+      resolution: ' '
+      sources: LATITUDE LONGITUDE
       units: km
     diff_mean: 0.018723953588
     diff_std: 0.0421828271751
@@ -213,12 +224,12 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 22.1220126165
-  heading:
+  HEADING:
     attrs:
       accuracy: ' '
       ancillary_variables: ' '
       comment: ' '
-      long_name: glider heading angle
+      long_name: Glider heading angle
       platform: platform
       precision: ' '
       resolution: ' '
@@ -233,18 +244,18 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 62.2777822108
-  latitude:
+  LATITUDE:
     attrs:
       accuracy: ' '
       ancillary_variables: ' '
       axis: Y
       comment: Estimated between surface fixes
       conversion: nmea2deg
-      coordinate_reference_frame: urn:ogc:crs:EPSG::4326
-      long_name: latitude
+      long_name: Latitude north (WGS84)
       observation_type: measured
       platform: platform
       precision: ' '
+      processing_role: latitude
       reference: WGS84
       resolution: ' '
       source: NAV_LATITUDE
@@ -252,6 +263,7 @@ variables:
       units: degrees_north
       valid_max: '90.0'
       valid_min: '-90.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/LAT/
     diff_mean: 3.92904589372e-05
     diff_std: 0.000242697989282
     max: 49.1272
@@ -260,18 +272,18 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 0.0643725596611
-  longitude:
+  LONGITUDE:
     attrs:
       accuracy: ' '
       ancillary_variables: ' '
       axis: X
       comment: Estimated between surface fixes
       conversion: nmea2deg
-      coordinate_reference_frame: urn:ogc:crs:EPSG::4326
-      long_name: longitude
+      long_name: Longitude east (WGS84)
       observation_type: measured
       platform: platform
       precision: ' '
+      processing_role: longitude
       reference: WGS84
       resolution: ' '
       source: NAV_LONGITUDE
@@ -279,6 +291,7 @@ variables:
       units: degrees_east
       valid_max: '180.0'
       valid_min: '-180.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/LON/
     diff_mean: -6.00150966184e-05
     diff_std: 0.000505715539577
     max: -130.257616667
@@ -287,33 +300,12 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 0.157830346455
-  oxygen_concentration:
-    attrs:
-      accuracy: ' '
-      ancillary_variables: ' '
-      coarsen: '8'
-      comment: ' '
-      long_name: oxygen concentration
-      platform: platform
-      precision: ' '
-      resolution: ' '
-      source: AROD_FT_DO
-      standard_name: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
-      units: umol l-1
-    diff_mean: -0.0149567481884
-    diff_std: 3.52590278899
-    max: 355.913456515
-    mean: 180.393537993
-    min: 11.1756991054
-    n_nan: 0
-    n_valid: 5521
-    std: 125.641019186
-  pitch:
+  PITCH:
     attrs:
       accuracy: ' '
       ancillary_variables: ' '
       comment: ' '
-      long_name: glider pitch angle
+      long_name: Glider pitch angle
       platform: platform
       precision: ' '
       resolution: ' '
@@ -328,44 +320,21 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 21.3093807401
-  potential_density:
-    attrs:
-      accuracy: '0.01'
-      ancillary_variables: ' '
-      comment: raw, uncorrected salinity
-      instrument: instrument_ctd
-      long_name: water potential density
-      method: get_derived_eos_raw
-      observation_type: calulated
-      platform: platform
-      precision: '0.01'
-      resolution: '0.001'
-      sources: salinity temperature pressure
-      standard_name: sea_water_potential_density
-      units: kg m-3
-    diff_mean: -0.00114008110842
-    diff_std: 0.446680191588
-    max: 1027.1553209
-    mean: 1023.09636561
-    min: 994.680229364
-    n_nan: 2
-    n_valid: 5519
-    std: 8.15645567993
-  potential_temperature:
+  POTENTIAL_TEMPERATURE:
     attrs:
       accuracy: '0.002'
       ancillary_variables: ' '
-      comment: raw, uncorrected salinity
-      instrument: instrument_ctd
-      long_name: water potential temperature
-      method: get_derived_eos_raw
-      observation_type: calulated
+      comment: Computed by potential_temperature from salinity=PSAL, temperature=TEMP,
+        pressure=PRES
+      long_name: Water potential temperature
+      method: potential_temperature
+      observation_type: calculated
       platform: platform
       precision: '0.001'
       resolution: '0.0001'
-      sources: salinity temperature pressure
+      sources: PSAL TEMP PRES
       standard_name: sea_water_potential_temperature
-      units: Celsius
+      units: degree_C
     diff_mean: 0.00299219483825
     diff_std: 0.187842201437
     max: 33.0844097234
@@ -374,24 +343,26 @@ variables:
     n_nan: 2
     n_valid: 5519
     std: 6.44190249949
-  pressure:
+  PRES:
     attrs:
-      accuracy: '1'
+      accuracy: '1.0'
       ancillary_variables: ' '
-      comment: ctd pressure sensor
-      instrument: instrument_ctd
-      long_name: water pressure
+      comment: ' '
+      long_name: Pressure (measured variable)
       observation_type: measured
       platform: platform
       positive: down
-      precision: '2'
+      precision: '2.0'
+      processing_role: pressure
       reference_datum: sea-surface
       resolution: '0.02'
+      sensor: SENSOR_CTD_0278
       source: GPCTD_PRESSURE
       standard_name: sea_water_pressure
       units: dbar
-      valid_max: '2000'
-      valid_min: '0'
+      valid_max: '2000.0'
+      valid_min: '0.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/PRES/
     diff_mean: -4.16666666667e-05
     diff_std: 3.78278752584
     max: 712.42
@@ -400,12 +371,12 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 236.10428327
-  profile_direction:
+  PROFILE_DIRECTION:
     attrs:
       comment: -1 = ascending, 0 = inflecting or stalled, 1 = descending
       long_name: glider vertical speed direction
       method: get_profiles_new
-      sources: time pressure
+      sources: time PRES
       units: '1'
     diff_mean: 0.0
     diff_std: 0.110990272455
@@ -415,7 +386,7 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 0.784173836114
-  profile_index:
+  PROFILE_NUMBER:
     attrs:
       comment: N = inside profile N, N + 0.5 = between profiles N and N + 1
       filt_length: '3'
@@ -423,7 +394,7 @@ variables:
       method: get_profiles_new
       min_dp: '10.0'
       min_nsamples: '9'
-      sources: time pressure
+      sources: time PRES
       units: '1'
     diff_mean: 0.0
     diff_std: 0.830357003718
@@ -433,12 +404,39 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 7.50142963375
-  roll:
+  PSAL:
+    attrs:
+      accuracy: '0.01'
+      ancillary_variables: ' '
+      comment: Computed by practical_salinity from conductivity=CNDC, temperature=TEMP,
+        pressure=PRES
+      long_name: Sea water practical salinity
+      method: practical_salinity
+      observation_type: calculated
+      platform: platform
+      precision: '0.01'
+      resolution: '0.001'
+      sensor: SENSOR_CTD_0278
+      sources: CNDC TEMP PRES
+      standard_name: sea_water_practical_salinity
+      units: '1'
+      valid_max: '40.0'
+      valid_min: '0.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/PSAL/
+    diff_mean: -0.000531446725356
+    diff_std: 0.580698756255
+    max: 34.2073718322
+    mean: 30.4210733625
+    min: 4.63911678196e-05
+    n_nan: 2
+    n_valid: 5519
+    std: 9.35397426761
+  ROLL:
     attrs:
       accuracy: ' '
       ancillary_variables: ' '
       comment: ' '
-      long_name: glider roll angle
+      long_name: Glider roll angle
       platform: platform
       precision: ' '
       resolution: ' '
@@ -453,47 +451,47 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 5.95382949597
-  salinity:
+  SIGMA0:
     attrs:
       accuracy: '0.01'
       ancillary_variables: ' '
-      comment: raw, uncorrected salinity
-      instrument: instrument_ctd
-      long_name: water salinity
-      method: get_derived_eos_raw
-      observation_type: calulated
+      comment: Computed by potential_density_sigma0 from salinity=PSAL, temperature=TEMP,
+        pressure=PRES, latitude=LATITUDE, longitude=LONGITUDE
+      long_name: Water potential density referenced to surface
+      method: potential_density_sigma0
+      observation_type: calculated
       platform: platform
       precision: '0.01'
       resolution: '0.001'
-      sources: conductivity temperature pressure
-      standard_name: sea_water_practical_salinity
-      units: 1e-3
-      valid_max: '40.0'
-      valid_min: '0.0'
-    diff_mean: -0.000531446725356
-    diff_std: 0.580698756255
-    max: 34.2073718322
-    mean: 30.4210733625
-    min: 4.63911678196e-05
+      sources: PSAL TEMP PRES LATITUDE LONGITUDE
+      standard_name: sea_water_potential_density
+      units: kg m-3
+    diff_mean: -0.00114008110842
+    diff_std: 0.446680191588
+    max: 1027.1553209
+    mean: 1023.09636561
+    min: 994.680229364
     n_nan: 2
     n_valid: 5519
-    std: 9.35397426761
-  temperature:
+    std: 8.15645567993
+  TEMP:
     attrs:
       accuracy: '0.002'
       ancillary_variables: ' '
       comment: ' '
-      instrument: instrument_ctd
-      long_name: water temperature
+      long_name: Temperature of the water body by CTD
       observation_type: measured
       platform: platform
       precision: '0.001'
+      processing_role: temperature
       resolution: '0.0002'
+      sensor: SENSOR_CTD_0278
       source: GPCTD_TEMPERATURE
       standard_name: sea_water_temperature
-      units: Celsius
-      valid_max: '50'
-      valid_min: '-5'
+      units: degree_C
+      valid_max: '50.0'
+      valid_min: '-5.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/TEMP/
     diff_mean: 0.00299110507246
     diff_std: 0.187704812589
     max: 33.0844
@@ -502,34 +500,15 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 6.42896468283
-  temperature_oxygen:
-    attrs:
-      accuracy: ' '
-      ancillary_variables: ' '
-      coarsen: '8'
-      comment: ' '
-      long_name: oxygen sensor temperature
-      platform: platform
-      precision: ' '
-      resolution: ' '
-      source: AROD_FT_TEMP
-      standard_name: temperature_of_sensor_for_oxygen_in_sea_water
-      units: Celsius
-    diff_mean: 0.00325230978261
-    diff_std: 0.119153748765
-    max: 34.8264707603
-    mean: 11.0782845558
-    min: 4.21655434312
-    n_nan: 0
-    n_valid: 5521
-    std: 6.53151741826
-  time:
+  TIME:
     attrs:
       axis: T
-      long_name: Time
+      long_name: Time elapsed since 1970-01-01T00:00:00Z
       observation_type: measured
+      processing_role: time
       source: time
       standard_name: time
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/TIME/
     diff_mean: 30007910326.1
     diff_std: 53822462.3042
     max: 1.5639171464e+18

@@ -25,6 +25,7 @@ import xarray as xr
 import yaml
 
 import pyglider.seaexplorer as seaexplorer
+import pyglider.slocum as slocum
 from pyglider.process_adjusted import run_process_adjusted
 
 
@@ -85,15 +86,37 @@ if __name__ == '__main__':
     example_data = tests_dir / 'example-data'
 
     # ------------------------------------------------------------------
+    # Slocum OG 1.0 pipeline
+    # ------------------------------------------------------------------
+    sl_og10_cacdir = example_data / 'example-slocum/cac/'
+    sl_og10_binary = str(example_data / 'example-slocum/realtime_raw/') + '/'
+    sl_og10_yaml = str(example_data / 'example-slocum/deploymentRealtime_og10.yml')
+    sl_og10_ts = str(example_data / 'example-slocum/L0-timeseries-og10/') + '/'
+    sl_og10_nc = slocum.binary_to_timeseries(
+        sl_og10_binary, sl_og10_cacdir, sl_og10_ts, sl_og10_yaml,
+        search='*.[s|t]bd', profile_filt_time=20, profile_min_time=20,
+    )
+
+    # ------------------------------------------------------------------
     # SeaExplorer NRT sub pipeline
     # ------------------------------------------------------------------
     se_raw = str(example_data / 'example-seaexplorer/realtime_raw/') + '/'
     se_rawnc = str(example_data / 'example-seaexplorer/realtime_rawnc/') + '/'
     se_yaml = str(example_data / 'example-seaexplorer/deploymentRealtime.yml')
     se_l0ts = str(example_data / 'example-seaexplorer/L0-timeseries-test/') + '/'
+    se_l0ts_adj = str(example_data / 'example-seaexplorer/L0-timeseries/') + '/'
     seaexplorer.raw_to_rawnc(se_raw, se_rawnc, se_yaml)
     seaexplorer.merge_parquet(se_rawnc, se_rawnc, se_yaml, kind='sub')
     se_nc = seaexplorer.raw_to_L0timeseries(se_rawnc, se_l0ts, se_yaml, kind='sub')
+    # Also write to L0-timeseries/ so run_process_adjusted has fresh input
+    seaexplorer.raw_to_L0timeseries(se_rawnc, se_l0ts_adj, se_yaml, kind='sub')
+
+    # ------------------------------------------------------------------
+    # SeaExplorer OG 1.0 pipeline (reuses parquet files from NRT sub above)
+    # ------------------------------------------------------------------
+    se_og10_yaml = str(example_data / 'example-seaexplorer/deploymentRealtime_og10.yml')
+    se_og10_ts = str(example_data / 'example-seaexplorer/L0-timeseries-og10/') + '/'
+    se_og10_nc = seaexplorer.raw_to_timeseries(se_rawnc, se_og10_ts, se_og10_yaml, kind='sub')
 
     # ------------------------------------------------------------------
     # SeaExplorer raw delayed pipeline
@@ -132,9 +155,17 @@ if __name__ == '__main__':
         example_data / 'example-slocum/L0-timeseries/dfo-rosie713-20190615.nc':
             expected_yaml / 'example-slocum/L0-timeseries/dfo-rosie713-20190615.yml',
 
+        # slocum OG 1.0 — just generated above
+        Path(sl_og10_nc):
+            expected_yaml / 'example-slocum/L0-timeseries-og10/dfo-rosie713-20190615.yml',
+
         # seaexplorer NRT sub — just generated above
         Path(se_nc):
             expected_yaml / 'example-seaexplorer/L0-timeseries/dfo-eva035-20190718.yml',
+
+        # seaexplorer OG 1.0 — just generated above
+        Path(se_og10_nc):
+            expected_yaml / 'example-seaexplorer/L0-timeseries-og10/dfo-eva035-20190718.yml',
 
         # seaexplorer raw delayed — just generated above
         Path(ser_nc):

@@ -245,6 +245,7 @@ variables:
       comment: ' '
       coverage_content_type: physicalMeasurement
       long_name: glider heading angle
+      method: linear fill
       platform: platform
       precision: ' '
       resolution: ' '
@@ -267,6 +268,7 @@ variables:
       comment: Estimated between surface fixes
       coordinate_reference_frame: urn:ogc:crs:EPSG::4326
       long_name: latitude
+      method: linear fill
       observation_type: measured
       platform: platform
       precision: ' '
@@ -293,6 +295,7 @@ variables:
       comment: Estimated between surface fixes
       coordinate_reference_frame: urn:ogc:crs:EPSG::4326
       long_name: longitude
+      method: linear fill
       observation_type: measured
       platform: platform
       precision: ' '
@@ -349,6 +352,7 @@ variables:
       comment: ' '
       coverage_content_type: physicalMeasurement
       long_name: glider pitch angle
+      method: linear fill
       platform: platform
       precision: ' '
       resolution: ' '
@@ -516,25 +520,6 @@ variables:
     n_nan: 53664
     n_valid: 6836
     std: 0.999950524013
-  profile_index:
-    attrs:
-      comment: N = inside profile N, N + 0.5 = between profiles N and N + 1
-      coverage_content_type: physicalMeasurement
-      filt_length: '0'
-      long_name: profile index
-      method: get_profiles_new
-      min_dp: '10.0'
-      min_nsamples: '0'
-      sources: time pressure
-      units: '1'
-    diff_mean: -0.000731528895391
-    diff_std: 7.47890470313
-    max: 55.0
-    mean: 27.376535986
-    min: 1.0
-    n_nan: 53664
-    n_valid: 6836
-    std: 15.7864386011
   profile_time_end:
     attrs:
       comment: Timestamp corresponding to the end of the profile
@@ -572,6 +557,7 @@ variables:
       comment: ' '
       coverage_content_type: physicalMeasurement
       long_name: glider roll angle
+      method: linear fill
       platform: platform
       precision: ' '
       resolution: ' '
@@ -750,6 +736,7 @@ variables:
       comment: ' '
       coverage_content_type: physicalMeasurement
       long_name: waypoint latitude
+      method: linear fill
       platform: platform
       precision: ' '
       resolution: ' '
@@ -770,6 +757,7 @@ variables:
       comment: ' '
       coverage_content_type: physicalMeasurement
       long_name: waypoint longitude
+      method: linear fill
       platform: platform
       precision: ' '
       resolution: ' '

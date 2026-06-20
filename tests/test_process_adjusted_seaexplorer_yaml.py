@@ -20,6 +20,7 @@ import pytest
 import xarray as xr
 import yaml
 
+import pyglider.seaexplorer as seaexplorer
 from pyglider.process_adjusted import run_process_adjusted
 
 library_dir = Path(__file__).parent.parent.absolute()
@@ -27,8 +28,18 @@ expected_dir = library_dir / 'tests/expected/example-seaexplorer'
 yaml_dir = library_dir / 'tests/example-data/example-seaexplorer'
 
 # ---------------------------------------------------------------------------
-# Run the pipeline once at module level
+# Run the pipeline once at module level.
+# Generate the L0 timeseries that run_process_adjusted reads so this module
+# is self-contained and not reliant on cached or pre-existing NC files.
 # ---------------------------------------------------------------------------
+_rawdir = str(yaml_dir / 'realtime_raw/') + '/'
+_rawncdir = str(yaml_dir / 'realtime_rawnc/') + '/'
+_deploymentyaml = str(yaml_dir / 'deploymentRealtime.yml')
+_l0tsdir = str(yaml_dir / 'L0-timeseries/') + '/'
+seaexplorer.raw_to_rawnc(_rawdir, _rawncdir, _deploymentyaml)
+seaexplorer.merge_parquet(_rawncdir, _rawncdir, _deploymentyaml, kind='sub')
+seaexplorer.raw_to_timeseries(_rawncdir, _l0tsdir, _deploymentyaml, kind='sub')
+
 outname = run_process_adjusted(
     expected_dir,
     deploy_name='dfo-eva035-20190718',

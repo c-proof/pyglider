@@ -20,6 +20,7 @@ import pytest
 import xarray as xr
 import yaml
 
+import pyglider.slocum as slocum
 from pyglider.process_adjusted import run_process_adjusted
 
 library_dir = Path(__file__).parent.parent.absolute()
@@ -27,8 +28,21 @@ expected_dir = library_dir / 'tests/expected/example-slocum'
 yaml_dir = library_dir / 'tests/example-data/example-slocum'
 
 # ---------------------------------------------------------------------------
-# Run the pipeline once at module level
+# Run the pipeline once at module level.
+# binary_to_timeseries generates the L0 timeseries that run_process_adjusted
+# reads; we run it here so this module is self-contained regardless of test
+# collection order.
 # ---------------------------------------------------------------------------
+slocum.binary_to_timeseries(
+    str(yaml_dir / 'realtime_raw/') + '/',
+    yaml_dir / 'cac/',
+    str(yaml_dir / 'L0-timeseries/') + '/',
+    str(yaml_dir / 'deploymentRealtime.yml'),
+    search='*.[s|t]bd',
+    profile_filt_time=20,
+    profile_min_time=20,
+)
+
 outname = run_process_adjusted(
     expected_dir,
     deploy_name='dfo-rosie713-20190615',
