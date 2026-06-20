@@ -12,11 +12,12 @@ attrs:
   creator_email: jklymak@uvic.ca
   creator_name: Jody Klymak
   creator_url: http://cproof.uvic.ca
-  ctd: '{''make'': ''Seabird'', ''model'': ''GPCTD'', ''serial'': ''0278'', ''long_name'':
-    ''Seabird GPCTD'', ''make_model'': ''Seabird GPCTD'', ''factory_calibrated'':
-    ''Yes'', ''calibration_date'': ''02/11/2018'', ''calibration_report'': '' '',
-    ''Thermal_lag_constants_[alpha,tau]'': [0.34, 4.6], ''dTdC'': 0, ''comment'':
-    ''Constants were found using dfo-bb046-20220707.''}'
+  ctd: '{''sensor_name'': ''SENSOR_CTD'', ''long_name'': ''CTD Metadata'', ''make_model'':
+    ''Seabird GPCTD'', ''maker'': ''Seabird Scientific'', ''model'': ''GPCTD'', ''type'':
+    ''CTD'', ''type_vocabulary'': ''https://vocab.nerc.ac.uk/collection/L05/current'',
+    ''make'': ''Seabird'', ''serial'': ''0278'', ''factory_calibrated'': ''Yes'',
+    ''calibration_date'': ''02/11/2018'', ''calibration_report'': '' '', ''Thermal_lag_constants_[alpha,tau]'':
+    [0.34, 4.6], ''dTdC'': 0, ''comment'': ''Constants were found using dfo-bb046-20220707.''}'
   data_mode: R
   date_modified: ' '
   deployment_end: '2019-07-23T21:25:46.402000000'
@@ -45,7 +46,10 @@ attrs:
   metadata_link: https://cproof.uvic.ca
   naming_authority: ca.uvic.cproof
   netcdf_version: '4.0'
-  optics: '{''make'': ''Wetlabs'', ''model'': ''FLBBCDSLC'', ''serial'': ''4741''}'
+  optics: '{''sensor_name'': ''SENSOR_FLUOROMETER'', ''long_name'': ''Fluorometer
+    Metadata'', ''make_model'': ''Wetlabs FLBBCDSLC'', ''maker'': ''Wetlabs'', ''model'':
+    ''FLBBCDSLC'', ''type'': ''fluorometer_chla'', ''type_vocabulary'': ''http://vocab.nerc.ac.uk/collection/R25/current/'',
+    ''make'': ''Wetlabs'', ''serial'': ''4741''}'
   oxygen: '{''make'': ''AROD_FT'', ''model'': ''Optode4831'', ''serial'': ''0022''}'
   platform: sub-surface gliders
   platform_type: SeaExplorer Glider
@@ -65,8 +69,8 @@ attrs:
   standard_name_vocabulary: CF Standard Name Table v72
   start_date: 20190721T232502
   summary: Short deployment off Tully near Explorer Seamount.
-  time_coverage_end: '2019-07-23T21:25:46.402000000'
-  time_coverage_start: '2019-07-21T23:25:02.737000000'
+  time_coverage_end: 20190723T212546
+  time_coverage_start: 20190721T232502
   title: dfo-eva035035-20190721T2325
   transmission_system: IRRIDIUM
   wmo_id: '999999'
@@ -80,7 +84,7 @@ variables:
       platform: platform
       precision: ' '
       resolution: ' '
-      sensor: SENSOR_FLUOROMETER_4741
+      sensor: SENSOR_FLUOROMETER
       source: FLBBCD_BB_700_SCALED
       units: '1'
     diff_mean: 1.71623188406e-08
@@ -100,7 +104,7 @@ variables:
       platform: platform
       precision: ' '
       resolution: ' '
-      sensor: SENSOR_FLUOROMETER_4741
+      sensor: SENSOR_FLUOROMETER
       source: FLBBCD_CDOM_SCALED
       units: ppb
     diff_mean: 1.8731884058e-05
@@ -120,7 +124,7 @@ variables:
       platform: platform
       precision: ' '
       resolution: ' '
-      sensor: SENSOR_FLUOROMETER_4741
+      sensor: SENSOR_FLUOROMETER
       source: FLBBCD_CHL_SCALED
       standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
       units: mg m-3
@@ -144,7 +148,7 @@ variables:
       precision: '0.0001'
       processing_role: conductivity
       resolution: 2e-05
-      sensor: SENSOR_CTD_0278
+      sensor: SENSOR_CTD
       source: GPCTD_CONDUCTIVITY
       standard_name: sea_water_electrical_conductivity
       units: S m-1
@@ -224,7 +228,6 @@ variables:
       resolution: ' '
       sources: LATITUDE LONGITUDE
       units: km
-      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.018723953588
     diff_std: 0.0421828271751
     max: 103.356223806
@@ -366,7 +369,7 @@ variables:
       processing_role: pressure
       reference_datum: sea-surface
       resolution: '0.02'
-      sensor: SENSOR_CTD_0278
+      sensor: SENSOR_CTD
       source: GPCTD_PRESSURE
       standard_name: sea_water_pressure
       units: dbar
@@ -388,7 +391,6 @@ variables:
       method: get_profiles_new
       sources: time PRES
       units: '1'
-      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.0
     diff_std: 0.110990272455
     max: 1.0
@@ -410,7 +412,6 @@ variables:
       units: '1'
       valid_max: '2147483647'
       valid_min: '1'
-      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.0
     diff_std: 0.830357003718
     max: 22.0
@@ -431,7 +432,7 @@ variables:
       platform: platform
       precision: '0.01'
       resolution: '0.001'
-      sensor: SENSOR_CTD_0278
+      sensor: SENSOR_CTD
       sources: CNDC TEMP PRES
       standard_name: sea_water_practical_salinity
       units: '1'
@@ -466,6 +467,36 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 5.95382949597
+  SENSOR_CTD:
+    attrs:
+      calibration_report: ' '
+      comment: Constants were found using dfo-bb046-20220707.
+      coverage_content_type: referenceInformation
+      factory_calibrated: 'Yes'
+      long_name: CTD Metadata
+      make_model: Seabird GPCTD
+      maker: Seabird Scientific
+      model: GPCTD
+      platform: sub-surface gliders
+      sensor_calibration_date: 02/11/2018
+      sensor_serial_number: 0278
+      type: CTD
+      type_vocabulary: https://vocab.nerc.ac.uk/collection/L05/current
+    n_nan: 1
+    n_valid: 0
+  SENSOR_FLUOROMETER:
+    attrs:
+      coverage_content_type: referenceInformation
+      long_name: Fluorometer Metadata
+      make_model: Wetlabs FLBBCDSLC
+      maker: Wetlabs
+      model: FLBBCDSLC
+      platform: sub-surface gliders
+      sensor_serial_number: '4741'
+      type: fluorometer_chla
+      type_vocabulary: http://vocab.nerc.ac.uk/collection/R25/current/
+    n_nan: 1
+    n_valid: 0
   SIGMA0:
     attrs:
       accuracy: '0.01'
@@ -501,7 +532,7 @@ variables:
       precision: '0.001'
       processing_role: temperature
       resolution: '0.0002'
-      sensor: SENSOR_CTD_0278
+      sensor: SENSOR_CTD
       source: GPCTD_TEMPERATURE
       standard_name: sea_water_temperature
       units: degree_C

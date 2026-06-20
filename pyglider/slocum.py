@@ -810,6 +810,7 @@ def raw_to_timeseries(
     except:
         pass
     ds = utils.make_scalar_variables(ds, deployment)
+    ds = utils.make_sensor_variables(ds, deployment)
     outname = outdir + '/' + ds.attrs['deployment_name'] + '.nc'
     _log.info('writing %s', outname)
     ds.to_netcdf(
@@ -1089,6 +1090,7 @@ def binary_to_timeseries(
     except:
         pass
     ds = utils.make_scalar_variables(ds, deployment)
+    ds = utils.make_sensor_variables(ds, deployment)
     outname = outdir + '/' + ds.attrs['deployment_name'] + fnamesuffix + '.nc'
     _log.info('writing %s', outname)
     # convert time back to float64 seconds for ERDDAP etc happiness, as they won't take ns

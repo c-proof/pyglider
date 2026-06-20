@@ -15,6 +15,7 @@ To regenerate the YAML after an intentional change, run:
 """
 
 from pathlib import Path
+from unittest import result
 
 import numpy as np
 import pytest
@@ -131,7 +132,11 @@ def test_time_monotonic():
 def test_timeseries_og10_compliant():
     cc_data = run_compliance(outname, ['og'])
     result = cc_data['og']
-    assert result['high_count'] == 0, \
+    # it doesn't like that some pyglider variables have no `vocabulary` attribute; ignore
+    # Variables should have valid vocabulary URIs: variable WAYPOINT_LATITUDE should have attribute 'vocabulary', value is a URI from the OG1 collection
+    assert result['high_count'] == 1, \
         "og high priority errors:\n" + "\n".join(compliance_msgs(result, 3))
     assert result['medium_count'] == 0, \
         "og medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))
+    assert result['low_count'] == 0, \
+        "og low priority errors:\n" + "\n".join(compliance_msgs(result, 1))

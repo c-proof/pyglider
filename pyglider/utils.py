@@ -607,15 +607,20 @@ def fill_metadata(ds, metadata, sensor_data, varnames=None):
     ds.attrs['cdm_data_type'] = 'Trajectory'
     ds.attrs['Conventions'] = 'CF-1.8'
     ds.attrs['standard_name_vocabulary'] = 'CF Standard Name Table v72'
-    ds.attrs['date_created'] = str(np.datetime64('now')) + 'Z'
-    ds.attrs['date_issued'] = str(np.datetime64('now')) + 'Z'
+    _now = datetime.now(tz=timezone.utc).strftime('%Y%m%dT%H%M%S')
+    ds.attrs['date_created'] = _now
+    ds.attrs['date_issued'] = _now
     ds.attrs['date_modified'] = ' '
     ds.attrs['id'] = get_file_id(ds)
     ds.attrs['title'] = ds.attrs['id']
 
     dt = ds.time.values
-    ds.attrs['time_coverage_start'] = '%s' % dt[0]
-    ds.attrs['time_coverage_end'] = '%s' % dt[-1]
+    ds.attrs['time_coverage_start'] = datetime.fromtimestamp(
+        int(dt[0].astype('datetime64[s]').astype('int64')), tz=timezone.utc
+    ).strftime('%Y%m%dT%H%M%S')
+    ds.attrs['time_coverage_end'] = datetime.fromtimestamp(
+        int(dt[-1].astype('datetime64[s]').astype('int64')), tz=timezone.utc
+    ).strftime('%Y%m%dT%H%M%S')
 
     # make sure this is ISO readable....
     ds.attrs['deployment_start'] = str(dt[0])[:19]
@@ -1178,6 +1183,104 @@ def _load_dataset(filename):
                     # first, then promote it as the dimension index via swap_dims
                     ds = ds.rename({var: 'time'}).swap_dims({time_dim: 'time'})
                 break
+    return ds
+
+
+def make_sensor_variables(ds, deployment):
+    """
+    Add OG 1.0 sensor metadata scalar variables from the ``glider_devices``
+    section of the deployment YAML.
+
+    For each device entry that contains a ``sensor_name`` key, a dimensionless
+    ``int`` variable is created in *ds* with that name.  This satisfies the
+    OG 1.0 requirement that every ``sensor`` attribute on a data variable must
+    refer to an existing scalar variable in the file.
+
+    If no entry has ``sensor_name`` the function returns *ds* unchanged, so
+    existing YAMLs without it continue to work.
+
+    YAML example::
+
+        glider_devices:
+          ctd:
+            sensor_name: SENSOR_CTD_9507   # netCDF variable name
+            long_name:   CTD Metadata
+            make_model:  Seabird SlocumCTD
+            maker:       Seabird Scientific
+            model:       SlocumCTD
+            type:        CTD
+            type_vocabulary: "https://vocab.nerc.ac.uk/collection/L05/current"
+            serial:      '9507'            # → sensor_serial_number
+            calibration_date: "2022-01-01" # → sensor_calibration_date
+            Thermal_lag_constants_[alpha,tau]: [0.2, 2]   # pyglider only
+            dTdC: 0                                        # pyglider only
+
+    The following keys are consumed by pyglider and **not** written as netCDF
+    attributes: ``sensor_name``, ``Thermal_lag_constants_*``, ``dTdC``.
+
+    The following keys are **renamed** on output:
+
+    * ``make``             → ``maker``  (if ``maker`` is not already present)
+    * ``serial``           → ``sensor_serial_number``
+    * ``calibration_date`` → ``sensor_calibration_date``
+
+    ``coverage_content_type = "referenceInformation"`` is always added.
+    ``platform`` is set to the value of ``metadata.platform`` when available.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+    deployment : dict
+        Parsed deployment YAML.
+
+    Returns
+    -------
+    ds : xarray.Dataset
+    """
+    devices = deployment.get('glider_devices', {})
+    if not devices:
+        return ds
+
+    # internal keys consumed by pyglider, never written as netCDF attributes
+    _SKIP = {'sensor_name', 'dTdC'}
+
+    # rename map: YAML key → netCDF attribute name
+    _RENAME = {
+        'make':             'maker',
+        'serial':           'sensor_serial_number',
+        'calibration_date': 'sensor_calibration_date',
+    }
+
+    platform_val = deployment.get('metadata', {}).get('platform', '')
+
+    for _device_key, device in devices.items():
+        sensor_name = device.get('sensor_name')
+        if not sensor_name:
+            continue
+
+        attrs = {}
+        attrs['coverage_content_type'] = 'referenceInformation'
+        if platform_val:
+            attrs['platform'] = platform_val
+
+        for k, v in device.items():
+            # skip pyglider-internal keys
+            if k in _SKIP:
+                continue
+            if k.startswith('Thermal_lag_constants'):
+                continue
+            # rename
+            out_key = _RENAME.get(k, k)
+            # if the entry already has 'maker', don't let 'make' overwrite it
+            if out_key == 'maker' and 'maker' in attrs:
+                continue
+            attrs[out_key] = v
+
+        ds[sensor_name] = xr.Variable([], -127, attrs=attrs)
+        ds[sensor_name].encoding['dtype'] = 'int8'
+        ds[sensor_name].encoding['_FillValue'] = -127
+        _log.info('Added sensor variable %s', sensor_name)
+
     return ds
 
 

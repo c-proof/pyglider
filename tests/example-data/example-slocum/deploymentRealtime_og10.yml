@@ -78,11 +78,16 @@ glider_devices:
     model: Pressure
     serial: '104702'
   ctd:
-    make: Seabird
-    model: SlocumCTD
-    serial: '9507'
-    long_name: Seabird SlocumCTD
+    sensor_name: SENSOR_CTD
+    long_name: CTD Metadata
     make_model: Seabird SlocumCTD
+    maker: Seabird Scientific
+    model: SlocumCTD
+    type: CTD
+    type_vocabulary: "https://vocab.nerc.ac.uk/collection/L05/current"
+    # pyglider-only fields (used for processing, not written to netCDF):
+    make: Seabird
+    serial: '9507'
     factory_calibrated: " "
     calibration_date: " "
     calibration_report: " "
@@ -90,12 +95,26 @@ glider_devices:
     Thermal_lag_constants_[alpha,tau]: [0.2, 2]
     dTdC: 0
   optics:
-    make: Wetlabs
+    sensor_name: SENSOR_FLUOROMETER
+    long_name: Fluorometer Metadata
+    make_model: Wetlabs FLBBCDSLC
+    maker: Wetlabs
     model: FLBBCDSLC
+    type: fluorometer_chla
+    type_vocabulary: "http://vocab.nerc.ac.uk/collection/R25/current/"
+    # pyglider-only:
+    make: Wetlabs
     serial: '5059'
   oxygen:
-    make: AADI
+    sensor_name: SENSOR_DOXY
+    long_name: Oxygen Sensor Metadata
+    make_model: AADI Optode4831
+    maker: AADI
     model: Optode4831
+    type: OPTODE_DOXY
+    type_vocabulary: "http://vocab.nerc.ac.uk/collection/R25/current/"
+    # pyglider-only:
+    make: AADI
     serial: '665'
 
 
@@ -154,7 +173,7 @@ netcdf_variables:
     long_name:     Electrical conductivity of the water body by CTD
     standard_name: sea_water_electrical_conductivity
     units:         S m-1
-    sensor:        SENSOR_CTD_9507
+    sensor:        SENSOR_CTD
     valid_min:     0.0
     valid_max:     10.0
     observation_type: measured
@@ -169,7 +188,7 @@ netcdf_variables:
     long_name:     Temperature of the water body by CTD
     standard_name: sea_water_temperature
     units:         degree_C
-    sensor:        SENSOR_CTD_9507
+    sensor:        SENSOR_CTD
     valid_min:     -5.0
     valid_max:     50.0
     observation_type: measured
@@ -185,7 +204,7 @@ netcdf_variables:
     standard_name: sea_water_pressure
     units:         dbar
     conversion:    bar2dbar
-    sensor:        SENSOR_CTD_9507
+    sensor:        SENSOR_CTD
     valid_min:     0.0
     valid_max:     2000.0
     positive:      down
@@ -227,7 +246,6 @@ netcdf_variables:
                     an ascending or descending profile."
     valid_min:     1
     valid_max:     2147483647
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   PROFILE_DIRECTION:
     processing_method:
@@ -236,7 +254,6 @@ netcdf_variables:
     processing_role: profile_direction
     long_name:     Vertical direction of profile
     comment:       "1 = descending, -1 = ascending, 0 = not in a profile"
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   DISTANCE_OVER_GROUND:
     processing_method:
@@ -245,7 +262,6 @@ netcdf_variables:
         longitude: LONGITUDE
     long_name:     Distance over ground flown since mission start
     units:         km
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   # -------------------------------------------------------------------------
   # Derived thermodynamic variables (TEOS-10)
@@ -267,7 +283,7 @@ netcdf_variables:
     valid_min:     0.0
     valid_max:     40.0
     observation_type: calculated
-    sensor:        SENSOR_CTD_9507
+    sensor:        SENSOR_CTD
     accuracy:      0.01
     precision:     0.01
     resolution:    0.001
@@ -319,7 +335,7 @@ netcdf_variables:
     observation_type: calculated
     valid_min:     990.0
     valid_max:     1040.0
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/DENSITY/
 
   # -------------------------------------------------------------------------
   # Other measured variables
@@ -351,28 +367,26 @@ netcdf_variables:
     long_name:     Waypoint latitude
     standard_name: latitude
     units:         degrees_north
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   WAYPOINT_LONGITUDE:
     source:        c_wpt_lon
     long_name:     Waypoint longitude
     standard_name: longitude
     units:         degrees_east
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   CHLA:
     source:        sci_flbbcd_chlor_units
     long_name:     Chlorophyll-a concentration
     standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
     units:         mg m-3
-    sensor:        SENSOR_FLUOROMETER_5059
+    sensor:        SENSOR_FLUOROMETER
     vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/CHLA/
 
   CDOM:
     source:        sci_flbbcd_cdom_units
     long_name:     CDOM
     units:         ppb
-    sensor:        SENSOR_FLUOROMETER_5059
+    sensor:        SENSOR_FLUOROMETER
     vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/CDOM/
 
 
@@ -380,7 +394,7 @@ netcdf_variables:
     source:        sci_flbbcd_bb_units
     long_name:     700 nm wavelength backscatter
     units:         "1"
-    sensor:        SENSOR_FLUOROMETER_5059
+    sensor:        SENSOR_FLUOROMETER
     vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/BBP700/
 
   DOXY:
@@ -388,7 +402,7 @@ netcdf_variables:
     long_name:     Dissolved oxygen
     standard_name: moles_of_oxygen_per_unit_mass_in_sea_water
     units:         umol kg-1
-    sensor:        SENSOR_DISSOLVED_GAS_SENSORS_665
+    sensor:        SENSOR_DOXY
     valid_min:     0.0
     valid_max:     500.0
     vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/DOXY/

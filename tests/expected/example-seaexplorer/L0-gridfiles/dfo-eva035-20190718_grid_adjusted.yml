@@ -66,8 +66,8 @@ attrs:
   standard_name_vocabulary: CF Standard Name Table v72
   start_date: 20190721T232502
   summary: Short deployment off Tully near Explorer Seamount.
-  time_coverage_end: '2019-07-23T21:25:46'
-  time_coverage_start: '2019-07-21T23:25:02'
+  time_coverage_end: 20190723T212546
+  time_coverage_start: 20190721T232502
   title: dfo-eva035035-20190721T2325
   transmission_system: IRRIDIUM
   wmo_id: '999999'

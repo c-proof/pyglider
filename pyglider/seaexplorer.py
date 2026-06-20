@@ -745,6 +745,8 @@ def raw_to_timeseries(
     if 'ad2cp_time' in list(ds):
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
+    ds = utils.make_scalar_variables(ds, deployment)
+    ds = utils.make_sensor_variables(ds, deployment)
     utils._save_dataset(
         ds,
         outname,

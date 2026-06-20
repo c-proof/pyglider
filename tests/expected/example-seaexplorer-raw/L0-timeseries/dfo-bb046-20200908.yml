@@ -61,8 +61,8 @@ attrs:
   standard_name_vocabulary: CF Standard Name Table v72
   start_date: 20200908T174617
   summary: Transect from Calvert Island to beyond shelf break in Queen Charlotte Sound.
-  time_coverage_end: '2020-09-08T21:19:35.119000000'
-  time_coverage_start: '2020-09-08T17:46:17.852000000'
+  time_coverage_end: 20200908T211935
+  time_coverage_start: 20200908T174617
   title: dfo-bb046-20200908T1746
   transmission_system: IRIDIUM
   wmo_id: '4803918'

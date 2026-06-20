@@ -70,11 +70,16 @@ glider_devices:
     model: Pressure
     serial: '104702'
   ctd:
-    make: Seabird
-    model: GPCTD
-    serial: '0278'
-    long_name: Seabird GPCTD
+    sensor_name: SENSOR_CTD
+    long_name: CTD Metadata
     make_model: Seabird GPCTD
+    maker: Seabird Scientific
+    model: GPCTD
+    type: CTD
+    type_vocabulary: "https://vocab.nerc.ac.uk/collection/L05/current"
+    # pyglider-only fields (used for processing, not written to netCDF):
+    make: Seabird
+    serial: '0278'
     factory_calibrated: "Yes"
     calibration_date: "02/11/2018"
     calibration_report: " "
@@ -82,8 +87,15 @@ glider_devices:
     dTdC: 0
     comment: 'Constants were found using dfo-bb046-20220707.'
   optics:
-    make: Wetlabs
+    sensor_name: SENSOR_FLUOROMETER
+    long_name: Fluorometer Metadata
+    make_model: Wetlabs FLBBCDSLC
+    maker: Wetlabs
     model: FLBBCDSLC
+    type: fluorometer_chla
+    type_vocabulary: "http://vocab.nerc.ac.uk/collection/R25/current/"
+    # pyglider-only:
+    make: Wetlabs
     serial: '4741'
   oxygen:
     make: AROD_FT
@@ -151,7 +163,7 @@ netcdf_variables:
     long_name:     Electrical conductivity of the water body by CTD
     standard_name: sea_water_electrical_conductivity
     units:         S m-1
-    sensor:        SENSOR_CTD_0278
+    sensor:        SENSOR_CTD
     valid_min:     0.0
     valid_max:     10.0
     observation_type: measured
@@ -166,7 +178,7 @@ netcdf_variables:
     long_name:     Temperature of the water body by CTD
     standard_name: sea_water_temperature
     units:         degree_C
-    sensor:        SENSOR_CTD_0278
+    sensor:        SENSOR_CTD
     valid_min:     -5.0
     valid_max:     50.0
     observation_type: measured
@@ -181,7 +193,7 @@ netcdf_variables:
     long_name:     Pressure (measured variable)
     standard_name: sea_water_pressure
     units:         dbar
-    sensor:        SENSOR_CTD_0278
+    sensor:        SENSOR_CTD
     valid_min:     0.0
     valid_max:     2000.0
     positive:      down
@@ -223,7 +235,6 @@ netcdf_variables:
                     an ascending or descending profile."
     valid_min:     1
     valid_max:     2147483647
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   PROFILE_DIRECTION:
     processing_method:
@@ -232,7 +243,6 @@ netcdf_variables:
     processing_role: profile_direction
     long_name:     Vertical direction of profile
     comment:       "1 = descending, -1 = ascending, 0 = not in a profile"
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   DISTANCE_OVER_GROUND:
     processing_method:
@@ -241,7 +251,6 @@ netcdf_variables:
         longitude: LONGITUDE
     long_name:     Distance over ground flown since mission start
     units:         km
-    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   # -------------------------------------------------------------------------
   # Derived thermodynamic variables (TEOS-10)
@@ -260,7 +269,7 @@ netcdf_variables:
     valid_min:     0.0
     valid_max:     40.0
     observation_type: calculated
-    sensor:        SENSOR_CTD_0278
+    sensor:        SENSOR_CTD
     accuracy:      0.01
     precision:     0.01
     resolution:    0.001
@@ -341,20 +350,20 @@ netcdf_variables:
     long_name:     Chlorophyll-a concentration
     standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
     units:         mg m-3
-    sensor:        SENSOR_FLUOROMETER_4741
+    sensor:        SENSOR_FLUOROMETER
     vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/CHLA/
 
   CDOM:
     source:        FLBBCD_CDOM_SCALED
     long_name:     CDOM
     units:         ppb
-    sensor:        SENSOR_FLUOROMETER_4741
+    sensor:        SENSOR_FLUOROMETER
 
   BBP700:
     source:        FLBBCD_BB_700_SCALED
     long_name:     700 nm wavelength backscatter
     units:         "1"
-    sensor:        SENSOR_FLUOROMETER_4741
+    sensor:        SENSOR_FLUOROMETER
 
   # -------------------------------------------------------------------------
   # QC variables
