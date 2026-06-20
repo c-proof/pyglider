@@ -1079,6 +1079,10 @@ def binary_to_timeseries(
             ds, filt_time=profile_filt_time, profile_min_time=profile_min_time,
             varnames=varnames,
         )
+        # Apply YAML attrs (e.g. vocabulary) to profile variables now that
+        # they exist in ds.  _dispatch_processing_methods couldn't do it
+        # earlier because get_profiles_new must run after time conversion.
+        ds = utils._apply_explicit_yaml_attrs(ds, ncvar)
 
     try:
         os.mkdir(outdir)

@@ -223,6 +223,7 @@ netcdf_variables:
                     an ascending or descending profile."
     valid_min:     1
     valid_max:     2147483647
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   PROFILE_DIRECTION:
     processing_method:
@@ -231,6 +232,7 @@ netcdf_variables:
     processing_role: profile_direction
     long_name:     Vertical direction of profile
     comment:       "1 = descending, -1 = ascending, 0 = not in a profile"
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   DISTANCE_OVER_GROUND:
     processing_method:
@@ -239,6 +241,7 @@ netcdf_variables:
         longitude: LONGITUDE
     long_name:     Distance over ground flown since mission start
     units:         km
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   # -------------------------------------------------------------------------
   # Derived thermodynamic variables (TEOS-10)
@@ -276,6 +279,7 @@ netcdf_variables:
     accuracy:      0.002
     precision:     0.001
     resolution:    0.0001
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   SIGMA0:
     processing_method:
@@ -292,6 +296,7 @@ netcdf_variables:
     accuracy:      0.01
     precision:     0.01
     resolution:    0.001
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   DENSITY:
     processing_method:
@@ -307,6 +312,7 @@ netcdf_variables:
     observation_type: calculated
     valid_min:     990.0
     valid_max:     1040.0
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   # -------------------------------------------------------------------------
   # Other measured variables

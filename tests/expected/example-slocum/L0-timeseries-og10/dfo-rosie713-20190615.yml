@@ -186,6 +186,7 @@ variables:
       units: kg m-3
       valid_max: '1040.0'
       valid_min: '990.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: -5.23843948141e-05
     diff_std: 0.184756170724
     max: 1027.29677712
@@ -218,20 +219,22 @@ variables:
   DEPTH:
     attrs:
       accuracy: '1.0'
+      axis: Z
       comment: from science pressure and interpolated
       instrument: instrument_ctd
-      long_name: glider depth
-      observation_type: calulated
+      long_name: Depth below surface of the water body
+      observation_type: calculated
       platform: platform
       positive: down
       precision: '2.0'
-      reference_datum: surface
+      reference_datum: sea-surface
       resolution: '0.02'
       source: PRES
       standard_name: depth
       units: m
       valid_max: '2000.0'
       valid_min: '0.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/DEPTH/
     diff_mean: 0.00278847878265
     diff_std: 6.3863822855
     max: 141.179628188
@@ -252,6 +255,7 @@ variables:
       resolution: ' '
       sources: LATITUDE LONGITUDE
       units: km
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.0141197889334
     diff_std: 0.0471044696328
     max: 16.4636738963
@@ -422,29 +426,6 @@ variables:
       long_name: Glider serial number
     n_nan: 0
     n_valid: 0
-  POTENTIAL_TEMPERATURE:
-    attrs:
-      accuracy: '0.002'
-      ancillary_variables: ' '
-      comment: Computed by potential_temperature from salinity=PSAL, temperature=TEMP,
-        pressure=PRES
-      long_name: Water potential temperature
-      method: potential_temperature
-      observation_type: calculated
-      platform: platform
-      precision: '0.001'
-      resolution: '0.0001'
-      sources: PSAL TEMP PRES
-      standard_name: sea_water_potential_temperature
-      units: degree_C
-    diff_mean: -5.69244394324e-05
-    diff_std: 0.451547338825
-    max: 13.210769766
-    mean: 8.46363071927
-    min: 6.34432950256
-    n_nan: 6
-    n_valid: 1161
-    std: 1.93447904989
   PRES:
     attrs:
       accuracy: '1.0'
@@ -476,11 +457,12 @@ variables:
     std: 40.8738114306
   PROFILE_DIRECTION:
     attrs:
-      comment: -1 = ascending, 0 = inflecting or stalled, 1 = descending
-      long_name: glider vertical speed direction
+      comment: 1 = descending, -1 = ascending, 0 = not in a profile
+      long_name: Vertical direction of profile
       method: get_profiles_new
       sources: time PRES
       units: '1'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: -0.000858369098712
     diff_std: 0.435544296275
     max: 1.0
@@ -491,14 +473,18 @@ variables:
     std: 0.999438261827
   PROFILE_NUMBER:
     attrs:
-      comment: N = inside profile N, N + 0.5 = between profiles N and N + 1
+      comment: PROFILE_NUMBER increments by one each time the glider starts an ascending
+        or descending profile.
       filt_length: '0'
-      long_name: profile index
+      long_name: Profile number
       method: get_profiles_new
       min_dp: '10.0'
       min_nsamples: '0'
       sources: time PRES
       units: '1'
+      valid_max: '2147483647'
+      valid_min: '1'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.0
     diff_std: 1.6259695028
     max: 55.0
@@ -556,7 +542,7 @@ variables:
     n_nan: 7
     n_valid: 1160
     std: 0.0117202983947
-  SIGMA0:
+  SIGTHETA:
     attrs:
       accuracy: '0.01'
       ancillary_variables: ' '
@@ -571,11 +557,12 @@ variables:
       sources: PSAL TEMP PRES LATITUDE LONGITUDE
       standard_name: sea_water_potential_density
       units: kg m-3
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/SIGTHETA/
     diff_mean: -6.50133782311e-05
     diff_std: 0.158528233773
-    max: 1026.65504886
-    mean: 1025.54477129
-    min: 1023.86204713
+    max: 26.6550488559
+    mean: 25.5447712858
+    min: 23.8620471284
     n_nan: 6
     n_valid: 1161
     std: 0.876813709739
@@ -605,6 +592,30 @@ variables:
     n_nan: 6
     n_valid: 1161
     std: 1.93126969842
+  THETA:
+    attrs:
+      accuracy: '0.002'
+      ancillary_variables: ' '
+      comment: Computed by potential_temperature from salinity=PSAL, temperature=TEMP,
+        pressure=PRES
+      long_name: Water potential temperature
+      method: potential_temperature
+      observation_type: calculated
+      platform: platform
+      precision: '0.001'
+      resolution: '0.0001'
+      sources: PSAL TEMP PRES
+      standard_name: sea_water_potential_temperature
+      units: degree_C
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/THETA/
+    diff_mean: -5.69244394324e-05
+    diff_std: 0.451547338825
+    max: 13.210769766
+    mean: 8.46363071927
+    min: 6.34432950256
+    n_nan: 6
+    n_valid: 1161
+    std: 1.93447904989
   TIME:
     attrs:
       axis: T
@@ -656,6 +667,7 @@ variables:
       source: c_wpt_lat
       standard_name: latitude
       units: degrees_north
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.000439080698262
     diff_std: 6.75367440949e-05
     max: 51.709714975
@@ -677,6 +689,7 @@ variables:
       source: c_wpt_lon
       standard_name: longitude
       units: degrees_east
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.000292720465508
     diff_std: 4.50244960634e-05
     max: -128.260190017

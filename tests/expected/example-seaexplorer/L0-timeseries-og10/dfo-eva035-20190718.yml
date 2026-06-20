@@ -176,6 +176,7 @@ variables:
       units: kg m-3
       valid_max: '1040.0'
       valid_min: '990.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: -0.00114027168051
     diff_std: 0.44774744321
     max: 1030.44157974
@@ -187,20 +188,22 @@ variables:
   DEPTH:
     attrs:
       accuracy: '1.0'
+      axis: Z
       comment: from science pressure and interpolated
       instrument: instrument_ctd
-      long_name: glider depth
-      observation_type: calulated
+      long_name: Depth below surface of the water body
+      observation_type: calculated
       platform: platform
       positive: down
       precision: '2.0'
-      reference_datum: surface
+      reference_datum: sea-surface
       resolution: '0.02'
       source: PRES
       standard_name: depth
       units: m
       valid_max: '2000.0'
       valid_min: '0.0'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/DEPTH/
     diff_mean: -4.13134811025e-05
     diff_std: 3.74435822523
     max: 705.170643134
@@ -221,6 +224,7 @@ variables:
       resolution: ' '
       sources: LATITUDE LONGITUDE
       units: km
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.018723953588
     diff_std: 0.0421828271751
     max: 103.356223806
@@ -340,6 +344,7 @@ variables:
       sources: PSAL TEMP PRES
       standard_name: sea_water_potential_temperature
       units: degree_C
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.00299219483825
     diff_std: 0.187842201437
     max: 33.0844097234
@@ -378,11 +383,12 @@ variables:
     std: 236.10428327
   PROFILE_DIRECTION:
     attrs:
-      comment: -1 = ascending, 0 = inflecting or stalled, 1 = descending
-      long_name: glider vertical speed direction
+      comment: 1 = descending, -1 = ascending, 0 = not in a profile
+      long_name: Vertical direction of profile
       method: get_profiles_new
       sources: time PRES
       units: '1'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.0
     diff_std: 0.110990272455
     max: 1.0
@@ -393,14 +399,18 @@ variables:
     std: 0.784173836114
   PROFILE_NUMBER:
     attrs:
-      comment: N = inside profile N, N + 0.5 = between profiles N and N + 1
+      comment: PROFILE_NUMBER increments by one each time the glider starts an ascending
+        or descending profile.
       filt_length: '3'
-      long_name: profile index
+      long_name: Profile number
       method: get_profiles_new
       min_dp: '10.0'
       min_nsamples: '9'
       sources: time PRES
       units: '1'
+      valid_max: '2147483647'
+      valid_min: '1'
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: 0.0
     diff_std: 0.830357003718
     max: 22.0
@@ -471,11 +481,12 @@ variables:
       sources: PSAL TEMP PRES LATITUDE LONGITUDE
       standard_name: sea_water_potential_density
       units: kg m-3
+      vocabulary: http://vocab.nerc.ac.uk/collection/OG1/current/
     diff_mean: -0.00114008110842
     diff_std: 0.446680191588
-    max: 1027.1553209
-    mean: 1023.09636561
-    min: 994.680229364
+    max: 27.1553209041
+    mean: 23.0963656147
+    min: -5.31977063602
     n_nan: 2
     n_valid: 5519
     std: 8.15645567993

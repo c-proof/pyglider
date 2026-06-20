@@ -1031,8 +1031,10 @@ def _dispatch_processing_methods(ds, ncvar):
     Variables are processed in YAML order, so later entries can depend on
     earlier ones (e.g. ``POTENTIAL_TEMPERATURE`` uses ``PSAL`` which must be
     computed first).  Methods already handled by explicit utility calls
-    (``depth_from_pressure``, ``find_profiles``, ``distance_over_ground``) are
-    silently skipped.
+    (``depth_from_pressure``, ``find_profiles``) are not recomputed, but any
+    YAML attributes (e.g. ``vocabulary``, ``long_name``) are applied to the
+    variable if it already exists in *ds* — so callers should invoke the
+    explicit utility functions before calling this dispatcher.
 
     Parameters
     ----------
@@ -1058,6 +1060,12 @@ def _dispatch_processing_methods(ds, ncvar):
                 'Skipping %s for %s (handled by explicit utility call)',
                 method_name, varname,
             )
+            # Apply YAML attrs to the variable if it was already computed by
+            # the explicit utility call (e.g. vocabulary, long_name, units).
+            if varname in ds:
+                extra_attrs = {k: v for k, v in attrs.items()
+                               if k not in _EXPLICIT_ATTR_SKIP}
+                ds[varname].attrs.update(extra_attrs)
             continue
 
         if method_name not in BUILTIN_METHODS:
@@ -1092,6 +1100,46 @@ def _dispatch_processing_methods(ds, ncvar):
         var_attrs = fill_required_attrs(var_attrs)
         ds[varname] = (('time',), result.values, var_attrs)
 
+    return ds
+
+
+_EXPLICIT_ATTR_SKIP = frozenset(
+    ('processing_method', 'processing_role', 'average_method', 'source', 'coordinates')
+)
+
+
+def _apply_explicit_yaml_attrs(ds, ncvar):
+    """
+    Apply YAML attrs to variables that were computed by explicitly-handled
+    processing methods (e.g. ``find_profiles``).
+
+    ``_dispatch_processing_methods`` skips recomputing these variables, and
+    also applies their YAML attrs at that point — but only if the variable
+    already exists in *ds*.  When the explicit utility call happens *after*
+    the dispatcher (as with ``get_profiles_new`` in the slocum pipeline, where
+    it must run after time is converted to datetime64), the attrs are not
+    applied.  Call this function after the late explicit call to fill the gap.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+    ncvar : dict
+        ``netcdf_variables`` mapping from the deployment YAML.
+
+    Returns
+    -------
+    ds : xarray.Dataset
+    """
+    for varname, attrs in ncvar.items():
+        if not isinstance(attrs, dict) or 'processing_method' not in attrs:
+            continue
+        method_name = next(iter(attrs['processing_method']))
+        if method_name not in _EXPLICITLY_HANDLED_METHODS:
+            continue
+        if varname in ds:
+            extra_attrs = {k: v for k, v in attrs.items()
+                           if k not in _EXPLICIT_ATTR_SKIP}
+            ds[varname].attrs.update(extra_attrs)
     return ds
 
 

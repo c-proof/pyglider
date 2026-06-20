@@ -227,6 +227,7 @@ netcdf_variables:
                     an ascending or descending profile."
     valid_min:     1
     valid_max:     2147483647
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   PROFILE_DIRECTION:
     processing_method:
@@ -235,6 +236,7 @@ netcdf_variables:
     processing_role: profile_direction
     long_name:     Vertical direction of profile
     comment:       "1 = descending, -1 = ascending, 0 = not in a profile"
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   DISTANCE_OVER_GROUND:
     processing_method:
@@ -243,6 +245,7 @@ netcdf_variables:
         longitude: LONGITUDE
     long_name:     Distance over ground flown since mission start
     units:         km
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   # -------------------------------------------------------------------------
   # Derived thermodynamic variables (TEOS-10)
@@ -279,7 +282,6 @@ netcdf_variables:
     long_name:     Water potential temperature
     standard_name: sea_water_potential_temperature
     units:         degree_C
-    comment:       "raw, uncorrected salinity"
     observation_type: calculated
     accuracy:      0.002
     precision:     0.001
@@ -297,7 +299,6 @@ netcdf_variables:
     long_name:     Water potential density referenced to surface
     standard_name: sea_water_potential_density
     units:         kg m-3
-    comment:       "raw, uncorrected salinity"
     observation_type: calculated
     accuracy:      0.01
     precision:     0.01
@@ -318,6 +319,7 @@ netcdf_variables:
     observation_type: calculated
     valid_min:     990.0
     valid_max:     1040.0
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   # -------------------------------------------------------------------------
   # Other measured variables
@@ -349,12 +351,14 @@ netcdf_variables:
     long_name:     Waypoint latitude
     standard_name: latitude
     units:         degrees_north
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   WAYPOINT_LONGITUDE:
     source:        c_wpt_lon
     long_name:     Waypoint longitude
     standard_name: longitude
     units:         degrees_east
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/
 
   CHLA:
     source:        sci_flbbcd_chlor_units
