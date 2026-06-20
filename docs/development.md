@@ -39,19 +39,21 @@ Or, if your environment already has the dependencies installed:
 pytest tests/
 ```
 
-Tests run the full processing pipeline on example data and compare the output against stored YAML "golden files" in `tests/expected/`. A test failure means the output has changed — either a regression or an intentional change that requires updating the golden files (see below).
+Tests run the full processing pipeline on example data and compare the output against stored NetCDF golden files in `tests/expected/`. A test failure means the output has changed — either a regression or an intentional change that requires updating the golden files (see below).
 
-## How the YAML regression tests work
+## How the regression tests work
 
-Rather than committing binary NetCDF golden files to the repo, the tests summarize each output dataset into a compact YAML file and compare that instead. Each YAML file captures:
+Each golden file pair in `tests/expected/` consists of:
 
-- the list of variables
-- global attributes (excluding dynamic fields like `date_created` and `history`)
-- per-variable CF attributes
-- per-variable statistics: `min`, `max`, `mean`, `std`, `n_valid`, `n_nan`
-- per-variable time-derivative statistics: `diff_mean`, `diff_std`
+- A cleaned `.nc` file — the reference dataset used for comparison.  Dynamic
+  global attributes (`date_created`, `date_issued`, `history`) are stripped so
+  the file is stable across runs.
+- A `.cdl` header file (`ncdump -h` output) alongside it for human-readable
+  diffs in git.
 
-This makes diffs human-readable: if a processing change shifts the mean salinity by 0.01 PSU, you see exactly that in the YAML diff rather than a binary blob change.
+Tests compare fresh pipeline output against the golden `.nc` files using
+`xarray.testing.assert_identical` (via `nc_test_helpers.assert_datasets_equal`),
+stripping dynamic attributes from the actual output before comparison.
 
 The golden files live under `tests/expected/`, organized by glider type and pipeline stage:
 
@@ -59,42 +61,47 @@ The golden files live under `tests/expected/`, organized by glider type and pipe
 tests/expected/
     example-seaexplorer/
         L0-timeseries/
-            dfo-eva035-20190718.yml
-            dfo-eva035-20190718_adjusted.yml
+            dfo-eva035-20190718.nc
+            dfo-eva035-20190718.cdl
+            dfo-eva035-20190718_adjusted.nc
+            dfo-eva035-20190718_adjusted.cdl
         L0-gridfiles/
-            dfo-eva035-20190718_grid_adjusted.yml
+            dfo-eva035-20190718_grid_adjusted.nc
+            dfo-eva035-20190718_grid_adjusted.cdl
     example-seaexplorer-raw/
         L0-timeseries/
-            dfo-bb046-20200908.yml
+            dfo-bb046-20200908.nc
+            dfo-bb046-20200908.cdl
     example-slocum/
         L0-timeseries/
-            dfo-rosie713-20190615.yml
-            dfo-rosie713-20190615_adjusted.yml
+            dfo-rosie713-20190615.nc
+            dfo-rosie713-20190615.cdl
+            dfo-rosie713-20190615_adjusted.nc
+            dfo-rosie713-20190615_adjusted.cdl
         L0-gridfiles/
-            dfo-rosie713-20190615_grid_adjusted.yml
+            dfo-rosie713-20190615_grid_adjusted.nc
+            dfo-rosie713-20190615_grid_adjusted.cdl
 ```
 
-The test files (`tests/test_*_yaml.py`) each run the pipeline once at module load time, then use parametrized pytest tests to check each variable and attribute.
+The test files (`tests/test_*_yaml.py`) each run the pipeline once at module
+load time, then compare the output against the golden NC.
 
 ## Updating golden files after an intentional change
 
-If you make a change to pyglider that intentionally alters the output — new variable, changed attribute, fixed a calculation — the YAML golden files need to be updated to reflect the new expected values.
+If you make a change to pyglider that intentionally alters the output — new variable, changed attribute, fixed a calculation — the golden files need to be updated.
 
-**Step 1: Run the tests** to generate up-to-date output NC files:
-
-```bash
-pixi run -e test pytest tests/
-```
-
-The tests will fail (that's expected), but the pipeline will have written fresh NC files to `tests/example-data/`.
-
-**Step 2: Regenerate the YAML golden files** from those NC files:
+**Step 2: Regenerate the golden files:**
 
 ```bash
-python tests/_generate_expected_yaml.py
+python tests/_generate_expected_cdl.py
 ```
 
-This reads each NC file, computes the same summary statistics used by the tests, and overwrites the YAML files in `tests/expected/`.
+This re-runs the processing pipelines, writes cleaned NC golden files to
+`tests/expected/`, and generates `.cdl` headers alongside each one.  For the
+slocum L0 timeseries pipeline (which requires `dbdreader`), the golden file is
+read from a pre-existing NC in `tests/example-data/example-slocum/L0-timeseries/`;
+run `tests/example-data/example-slocum/process_deploymentRealTime.py` to
+refresh that file if needed.
 
 **Step 3: Re-run the tests** to confirm they now pass:
 
@@ -114,10 +121,12 @@ The diff should show only the changes you intended. If unrelated variables or da
 
 | Test file | What it covers |
 |-----------|----------------|
-| `test_seaexplorer_yaml.py` | SeaExplorer NRT sub and raw delayed L0 timeseries; interpolation behaviour |
-| `test_slocum_yaml.py` | Slocum L0 timeseries and profiles; CF/GliderDAC compliance |
-| `test_process_adjusted_seaexplorer_yaml.py` | SeaExplorer `process_adjusted` timeseries and gridfiles |
-| `test_process_adjusted_slocum_yaml.py` | Slocum `process_adjusted` timeseries and gridfiles |
+| `test_seaexplorer_nc.py` | SeaExplorer NRT sub and raw delayed L0 timeseries; interpolation behaviour |
+| `test_slocum_nc.py` | Slocum L0 timeseries and profiles; CF/GliderDAC compliance |
+| `test_seaexplorer_og10_nc.py` | SeaExplorer OG 1.0 timeseries; OG/CF compliance |
+| `test_slocum_og10_nc.py` | Slocum OG 1.0 timeseries; OG/CF compliance |
+| `test_process_adjusted_seaexplorer_nc.py` | SeaExplorer `process_adjusted` timeseries and gridfiles |
+| `test_process_adjusted_slocum_nc.py` | Slocum `process_adjusted` timeseries and gridfiles |
 | `test_seaexplorer.py` | SeaExplorer-specific unit tests |
 | `test_utils.py` | Utility function unit tests |
 
@@ -151,4 +160,4 @@ matches the repo and workflow file name.
 
 ## Numerical tolerances
 
-Statistics comparisons use relative tolerance `rtol=1e-5` and `atol=0.0`. Integer counts (`n_valid`, `n_nan`) are compared exactly. Time monotonicity is checked as a separate test. The `date_created`, `date_issued`, and `history` global attributes are excluded from comparison because they change on every run.
+Comparisons use `xarray.testing.assert_identical`, which requires exact bit-for-bit equality of all variable values and attributes. Time monotonicity is checked as a separate test. The `date_created`, `date_issued`, and `history` global attributes are excluded from comparison because they change on every run.

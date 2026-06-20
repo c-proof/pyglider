@@ -24,6 +24,8 @@ def run_process_adjusted(
     # --- Paths ---
     ts_path = base_dir / 'L0-timeseries'
     gridpath = base_dir / 'L0-gridfiles'
+    ts_path.mkdir(parents=True, exist_ok=True)
+    gridpath.mkdir(parents=True, exist_ok=True)
 
     openfile = input_dir / 'L0-timeseries' / f'{deploy_name}.nc'
     deployfile = Path(deployfile) if deployfile else base_dir / 'deploymentRealtime.yml'
