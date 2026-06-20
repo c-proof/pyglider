@@ -16,7 +16,9 @@ metadata:
                    for Innovation, BC Knowledge Development Fund
   comment:        "Explorer Seamount cruise on Tully"
   contributor_name: James Pegg, Jody Klymak, Tetjana Ross
-  contributor_role: Lead Technician, Principal Investigator, Co-PI
+  contributor_email: jpegg@uvic.ca, jklymak@uvic.ca, tross@uvic.ca
+  contributor_role: Technical Coordinator, PI, PI
+  contributor_role_vocabulary: "http://vocab.nerc.ac.uk/collection/W08/current/CONT0005/,http://vocab.nerc.ac.uk/collection/W08/current/CONT0004/,http://vocab.nerc.ac.uk/collection/W08/current/CONT0004/"
   creator_email: jklymak@uvic.ca
   creator_name:  Jody Klymak
   creator_url:   http://cproof.uvic.ca
@@ -42,6 +44,8 @@ metadata:
   Metadata_Conventions: CF-1.10, ACDD-1.3, OG-1.0
   Conventions: CF-1.10, ACDD-1.3, OG-1.0
   naming_authority: "ca.uvic.cproof"
+  platform:         "sub-surface gliders"
+  platform_vocabulary: "http://vocab.nerc.ac.uk/collection/L06/current/27/"
   platform_type:    "SeaExplorer Glider"
   processing_level: "Data provided as is with no expressed or implied
                      assurance of quality assurance or quality control."

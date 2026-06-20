@@ -12,7 +12,7 @@ import xarray as xr
 import yaml
 from scipy.signal import argrelextrema
 from scipy import signal
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 from pyglider._version import __version__
 
@@ -621,6 +621,10 @@ def fill_metadata(ds, metadata, sensor_data, varnames=None):
     ds.attrs['deployment_start'] = str(dt[0])[:19]
     ds.attrs['deployment_end'] = str(dt[-1])[:19]
 
+    # OG 1.0 requires start_date in YYYYmmddTHHMMss format
+    _ts = int(dt[0].astype('datetime64[s]').astype('int64'))
+    ds.attrs['start_date'] = datetime.fromtimestamp(_ts, tz=timezone.utc).strftime('%Y%m%dT%H%M%S')
+
     ds.attrs['processing_level'] = (
         'Level 0 (L0) processed data timeseries; no corrections or data screening'
     )
@@ -947,7 +951,8 @@ def _potential_temperature(ds, inputs):
 
 
 def _potential_density_sigma0(ds, inputs):
-    """Compute sigma0 (potential density - 1000) from S, T, P, lat, lon."""
+    """Compute sigma0 (sigma_theta, potential density anomaly referenced to 0 dbar)
+    from S, T, P, lat, lon.  Returns rho_0 - 1000 in kg/m³."""
     sal = ds[inputs['salinity']]
     temp = ds[inputs['temperature']]
     pres = ds[inputs['pressure']]
@@ -958,7 +963,7 @@ def _potential_density_sigma0(ds, inputs):
     sa = gsw.SA_from_SP(sal, pres, lon, lat)
     ct = gsw.CT_from_t(sa, temp, pres)
     return xr.DataArray(
-        (1000 + gsw.density.sigma0(sa, ct)).values, dims=('time',)
+        gsw.density.sigma0(sa, ct).values, dims=('time',)
     )
 
 
@@ -1128,6 +1133,97 @@ def _load_dataset(filename):
     return ds
 
 
+def make_scalar_variables(ds, deployment):
+    """
+    Add dimensionless (scalar) variables to *ds* from the ``scalar_variables``
+    section of the deployment YAML.
+
+    If the ``scalar_variables`` key is absent the function returns *ds*
+    unchanged, so existing YAMLs without it continue to work without
+    modification.
+
+    Each entry under ``scalar_variables`` must supply its value via one of:
+
+    ``value``
+        A literal scalar (string or number).
+    ``from_metadata``
+        The name of a key in ``deployment['metadata']`` whose value to use.
+
+    If both are present, ``value`` takes precedence.  If neither is present
+    the variable is skipped with a warning.
+
+    For variables whose ``units`` attribute contains ``'seconds since'``, a
+    string value is automatically converted to a float count of seconds since
+    the epoch given in ``units`` (defaulting to 1970-01-01T00:00:00Z).
+
+    All remaining keys in the entry (``long_name``, ``units``, ``comment``,
+    etc.) become netCDF variable attributes.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to add scalar variables to.
+    deployment : dict
+        Parsed deployment YAML (from :func:`_get_deployment`).
+
+    Returns
+    -------
+    ds : xarray.Dataset
+        Dataset with any scalar variables added.
+    """
+    scalar_vars = deployment.get('scalar_variables')
+    if not scalar_vars:
+        return ds
+
+    metadata = deployment.get('metadata', {})
+
+    for varname, entry in scalar_vars.items():
+        entry = dict(entry)  # don't mutate the YAML dict
+
+        # --- resolve value ---
+        if 'value' in entry:
+            val = entry.pop('value')
+            entry.pop('from_metadata', None)  # ignore if both present
+        elif 'from_metadata' in entry:
+            meta_key = entry.pop('from_metadata')
+            if meta_key not in metadata:
+                _log.warning(
+                    'scalar_variables: metadata key %r not found for %s; skipping',
+                    meta_key, varname,
+                )
+                continue
+            val = metadata[meta_key]
+        else:
+            _log.warning(
+                'scalar_variables: no value or from_metadata for %s; skipping', varname
+            )
+            continue
+
+        # --- time conversion ---
+        units = entry.get('units', '')
+        if 'seconds since' in units and isinstance(val, str):
+            try:
+                # parse the reference epoch from the units string, e.g.
+                # "seconds since 1970-01-01T00:00:00Z"
+                ref_str = units.split('seconds since', 1)[1].strip().rstrip('Z')
+                epoch = np.datetime64(ref_str)
+                val = float(
+                    (np.datetime64(val) - epoch) / np.timedelta64(1, 's')
+                )
+            except Exception:
+                _log.warning(
+                    'scalar_variables: could not convert %r to epoch seconds for %s; skipping',
+                    val, varname,
+                )
+                continue
+
+        # remaining keys become attributes
+        ds[varname] = ([], val, entry)
+        _log.info('Added scalar variable %s = %r', varname, val)
+
+    return ds
+
+
 def _save_dataset(ds, filename, deployment, **kwargs):
     """
     Write a dataset to netCDF, renaming the time dimension when required.
@@ -1181,10 +1277,13 @@ def _save_dataset(ds, filename, deployment, **kwargs):
         ds = ds.set_coords(aux_coords)
 
     # CF §9.8: trajectory files require a scalar variable with cf_role = trajectory_id.
-    if 'trajectory' not in ds:
+    # OG 1.0 requires the variable to be named TRAJECTORY (uppercase); other
+    # conventions use lowercase 'trajectory'.
+    traj_varname = 'TRAJECTORY' if output_dim == 'N_MEASUREMENTS' else 'trajectory'
+    if traj_varname not in ds:
         traj_id = ds.attrs.get('deployment_name', '')
-        ds['trajectory'] = traj_id
-        ds['trajectory'].attrs = {
+        ds[traj_varname] = traj_id
+        ds[traj_varname].attrs = {
             'cf_role': 'trajectory_id',
             'long_name': 'Trajectory/Deployment Name',
             'comment': (

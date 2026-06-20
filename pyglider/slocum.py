@@ -809,6 +809,7 @@ def raw_to_timeseries(
         os.mkdir(outdir)
     except:
         pass
+    ds = utils.make_scalar_variables(ds, deployment)
     outname = outdir + '/' + ds.attrs['deployment_name'] + '.nc'
     _log.info('writing %s', outname)
     ds.to_netcdf(
@@ -1042,6 +1043,37 @@ def binary_to_timeseries(
 
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data, varnames=varnames)
 
+    # OG 1.0: add mandatory GPS fix variables on N_GPS dimension
+    if deployment.get('output_dimension') == 'N_MEASUREMENTS':
+        try:
+            t_gps, lat_gps = dbd.get('m_gps_lat')
+            _, lon_gps = dbd.get('m_gps_lon')
+            valid = np.isfinite(lat_gps) & np.isfinite(lon_gps) & (lat_gps != 0) & (lon_gps != 0)
+            t_gps = t_gps[valid]
+            lat_gps = lat_gps[valid]
+            lon_gps = lon_gps[valid]
+            t_gps_dt = (t_gps * 1e9).astype('datetime64[ns]')
+            ds['LATITUDE_GPS'] = (('N_GPS',), lat_gps, {
+                'long_name': 'GPS latitude',
+                'standard_name': 'latitude',
+                'units': 'degrees_north',
+                'observation_type': 'measured',
+            })
+            ds['LONGITUDE_GPS'] = (('N_GPS',), lon_gps, {
+                'long_name': 'GPS longitude',
+                'standard_name': 'longitude',
+                'units': 'degrees_east',
+                'observation_type': 'measured',
+            })
+            ds['TIME_GPS'] = (('N_GPS',), t_gps_dt, {
+                'long_name': 'GPS time',
+                'standard_name': 'time',
+                'observation_type': 'measured',
+            })
+            _log.info('Added %d GPS fixes as LATITUDE_GPS/LONGITUDE_GPS/TIME_GPS', valid.sum())
+        except Exception:
+            _log.warning('Could not extract GPS fix variables from binary data', exc_info=True)
+
     if (profile_filt_time is not None) and (profile_min_time is not None):
         ds = utils.get_profiles_new(
             ds, filt_time=profile_filt_time, profile_min_time=profile_min_time,
@@ -1052,6 +1084,7 @@ def binary_to_timeseries(
         os.mkdir(outdir)
     except:
         pass
+    ds = utils.make_scalar_variables(ds, deployment)
     outname = outdir + '/' + ds.attrs['deployment_name'] + fnamesuffix + '.nc'
     _log.info('writing %s', outname)
     # convert time back to float64 seconds for ERDDAP etc happiness, as they won't take ns

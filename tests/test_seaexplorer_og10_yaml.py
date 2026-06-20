@@ -8,6 +8,7 @@ Tests cover:
   - per-variable statistics (min, max, mean, std, n_valid, n_nan)
   - per-variable time-derivative statistics (diff_mean, diff_std)
   - TIME monotonicity
+  - OG 1.0 compliance (cc-plugin-og)
 
 To regenerate the YAML after an intentional change, run:
     python tests/_generate_expected_yaml.py
@@ -22,7 +23,7 @@ import yaml
 
 import pyglider.seaexplorer as seaexplorer
 
-from yaml_test_helpers import ATOL, RTOL, SKIP_ATTRS, stats, to_float
+from yaml_test_helpers import ATOL, RTOL, SKIP_ATTRS, compliance_msgs, run_compliance, stats, to_float
 
 library_dir = Path(__file__).parent.parent.absolute()
 example_dir = library_dir / 'tests/example-data/'
@@ -117,3 +118,16 @@ def test_time_monotonic():
     """TIME must be strictly increasing."""
     t = output['TIME'].values.astype('datetime64[ns]').astype('float64')
     assert np.all(np.diff(t) > 0), 'TIME is not monotonically increasing'
+
+
+# ---------------------------------------------------------------------------
+# OG 1.0 compliance
+# ---------------------------------------------------------------------------
+
+def test_timeseries_og10_compliant():
+    cc_data = run_compliance(outname, ['og'])
+    result = cc_data['og']
+    assert result['high_count'] == 0, \
+        "og high priority errors:\n" + "\n".join(compliance_msgs(result, 3))
+    assert result['medium_count'] == 0, \
+        "og medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))

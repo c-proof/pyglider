@@ -121,6 +121,9 @@ pytest = "*"
 pytest-cov = "*"
 compliance-checker = "*"
 
+[tool.pixi.feature.test.pypi-dependencies]
+cc-plugin-og = "*"
+
 [tool.pixi.feature.test.tasks]
 test = { cmd = "pytest" }
 

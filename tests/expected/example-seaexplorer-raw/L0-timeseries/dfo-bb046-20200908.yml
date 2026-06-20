@@ -59,6 +59,7 @@ attrs:
   sea_name: BC Coastal Waters
   source: Observational data from a profiling glider.
   standard_name_vocabulary: CF Standard Name Table v72
+  start_date: 20200908T174617
   summary: Transect from Calvert Island to beyond shelf break in Queen Charlotte Sound.
   time_coverage_end: '2020-09-08T21:19:35.119000000'
   time_coverage_start: '2020-09-08T17:46:17.852000000'

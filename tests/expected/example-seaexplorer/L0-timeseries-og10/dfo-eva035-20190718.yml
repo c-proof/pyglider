@@ -5,8 +5,10 @@ attrs:
     Innovation, BC Knowledge Development Fund
   cdm_data_type: Trajectory
   comment: Explorer Seamount cruise on Tully
+  contributor_email: jpegg@uvic.ca, jklymak@uvic.ca, tross@uvic.ca
   contributor_name: James Pegg, Jody Klymak, Tetjana Ross
-  contributor_role: Lead Technician, Principal Investigator, Co-PI
+  contributor_role: Technical Coordinator, PI, PI
+  contributor_role_vocabulary: http://vocab.nerc.ac.uk/collection/W08/current/CONT0005/,http://vocab.nerc.ac.uk/collection/W08/current/CONT0004/,http://vocab.nerc.ac.uk/collection/W08/current/CONT0004/
   creator_email: jklymak@uvic.ca
   creator_name: Jody Klymak
   creator_url: http://cproof.uvic.ca
@@ -45,7 +47,9 @@ attrs:
   netcdf_version: '4.0'
   optics: '{''make'': ''Wetlabs'', ''model'': ''FLBBCDSLC'', ''serial'': ''4741''}'
   oxygen: '{''make'': ''AROD_FT'', ''model'': ''Optode4831'', ''serial'': ''0022''}'
+  platform: sub-surface gliders
   platform_type: SeaExplorer Glider
+  platform_vocabulary: http://vocab.nerc.ac.uk/collection/L06/current/27/
   pressure: '{''make'': ''Micron'', ''model'': ''Pressure'', ''serial'': ''104702''}'
   processing_level: Level 0 (L0) processed data timeseries; no corrections or data
     screening
@@ -59,6 +63,7 @@ attrs:
   sea_name: BC Coastal Waters
   source: Observational data from a profiling glider.
   standard_name_vocabulary: CF Standard Name Table v72
+  start_date: 20190721T232502
   summary: Short deployment off Tully near Explorer Seamount.
   time_coverage_end: '2019-07-23T21:25:46.402000000'
   time_coverage_start: '2019-07-21T23:25:02.737000000'
@@ -517,7 +522,7 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 47825670422500.0
-  trajectory:
+  TRAJECTORY:
     attrs:
       cf_role: trajectory_id
       comment: A trajectory is a single deployment of a glider and may span multiple

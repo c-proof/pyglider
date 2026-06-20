@@ -60,6 +60,7 @@ attrs:
   sea_name: BC Coastal Waters
   source: Observational data from a profiling glider.
   standard_name_vocabulary: CF Standard Name Table v72
+  start_date: 20190721T232502
   summary: Short deployment off Tully near Explorer Seamount.
   time_coverage_end: '2019-07-23T21:25:46.402000000'
   time_coverage_start: '2019-07-21T23:25:02.737000000'

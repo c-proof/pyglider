@@ -15,19 +15,17 @@ To regenerate the YAML after an intentional change, run:
     python tests/_generate_expected_yaml.py
 """
 
-import json
 from pathlib import Path
 
 import numpy as np
 import pytest
 import xarray as xr
 import yaml
-from compliance_checker.runner import CheckSuite, ComplianceChecker
 
 import pyglider.ncprocess as ncprocess
 import pyglider.slocum as slocum
 
-from yaml_test_helpers import RTOL, ATOL, SKIP_ATTRS, to_float, stats
+from yaml_test_helpers import ATOL, RTOL, SKIP_ATTRS, compliance_msgs, run_compliance, stats, to_float
 
 library_dir = Path(__file__).parent.parent.absolute()
 example_dir = library_dir / 'tests/example-data/'
@@ -65,23 +63,6 @@ with open(expected_yaml_path) as f:
     expected = yaml.safe_load(f)
 
 
-
-
-def _run_compliance(path, checker_names):
-    """Return the compliance_checker JSON result dict for *path*."""
-    check_suite = CheckSuite()
-    check_suite.load_all_available_checkers()
-    report = example_dir / 'report.json'
-    ComplianceChecker.run_checker(
-        str(path),
-        checker_names,
-        verbose=0,
-        criteria='normal',
-        output_filename=str(report),
-        output_format='json',
-    )
-    with open(report) as fp:
-        return json.load(fp)
 
 
 # ---------------------------------------------------------------------------
@@ -149,38 +130,25 @@ def test_time_monotonic():
 # Compliance tests (ported from test_slocum.py)
 # ---------------------------------------------------------------------------
 
-# @pytest.mark.xfail(reason='profiles not fully compliant')
-def _compliance_msgs(cc_result, priority):
-    """Extract messages from all checks at a given priority level."""
-    key = {3: 'high_priorities', 2: 'medium_priorities', 1: 'low_priorities'}[priority]
-    return [
-        f"{check['name']}: {msg}"
-        for check in cc_result.get(key, [])
-        for msg in check.get('msgs', [])
-    ]
-
-
 def test_profiles_compliant():
     path = Path(profiledir) / 'dfo-rosie713-20190620T1313.nc'
-    cc_data = _run_compliance(path, ['gliderdac', 'cf:1.8'])
+    cc_data = run_compliance(path, ['gliderdac', 'cf:1.8'])
     for checker in ['gliderdac', 'cf:1.8']:
         result = cc_data[checker]
         assert result['high_count'] == 0, \
-            f"{checker} high priority errors:\n" + "\n".join(_compliance_msgs(result, 3))
+            f"{checker} high priority errors:\n" + "\n".join(compliance_msgs(result, 3))
         assert result['medium_count'] == 0, \
-            f"{checker} medium priority errors:\n" + "\n".join(_compliance_msgs(result, 2))
+            f"{checker} medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))
         assert result['low_count'] == 0, \
-            f"{checker} low priority errors:\n" + "\n".join(_compliance_msgs(result, 1))
+            f"{checker} low priority errors:\n" + "\n".join(compliance_msgs(result, 1))
 
 
-#@pytest.mark.xfail(strict=False,
-#                   reason='compliance_checker result varies across versions')
 def test_timeseries_compliant():
-    cc_data = _run_compliance(outname, ['cf:1.8'])
+    cc_data = run_compliance(outname, ['cf:1.8'])
     result = cc_data['cf:1.8']
     assert result['high_count'] == 0, \
-        "cf:1.8 high priority errors:\n" + "\n".join(_compliance_msgs(result, 3))
+        "cf:1.8 high priority errors:\n" + "\n".join(compliance_msgs(result, 3))
     assert result['medium_count'] == 0, \
-        "cf:1.8 medium priority errors:\n" + "\n".join(_compliance_msgs(result, 2))
+        "cf:1.8 medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))
     assert result['low_count'] == 0, \
-        "cf:1.8 low priority errors:\n" + "\n".join(_compliance_msgs(result, 1))
+        "cf:1.8 low priority errors:\n" + "\n".join(compliance_msgs(result, 1))
