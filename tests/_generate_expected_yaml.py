@@ -42,7 +42,9 @@ def summarize(ds: xr.Dataset) -> dict:
         da = ds[var]
         vals = da.values
 
-        if np.issubdtype(vals.dtype, np.datetime64):
+        if not np.issubdtype(vals.dtype, np.number) and not np.issubdtype(vals.dtype, np.datetime64):
+            vals = np.array([], dtype='float64')
+        elif np.issubdtype(vals.dtype, np.datetime64):
             vals = vals.astype('datetime64[ns]').astype('float64')
 
         vals = vals.flatten().astype('float64')

@@ -112,6 +112,7 @@ ipykernel = ">=7.3.0,<8"
 ipympl = ">=0.10.0,<0.11"
 bottleneck = ">=1.6.0,<2"
 pip = ">=26.1.2,<27"
+cc-plugin-glider = ">=2.2.1,<3"
 
 [tool.pixi.tasks]
 

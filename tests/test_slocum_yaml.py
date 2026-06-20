@@ -149,22 +149,38 @@ def test_time_monotonic():
 # Compliance tests (ported from test_slocum.py)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason='profiles not fully compliant')
+# @pytest.mark.xfail(reason='profiles not fully compliant')
+def _compliance_msgs(cc_result, priority):
+    """Extract messages from all checks at a given priority level."""
+    key = {3: 'high_priorities', 2: 'medium_priorities', 1: 'low_priorities'}[priority]
+    return [
+        f"{check['name']}: {msg}"
+        for check in cc_result.get(key, [])
+        for msg in check.get('msgs', [])
+    ]
+
+
 def test_profiles_compliant():
     path = Path(profiledir) / 'dfo-rosie713-20190620T1313.nc'
     cc_data = _run_compliance(path, ['gliderdac', 'cf:1.8'])
-    assert cc_data['gliderdac']['high_count'] == 0
-    assert cc_data['gliderdac']['medium_count'] == 0
-    assert cc_data['gliderdac']['low_count'] == 0
-    assert cc_data['cf:1.8']['high_count'] == 0
-    assert cc_data['cf:1.8']['medium_count'] == 0
-    assert cc_data['cf:1.8']['low_count'] == 0
+    for checker in ['gliderdac', 'cf:1.8']:
+        result = cc_data[checker]
+        assert result['high_count'] == 0, \
+            f"{checker} high priority errors:\n" + "\n".join(_compliance_msgs(result, 3))
+        assert result['medium_count'] == 0, \
+            f"{checker} medium priority errors:\n" + "\n".join(_compliance_msgs(result, 2))
+        assert result['low_count'] == 0, \
+            f"{checker} low priority errors:\n" + "\n".join(_compliance_msgs(result, 1))
 
 
-@pytest.mark.xfail(strict=False,
-                   reason='compliance_checker result varies across versions')
+#@pytest.mark.xfail(strict=False,
+#                   reason='compliance_checker result varies across versions')
 def test_timeseries_compliant():
     cc_data = _run_compliance(outname, ['cf:1.8'])
-    assert cc_data['cf:1.8']['high_count'] == 0
-    assert cc_data['cf:1.8']['medium_count'] == 1
-    assert cc_data['cf:1.8']['low_count'] == 0
+    result = cc_data['cf:1.8']
+    assert result['high_count'] == 0, \
+        "cf:1.8 high priority errors:\n" + "\n".join(_compliance_msgs(result, 3))
+    assert result['medium_count'] == 0, \
+        "cf:1.8 medium priority errors:\n" + "\n".join(_compliance_msgs(result, 2))
+    assert result['low_count'] == 0, \
+        "cf:1.8 low priority errors:\n" + "\n".join(_compliance_msgs(result, 1))

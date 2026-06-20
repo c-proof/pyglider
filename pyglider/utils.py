@@ -55,6 +55,7 @@ def get_distance_over_ground(ds, varnames=None):
         'method': 'get_distance_over_ground',
         'units': 'km',
         'sources': f'{lat} {lon}',
+        'coordinates': 'time latitude longitude depth',
     }
     ds['distance_over_ground'] = (('time'), dist, attr)
     return ds
@@ -168,6 +169,7 @@ def get_profiles(ds, min_dp=10.0, inversion=3.0, filt_length=7, min_nsamples=14)
             ('min_dp', min_dp),
             ('filt_length', filt_length),
             ('min_nsamples', min_nsamples),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     ds['profile_index'] = (('time'), profile, attrs)
@@ -179,6 +181,7 @@ def get_profiles(ds, min_dp=10.0, inversion=3.0, filt_length=7, min_nsamples=14)
             ('comment', '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
             ('sources', 'time pressure'),
             ('method', 'get_profiles'),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     ds['profile_direction'] = (('time'), direction, attrs)
@@ -302,6 +305,7 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300,
             ('min_dp', min_dp),
             ('filt_length', filt_length),
             ('min_nsamples', min_nsamples),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     ds[profile_index] = (('time'), profile, attrs)
@@ -313,6 +317,7 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300,
             ('comment', '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
             ('sources', f'time {pressure}'),
             ('method', 'get_profiles_new'),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     ds[profile_direction] = (('time'), direction, attrs)
@@ -400,6 +405,7 @@ def get_derived_eos_raw(ds, varnames=None):
             ('accuracy', 0.01),
             ('precision', 0.01),
             ('resolution', 0.001),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     attrs = fill_required_attrs(attrs)
@@ -422,6 +428,7 @@ def get_derived_eos_raw(ds, varnames=None):
             ('accuracy', 0.01),
             ('precision', 0.01),
             ('resolution', 0.001),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     attrs = fill_required_attrs(attrs)
@@ -446,6 +453,7 @@ def get_derived_eos_raw(ds, varnames=None):
             ('accuracy', 0.01),
             ('precision', 0.01),
             ('resolution', 0.001),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     attrs = fill_required_attrs(attrs)
@@ -467,6 +475,7 @@ def get_derived_eos_raw(ds, varnames=None):
             ('accuracy', 0.002),
             ('precision', 0.001),
             ('resolution', 0.0001),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     attrs = fill_required_attrs(attrs)
@@ -1158,7 +1167,40 @@ def _save_dataset(ds, filename, deployment, **kwargs):
     if time_name != 'time':
         # rename the coordinate variable (dim was already renamed above if needed)
         ds = ds.rename({'time': time_name})
+
+    # Promote lat/lon/depth to xarray coordinates so xarray automatically writes
+    # the CF 'coordinates' attribute on every data variable (CF §9.1 trajectory).
+    vn = _get_varnames(deployment)
+    aux_coords = [
+        vn.get('latitude', 'latitude'),
+        vn.get('longitude', 'longitude'),
+        vn.get('depth', 'depth'),
+    ]
+    aux_coords = [c for c in aux_coords if c in ds.data_vars]
+    if aux_coords:
+        ds = ds.set_coords(aux_coords)
+
+    # CF §9.8: trajectory files require a scalar variable with cf_role = trajectory_id.
+    if 'trajectory' not in ds:
+        traj_id = ds.attrs.get('deployment_name', '')
+        ds['trajectory'] = traj_id
+        ds['trajectory'].attrs = {
+            'cf_role': 'trajectory_id',
+            'long_name': 'Trajectory/Deployment Name',
+            'comment': (
+                'A trajectory is a single deployment of a glider and may '
+                'span multiple data files.'
+            ),
+        }
+
     ds.to_netcdf(filename, **kwargs)
+    # CF §2.5.1: coordinate variables must not have _FillValue.
+    # xarray may write one regardless of encoding, so remove it after writing.
+    import netCDF4
+    time_var = time_name if time_name != 'time' else output_dim if output_dim != 'time' else 'time'
+    with netCDF4.Dataset(filename, 'r+') as nc:
+        if '_FillValue' in nc.variables[time_var].ncattrs():
+            nc.variables[time_var].delncattr('_FillValue')
 
 
 def _get_deployment(deploymentyaml):

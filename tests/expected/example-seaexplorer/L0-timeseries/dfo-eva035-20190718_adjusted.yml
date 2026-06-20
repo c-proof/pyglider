@@ -743,3 +743,11 @@ variables:
     n_nan: 0
     n_valid: 5521
     std: 47825670422500.0
+  trajectory:
+    attrs:
+      cf_role: trajectory_id
+      comment: A trajectory is a single deployment of a glider and may span multiple
+        data files.
+      long_name: Trajectory/Deployment Name
+    n_nan: 0
+    n_valid: 0

@@ -171,6 +171,9 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                     del dss.profile_time.attrs['units']
                 except KeyError:
                     pass
+                # CF §2.5.1: coordinate variables must not have _FillValue
+                dss['time'].encoding.pop('_FillValue', None)
+                dss['time'].attrs.pop('_FillValue', None)
                 dss.to_netcdf(
                     outname,
                     encoding={
@@ -178,6 +181,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                             'units': timeunits,
                             'calendar': timecalendar,
                             'dtype': 'float64',
+                            '_FillValue': False,
                         },
                         'profile_time': {
                             'units': timeunits,
@@ -188,8 +192,11 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                 )
 
                 # add traj_strlen using bare ntcdf to make IOOS happy
+                # also remove _FillValue from time (CF §2.5.1: coordinate
+                # variables must not have _FillValue)
                 with netCDF4.Dataset(outname, 'r+') as nc:
                     nc.renameDimension('string%d' % trajlen, 'traj_strlen')
+                    nc.variables['time'].delncattr('_FillValue')
 
 
 def make_gridfiles(
@@ -363,6 +370,8 @@ def make_gridfiles(
     for k in ds.keys():
         if k in skip_vars or 'time' in k:
             continue
+        if not np.issubdtype(ds[k].dtype, np.number):
+            continue
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds[profile_index_varname] % 1 == 0))[0]
         if len(good) <= 0:
@@ -451,7 +460,7 @@ def make_gridfiles(
     dsout.to_netcdf(
         outname,
         encoding={
-            'time': time_encoding,
+            'time': {**time_encoding, '_FillValue': False},
             'profile_time_start': time_encoding,
             'profile_time_end': time_encoding,
         },

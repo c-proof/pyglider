@@ -17,8 +17,11 @@ SKIP_ATTRS = {'date_created', 'date_issued', 'history'}
 
 
 def to_float(da):
-    """Return a flat float64 array, converting datetime64 to ns-epoch float."""
+    """Return a flat float64 array, converting datetime64 to ns-epoch float.
+    Returns an empty array for non-numeric, non-datetime variables (e.g. strings)."""
     vals = da.values
+    if not np.issubdtype(vals.dtype, np.number) and not np.issubdtype(vals.dtype, np.datetime64):
+        return np.array([], dtype='float64')
     if np.issubdtype(vals.dtype, np.datetime64):
         vals = vals.astype('datetime64[ns]').astype('float64')
     return vals.flatten().astype('float64')

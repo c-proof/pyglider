@@ -1064,7 +1064,7 @@ def binary_to_timeseries(
         encoding={
             'time': {
                 'units': 'seconds since 1970-01-01T00:00:00Z',
-                '_FillValue': np.nan,
+                '_FillValue': False,
                 'dtype': 'float64',
             }
         },
