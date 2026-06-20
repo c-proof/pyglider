@@ -8,7 +8,7 @@ jobs:
       # Note: netcdf artifacts are uploaded for 3.12 only (see "Upload netcdf artifacts" step)
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: mamba setup enviroment
