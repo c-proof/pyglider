@@ -1,8 +1,8 @@
-# PyGlider: Adjust CTD Variables
+# Post-processing routines (adjusted CTD variables)
 
 PyGlider applies a post-processing protocol to conductivity, temperature, and salinity variables in NetCDF timeseries files, and then generates depth–time NetCDF grids using `xarray`. The resulting NetCDF files are largely CF-compliant.
 
-The basic workflow converts a NetCDF timeseries into an adjusted timeseries and corresponding depth–time grids. This follows the `binary_to_timeseries` (for Slocum gliders) and `raw_to_timeseries` (for Alseamar gliders) protocols, which convert raw glider data into NetCDF format. outname refers to the NetCDF timeseries produced by the initial conversion step. 
+The basic workflow converts a NetCDF timeseries into an adjusted timeseries and corresponding depth–time grids. This follows the `binary_to_timeseries` (for Slocum gliders) and `raw_to_timeseries` (for Alseamar gliders) protocols, which convert raw glider data into NetCDF format. outname refers to the NetCDF timeseries produced by the initial conversion step.
 
 The adjusted file is generated through three steps: flagging CTD data, adjusting CTD variables, and gridding the time series. This workflow uses known thermal lag constants and the lag between temperature and conductivity signals for each sensor.
 
@@ -15,14 +15,14 @@ https://cproof.uvic.ca/gliderdata/deployments/reports/
 
 The CTD adjustment pipeline consists of three main steps:
 
-1. **Flag CTD data**  
+1. **Flag CTD data**
    Identify and flag unphysical conductivity, temperature, and salinity values.
 
-2. **Apply CTD corrections**  
+2. **Apply CTD corrections**
    - Correct temperature–conductivity lag (`dTdC`)
    - Apply thermal lag correction (`alpha`, `tau`)
 
-3. **Generate gridded products**  
+3. **Generate gridded products**
    Create depth–time NetCDF grids from the adjusted time series.
 
 ---
@@ -31,20 +31,20 @@ The CTD adjustment pipeline consists of three main steps:
 
 The following parameters can be customized:
 
-- **alpha, tau**  
+- **alpha, tau**
   Thermal lag correction constants.
   - Can be provided as function arguments
   - Or stored in the deployment YAML file or an new YML file. Note that `utils._get_deployment(deploymentyaml)` can take a list of files in *deploymentyaml* and parse them
     for deployment information, with subsequent files overwriting previous files.
   - If information is provided in either method, a thermal lag correction is not applied.
 
-- **dTdC**  
+- **dTdC**
   Time lag (seconds) between temperature and conductivity sensors
 
-- **interpolate_filter**  
+- **interpolate_filter**
   Optional function to interpolate over small gaps before applying thermal lag correction
 
-- **max_gap (in gridding)**  
+- **max_gap (in gridding)**
   Maximum vertical gap size (in meters) to interpolate
 
 ---
@@ -154,9 +154,9 @@ If `alpha` and `tau` are provided, `apply_thermal_lag` is used to:
 
 ## Optional: interpolate_filter
 
-An optional preprocessing step can be applied to reduce noise and prevent spikes from propagating when applying the thermal lag correction. This function should take and return an xarray Dataset of salinity (e.g., linear interpolation over short gaps). 
+An optional preprocessing step can be applied to reduce noise and prevent spikes from propagating when applying the thermal lag correction. This function should take and return an xarray Dataset of salinity (e.g., linear interpolation over short gaps).
 
-Example: `utils.interpolate_over_salinity_NANs` 
+Example: `utils.interpolate_over_salinity_NANs`
 
 ---
 
