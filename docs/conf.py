@@ -39,7 +39,7 @@ extensions = [
     'myst_parser',
     'sphinx.ext.autodoc',
     'sphinx.ext.inheritance_diagram',
-    'autoapi.sphinx',
+    'autoapi.extension',
     'sphinx_copybutton',
 ]
 
@@ -50,7 +50,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
 }
 
-autoapi_modules = {'pyglider': None}
+autoapi_dirs = ['../pyglider']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
