@@ -37,6 +37,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.inheritance_diagram',
     'autoapi.sphinx',
+    'sphinx_copybutton',
 ]
 
 extensions.append('sphinx.ext.intersphinx')

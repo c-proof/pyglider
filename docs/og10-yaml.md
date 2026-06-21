@@ -163,15 +163,24 @@ timeseries file to make grids or profiles), pyglider detects the non-standard
 dimension by finding the coordinate with `standard_name: time` and renames it
 back to `time`.  This is transparent to any intermediate processing steps.
 
-## OG 1.0 example
+## OG 1.0 examples
 
-See the complete example YAML and processing script for an OG 1.0 Slocum
-deployment:
+### Slocum
 
 ```{literalinclude} ../tests/example-data/example-slocum/deploymentRealtime_og10.yml
 :language: yaml
 ```
 
 ```{literalinclude} ../tests/example-data/example-slocum/process_deploymentRealtime_og10.py
+:language: python
+```
+
+### SeaExplorer
+
+```{literalinclude} ../tests/example-data/example-seaexplorer/deploymentRealtime_og10.yml
+:language: yaml
+```
+
+```{literalinclude} ../tests/example-data/example-seaexplorer/process_deploymentRealtime_og10.py
 :language: python
 ```

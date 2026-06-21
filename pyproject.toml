@@ -127,5 +127,17 @@ cc-plugin-og = "*"
 [tool.pixi.feature.test.tasks]
 test = { cmd = "pytest" }
 
+[tool.pixi.feature.docs.pypi-dependencies]
+sphinx = "*"
+pydata-sphinx-theme = "*"
+numpydoc = "*"
+myst-parser = "*"
+sphinx-autoapi = "*"
+sphinx-copybutton = "*"
+
+[tool.pixi.feature.docs.tasks]
+docs = { cmd = "sphinx-build -b html docs docs/_build/html" }
+
 [tool.pixi.environments]
 test = { features = ["test"], solve-group = "default" }
+docs = { features = ["docs"], solve-group = "default" }
