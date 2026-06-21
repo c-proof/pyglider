@@ -21,3 +21,4 @@ dependencies:
   - cc-plugin-glider
   - pip:
       - dbdreader
+      - cc-plugin-og
