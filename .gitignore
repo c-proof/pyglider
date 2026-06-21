@@ -16,6 +16,9 @@ _*.ipynb
 *.png
 .DS_Store
 pyglider/_version.py
+# generated during docs build
+docs/_downloads/
+
 # pixi environments
 .pixi/*
 !.pixi/config.toml

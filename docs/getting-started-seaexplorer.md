@@ -4,15 +4,18 @@
 
 SeaExplorers send back and record two main types of files, glider files (`*.gli.*`) that contain glider navigation information, and payload files (`*.pld1.*`) that contain the science data. These can be subset files, `*.sub.*` that Alseamar decimates for transmission, or they can be full resolution files from the glider (`*.raw.*`), offloaded post mission. The raw or subset files need to be made available in a single directory for `pyglider` to process.
 
-You can download and expand example data using `.get_example_data`:
+You can download a tarball of the example data directly from this documentation site:
+[example-data.tar.gz](https://pyglider.readthedocs.io/en/stable/example-data.tar.gz)
+
+Extract it with `tar xzf example-data.tar.gz`, which will add a local directory `example-data` to your current directory.
+
+Alternatively, use the Python helper (requires `pooch`):
 
 ```python
 import pyglider.example_data as pexamp
 
 pexamp.get_example_data('./')
 ```
-
-which will add a local directory `example-data` to your current directory.
 
 ## Make a deployment configuration file
 
