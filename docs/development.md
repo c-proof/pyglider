@@ -83,14 +83,18 @@ tests/expected/
             dfo-rosie713-20190615_grid_adjusted.cdl
 ```
 
-The test files (`tests/test_*_yaml.py`) each run the pipeline once at module
-load time, then compare the output against the golden NC.
+The test files (`tests/test_*_nc.py`) each run the pipeline once at module
+load time, writing fresh output to `tests/example-data/example-*/L0-timeseries-test/`
+(and equivalent `-test` directories for other pipeline stages), then compare
+that output against the golden NC files in `tests/expected/`.  The
+`process_adjusted` tests are an exception — they write directly into
+`tests/expected/` and clean the files in place.
 
 ## Updating golden files after an intentional change
 
 If you make a change to pyglider that intentionally alters the output — new variable, changed attribute, fixed a calculation — the golden files need to be updated.
 
-**Step 2: Regenerate the golden files:**
+**Step 1: Regenerate the golden files:**
 
 ```bash
 python tests/_generate_expected_cdl.py
@@ -103,13 +107,13 @@ read from a pre-existing NC in `tests/example-data/example-slocum/L0-timeseries/
 run `tests/example-data/example-slocum/process_deploymentRealTime.py` to
 refresh that file if needed.
 
-**Step 3: Re-run the tests** to confirm they now pass:
+**Step 2: Re-run the tests** to confirm they now pass:
 
 ```bash
 pixi run -e test pytest tests/
 ```
 
-**Step 4: Inspect the diff** before committing:
+**Step 3: Inspect the diff** before committing:
 
 ```bash
 git diff tests/expected/
