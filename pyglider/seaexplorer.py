@@ -471,6 +471,12 @@ def raw_to_timeseries(
     metadata = deployment['metadata']
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']
+    varnames = utils._get_varnames(deployment)
+    time_name = varnames.get('time', 'time')
+    lat_name = varnames.get('latitude', 'latitude')
+    lon_name = varnames.get('longitude', 'longitude')
+    pressure_name = varnames.get('pressure', 'pressure')
+    depth_name = varnames.get('depth', 'depth')
     id = metadata['glider_name']
     _log.info(f'Opening combined nav file {indir}/{id}-rawgli.nc')
     gli = pl.read_parquet(f'{indir}/{id}-rawgli.parquet')
@@ -480,10 +486,12 @@ def raw_to_timeseries(
 
     # don't use lat/lon if deadreckoned:
     if not deadreckon:
-        if not ncvar['latitude']['source'] == 'Lat':
-            warnings.warn("For deadreckon=False, it is suggested to use 'Lat' as the source for latitude.")
-        if not ncvar['longitude']['source'] == 'Lon':
-            warnings.warn("For deadreckon=False, it is suggested to use 'Lon' as the source for longitude.")
+        lat_source = ncvar.get(lat_name, {}).get('source', '')
+        lon_source = ncvar.get(lon_name, {}).get('source', '')
+        if lat_source not in ('Lat', 'NAV_LATITUDE'):
+            warnings.warn("For deadreckon=False, it is suggested to use 'Lat' or 'NAV_LATITUDE' as the source for latitude.")
+        if lon_source not in ('Lon', 'NAV_LONGITUDE'):
+            warnings.warn("For deadreckon=False, it is suggested to use 'Lon' or 'NAV_LONGITUDE' as the source for longitude.")
         if 'DeadReckoning' in gli.columns:
             _log.info('Not using deadreckoning; glider has DeadReckoning column')
             gli = _drop_if(gli, todo='Lat', condit='DeadReckoning', value=1)
@@ -501,10 +509,9 @@ def raw_to_timeseries(
     # We will use ctd as the interpolant
     ds = xr.Dataset()
     attr = {}
-    name = 'time'
-    for atts in ncvar[name].keys():
+    for atts in ncvar[time_name].keys():
         if atts != 'coordinates':
-            attr[atts] = ncvar[name][atts]
+            attr[atts] = ncvar[time_name][atts]
 
     # If present, use the timebase specified in ncvar: timebase in the
     # deployment yaml.
@@ -528,12 +535,16 @@ def raw_to_timeseries(
     if 'interpolate' in thenames:
         if ncvar['interpolate']:
             interpolate = True
-    for i in ['time', 'timebase', 'keep_variables', 'interpolate']:
+    for i in [time_name, 'timebase', 'keep_variables', 'interpolate']:
         if i in thenames:
             thenames.remove(i)
     for name in thenames:
         _log.info('interpolating ' + name)
-        if 'method' not in ncvar[name].keys():
+        if ('method' not in ncvar[name].keys()
+                and 'processing_method' not in ncvar[name].keys()):
+            if 'source' not in ncvar[name]:
+                # no source and no processing_method — skip (e.g. QC placeholders)
+                continue
             # variables that are in the data set or can be interpolated from it
             if 'conversion' in ncvar[name].keys():
                 convert = getattr(utils, ncvar[name]['conversion'])
@@ -613,16 +624,20 @@ def raw_to_timeseries(
             ds[name] = (('time'), val, attrs)
 
     # fix lon and lat to be linearly interpolated between fixes
+    lat_name = utils._resolve_role(ds, varnames, 'latitude')
+    lon_name = utils._resolve_role(ds, varnames, 'longitude')
     good = (
-        np.where(np.abs(np.diff(ds.longitude)) + np.abs(np.diff(ds.latitude)) > 0)[0]
+        np.where(
+            np.abs(np.diff(ds[lon_name])) + np.abs(np.diff(ds[lat_name])) > 0
+        )[0]
         + 1
     )
-    ds['longitude'].values = np.interp(ds.time, ds.time[good], ds.longitude[good])
-    ds['latitude'].values = np.interp(ds.time, ds.time[good], ds.latitude[good])
+    ds[lon_name].values = np.interp(ds.time, ds.time[good], ds[lon_name][good])
+    ds[lat_name].values = np.interp(ds.time, ds.time[good], ds[lat_name][good])
 
     # keep only timestamps with data from one of a set of variables
     if 'keep_variables' in ncvar:
-        keeps = np.empty(len(ds.longitude))
+        keeps = np.empty(len(ds[lon_name]))
         keeps[:] = np.nan
         keeper_vars = ncvar['keep_variables']
         for keep_var in keeper_vars:
@@ -634,14 +649,37 @@ def raw_to_timeseries(
     if start_time is not None:
         ds = ds.where(ds.time >= np.datetime64(start_time), drop=True)
 
-    # some derived variables:
-    ds = utils.get_glider_depth(ds)
-    ds = utils.get_distance_over_ground(ds)
-    #    ds = utils.get_profiles(ds)
-    ds = utils.get_profiles_new(
-        ds, filt_time=profile_filt_time, profile_min_time=profile_min_time
+    # Derived variables — depth, profiles, distance, thermodynamics.
+    # For OG 1.0 YAMLs these are specified via processing_method; for IOOS GDAC
+    # YAMLs we fall back to the legacy utility functions.
+    has_dog_method = any(
+        isinstance(a, dict) and 'processing_method' in a
+        and 'distance_over_ground' in a['processing_method']
+        for a in ncvar.values()
     )
-    ds = utils.get_derived_eos_raw(ds)
+    has_thermo_methods = any(
+        isinstance(a, dict) and 'processing_method' in a
+        and any(m in utils._THERMO_METHODS for m in a['processing_method'])
+        for a in ncvar.values()
+    )
+
+    if pressure_name in ds:
+        ds = utils.get_glider_depth(ds, varnames=varnames)
+    if not has_dog_method:
+        ds = utils.get_distance_over_ground(ds, varnames=varnames)
+    ds = utils.get_profiles_new(
+        ds, filt_time=profile_filt_time, profile_min_time=profile_min_time,
+        varnames=varnames,
+    )
+    if not has_thermo_methods:
+        cond_name = varnames.get('conductivity', 'conductivity')
+        temp_name = varnames.get('temperature', 'temperature')
+        if all(n in ds for n in (temp_name, cond_name, pressure_name)):
+            ds = utils.get_derived_eos_raw(ds, varnames=varnames)
+
+    # Dispatch processing_method derived variables (OG 1.0: PSAL, SIGMA0,
+    # DEPTH, DISTANCE_OVER_GROUND, PROFILE_NUMBER, …).
+    ds = utils._dispatch_processing_methods(ds, ncvar)
 
     # somehow this comes out unsorted:
     ds = ds.sortby(ds.time)
@@ -667,20 +705,85 @@ def raw_to_timeseries(
     else:
         _log.info(loss_str)
 
-    # Correct oxygen if present:
+    # Correct oxygen if present (IOOS GDAC format only — looks for variable
+    # named 'oxygen_concentration' with a 'correct_oxygen' sub-key):
     if 'oxygen_concentration' in ncvar.keys():
         if 'correct_oxygen' in ncvar['oxygen_concentration'].keys():
             ds = utils.oxygen_concentration_correction(ds, ncvar)
         else:
             _log.warning(
-                'correct_oxygen not found in oxygen yaml. No' 'correction applied'
+                'correct_oxygen not found in oxygen yaml. No correction applied'
             )
-    ds = ds.assign_coords(longitude=ds.longitude)
-    ds = ds.assign_coords(latitude=ds.latitude)
-    ds = ds.assign_coords(depth=ds.depth)
-    # ds = ds._get_distance_over_ground(ds)
 
-    ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
+    if lon_name in ds:
+        ds = ds.assign_coords({lon_name: ds[lon_name]})
+    if lat_name in ds:
+        ds = ds.assign_coords({lat_name: ds[lat_name]})
+    if depth_name in ds:
+        ds = ds.assign_coords({depth_name: ds[depth_name]})
+
+    ds = utils.fill_metadata(ds, deployment['metadata'], device_data,
+                             varnames=varnames)
+
+    # OG 1.0: add mandatory GPS fix variables on N_MEASUREMENTS dimension (sparse)
+    if deployment.get('output_dimension') == 'N_MEASUREMENTS':
+        try:
+            gli_raw = pl.read_parquet(f'{indir}/{id}-rawgli.parquet')
+            if 'DeadReckoning' in gli_raw.columns:
+                gli_gps = gli_raw.filter(pl.col('DeadReckoning') == 0)
+            else:
+                gli_gps = gli_raw.filter(pl.col('NavState') != 116)
+            gli_gps = gli_gps.drop_nulls(subset=['Lat', 'Lon'])
+            lat_gps = utils.nmea2deg(gli_gps['Lat'].to_numpy())
+            lon_gps = utils.nmea2deg(gli_gps['Lon'].to_numpy())
+            t_gps = gli_gps['time'].to_numpy().astype('datetime64[ns]')
+            valid = np.isfinite(lat_gps) & np.isfinite(lon_gps) & (lat_gps != 0) & (lon_gps != 0)
+            lat_gps = lat_gps[valid]
+            lon_gps = lon_gps[valid]
+            t_gps = t_gps[valid]
+
+            # Map GPS fixes onto N_MEASUREMENTS time grid (NaN elsewhere)
+            n = len(ds['time'])
+            ds_times_ns = ds['time'].values.astype(np.int64)
+            gps_times_ns = t_gps.astype(np.int64)
+            lat_out = np.full(n, np.nan)
+            lon_out = np.full(n, np.nan)
+            t_out = np.full(n, np.nan)
+            for i in range(len(gps_times_ns)):
+                idx = np.searchsorted(ds_times_ns, gps_times_ns[i])
+                if idx >= n:
+                    idx = n - 1
+                elif idx > 0 and (abs(ds_times_ns[idx - 1] - gps_times_ns[i]) <
+                                  abs(ds_times_ns[idx] - gps_times_ns[i])):
+                    idx -= 1
+                lat_out[idx] = lat_gps[i]
+                lon_out[idx] = lon_gps[i]
+                t_out[idx] = gps_times_ns[i] / 1e9  # seconds since 1970-01-01
+
+            ds['LATITUDE_GPS'] = (('time',), lat_out, {
+                'long_name': 'latitude of each GPS location',
+                'standard_name': 'latitude',
+                'units': 'degrees_north',
+                'observation_type': 'measured',
+            })
+            ds['LONGITUDE_GPS'] = (('time',), lon_out, {
+                'long_name': 'longitude of each GPS location',
+                'standard_name': 'longitude',
+                'units': 'degrees_east',
+                'observation_type': 'measured',
+            })
+            ds['TIME_GPS'] = (('time',), t_out, {
+                'long_name': 'time of each GPS location',
+                'calendar': 'gregorian',
+                'units': 'seconds since 1970-01-01T00:00:00Z',
+                'observation_type': 'measured',
+            })
+            n_gps = int(np.sum(np.isfinite(lat_out)))
+            _log.info('Added %d GPS fixes as LATITUDE_GPS/LONGITUDE_GPS/TIME_GPS on N_MEASUREMENTS',
+                      n_gps)
+        except Exception:
+            _log.warning('Could not extract GPS fix variables from gli data',
+                         exc_info=True)
 
     start = ds['time'].values[0]
     end = ds['time'].values[-1]
@@ -702,9 +805,13 @@ def raw_to_timeseries(
     if 'ad2cp_time' in list(ds):
         if 'units' in ds.ad2cp_time.attrs.keys():
             ds.ad2cp_time.attrs.pop('units')
-    ds.to_netcdf(
+    ds = utils.make_scalar_variables(ds, deployment)
+    ds = utils.make_sensor_variables(ds, deployment)
+    utils._save_dataset(
+        ds,
         outname,
-        'w',
+        deployment,
+        mode='w',
         encoding={
             'time': {'units': 'seconds since 1970-01-01T00:00:00Z', 'dtype': 'float64'}
         },

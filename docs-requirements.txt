@@ -9,8 +9,9 @@ bitstring
 pydata-sphinx-theme
 sphinx
 pytest
-autoapi
+sphinx-autoapi
 numpydoc
 myst-parser
+sphinx-copybutton
 dbdreader
 polars>=0.16

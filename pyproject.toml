@@ -112,6 +112,7 @@ ipykernel = ">=7.3.0,<8"
 ipympl = ">=0.10.0,<0.11"
 bottleneck = ">=1.6.0,<2"
 pip = ">=26.1.2,<27"
+cc-plugin-glider = ">=2.2.1,<3"
 
 [tool.pixi.tasks]
 
@@ -120,8 +121,23 @@ pytest = "*"
 pytest-cov = "*"
 compliance-checker = "*"
 
+[tool.pixi.feature.test.pypi-dependencies]
+cc-plugin-og = "*"
+
 [tool.pixi.feature.test.tasks]
 test = { cmd = "pytest" }
 
+[tool.pixi.feature.docs.pypi-dependencies]
+sphinx = "*"
+pydata-sphinx-theme = "*"
+numpydoc = "*"
+myst-parser = "*"
+sphinx-autoapi = "*"
+sphinx-copybutton = "*"
+
+[tool.pixi.feature.docs.tasks]
+docs = { cmd = "sphinx-build -b html docs docs/_build/html" }
+
 [tool.pixi.environments]
 test = { features = ["test"], solve-group = "default" }
+docs = { features = ["docs"], solve-group = "default" }

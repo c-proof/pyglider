@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 import pytest
+import xarray as xr
 import yaml
 
 os.system('rm tests/data/realtime_rawnc/*')
@@ -145,3 +146,26 @@ def test_missing_bad_timebase():
         )
     assert 'sensor not found in pld1 columns' in str(bad_timebase_exc)
     assert 'Must specify timebase' in str(no_timebase_exc)
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_raw_to_timeseries_og10():
+    """OG 1.0 output: N_MEASUREMENTS dimension, uppercase variable names."""
+    import xarray as xr
+
+    result = seaexplorer.raw_to_timeseries(
+        'tests/data/realtime_rawnc/',
+        'tests/data/l0-timeseries-og10/',
+        str(example_dir / 'example-seaexplorer/deploymentRealtime_og10.yml'),
+        kind='sub',
+    )
+    assert result == 'tests/data/l0-timeseries-og10/dfo-eva035-20190718.nc'
+
+    ds = xr.open_dataset(result)
+    # OG 1.0 uses N_MEASUREMENTS as the primary dimension
+    assert 'N_MEASUREMENTS' in ds.dims
+    assert 'time' not in ds.dims
+    # Core OG 1.0 variable names
+    for var in ('TIME', 'LATITUDE', 'LONGITUDE', 'PRES', 'TEMP', 'CNDC',
+                 'PSAL', 'DEPTH', 'PROFILE_NUMBER'):
+        assert var in ds, f'{var} missing from OG 1.0 output'
