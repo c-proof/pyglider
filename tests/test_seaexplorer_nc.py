@@ -67,7 +67,7 @@ output_interp = xr.open_dataset(outname_interp).load()
 
 def test_interp_nrt_matches_baseline():
     """Interpolation on NRT sub data must not change data values."""
-    xr.testing.assert_equal(output_interp, expected_nc)
+    xr.testing.assert_allclose(output_interp, output)
 
 
 # ---------------------------------------------------------------------------

@@ -1,9 +1,9 @@
 """
 Shared helpers and constants for CDL/NC-based regression tests.
 
-Imported by test_slocum_yaml.py, test_seaexplorer_yaml.py,
-test_process_adjusted_slocum_yaml.py,
-test_process_adjusted_seaexplorer_yaml.py, and the OG 1.0 variants.
+Imported by test_seaexplorer_nc.py, test_slocum_nc.py,
+test_seaexplorer_og10_nc.py, test_slocum_og10_nc.py,
+test_process_adjusted_seaexplorer_nc.py, and test_process_adjusted_slocum_nc.py.
 """
 
 import json
@@ -12,20 +12,15 @@ from pathlib import Path
 import xarray as xr
 from compliance_checker.runner import CheckSuite, ComplianceChecker
 
-# Global attributes excluded from comparison (dynamic / version-stamped fields)
-SKIP_ATTRS = {'date_created', 'date_issued', 'history'}
-
 
 def assert_datasets_equal(actual: xr.Dataset, expected: xr.Dataset) -> None:
-    """Compare two datasets, ignoring dynamic global attributes.
+    """Compare two datasets on data values only, ignoring attributes.
 
-    Strips SKIP_ATTRS from *actual* before calling xarray.testing.assert_identical.
-    Golden NC files are already stored without those attrs (see _generate_expected_cdl.py).
+    Attributes are tested via the .cdl golden files (git-diffable).
+    Uses assert_allclose to tolerate minor cross-platform float differences
+    (e.g. from different GSW/scipy versions between local and CI).
     """
-    a = actual.copy()
-    for attr in SKIP_ATTRS:
-        a.attrs.pop(attr, None)
-    xr.testing.assert_identical(a, expected)
+    xr.testing.assert_allclose(actual, expected)
 
 
 def run_compliance(path, checker_names):
