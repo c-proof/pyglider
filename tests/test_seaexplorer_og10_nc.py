@@ -14,6 +14,7 @@ import numpy as np
 import xarray as xr
 
 import pyglider.seaexplorer as seaexplorer
+import pyglider.ncprocess as ncprocess
 
 from nc_test_helpers import assert_datasets_equal, compliance_msgs, run_compliance
 
@@ -30,15 +31,21 @@ rawdir = str(example_dir / 'example-seaexplorer/realtime_raw/') + '/'
 rawncdir = str(example_dir / 'example-seaexplorer/realtime_rawnc/') + '/'
 deploymentyaml = str(example_dir / 'example-seaexplorer/deploymentRealtime_og10.yml')
 l0tsdir = str(example_dir / 'example-seaexplorer/L0-timeseries-og10/') + '/'
+griddir = str(example_dir / 'example-seaexplorer/L0-gridfiles-og10/') + '/'
 
 seaexplorer.raw_to_rawnc(rawdir, rawncdir, deploymentyaml)
 seaexplorer.merge_parquet(rawncdir, rawncdir, deploymentyaml, kind='sub')
 outname = seaexplorer.raw_to_timeseries(rawncdir, l0tsdir, deploymentyaml, kind='sub')
+outname_grid = ncprocess.make_gridfiles(outname, griddir, deploymentyaml)
 
 output = xr.open_dataset(outname).load()
+output_grid = xr.open_dataset(outname_grid).load()
 
 expected_nc = xr.open_dataset(
     expected_dir / 'example-seaexplorer/L0-timeseries-og10/dfo-eva035-20190718.nc'
+).load()
+expected_grid = xr.open_dataset(
+    expected_dir / 'example-seaexplorer/L0-gridfiles-og10/dfo-eva035-20190718.nc'
 ).load()
 
 
@@ -58,6 +65,15 @@ def test_time_monotonic():
     """TIME must be strictly increasing."""
     t = output['TIME'].values.astype('datetime64[ns]').astype('float64')
     assert np.all(np.diff(t) > 0), 'TIME is not monotonically increasing'
+
+
+def test_gridfile():
+    assert_datasets_equal(output_grid, expected_grid)
+
+
+def test_grid_time_monotonic():
+    t = output_grid['time'].values.astype('datetime64[ns]').astype('float64')
+    assert np.all(np.diff(t) > 0), 'grid time is not monotonically increasing'
 
 
 # ---------------------------------------------------------------------------

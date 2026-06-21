@@ -725,7 +725,7 @@ def raw_to_timeseries(
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data,
                              varnames=varnames)
 
-    # OG 1.0: add mandatory GPS fix variables on N_GPS dimension
+    # OG 1.0: add mandatory GPS fix variables on N_MEASUREMENTS dimension (sparse)
     if deployment.get('output_dimension') == 'N_MEASUREMENTS':
         try:
             gli_raw = pl.read_parquet(f'{indir}/{id}-rawgli.parquet')
@@ -738,25 +738,49 @@ def raw_to_timeseries(
             lon_gps = utils.nmea2deg(gli_gps['Lon'].to_numpy())
             t_gps = gli_gps['time'].to_numpy().astype('datetime64[ns]')
             valid = np.isfinite(lat_gps) & np.isfinite(lon_gps) & (lat_gps != 0) & (lon_gps != 0)
-            ds['LATITUDE_GPS'] = (('N_GPS',), lat_gps[valid], {
-                'long_name': 'GPS latitude',
+            lat_gps = lat_gps[valid]
+            lon_gps = lon_gps[valid]
+            t_gps = t_gps[valid]
+
+            # Map GPS fixes onto N_MEASUREMENTS time grid (NaN elsewhere)
+            n = len(ds['time'])
+            ds_times_ns = ds['time'].values.astype(np.int64)
+            gps_times_ns = t_gps.astype(np.int64)
+            lat_out = np.full(n, np.nan)
+            lon_out = np.full(n, np.nan)
+            t_out = np.full(n, np.nan)
+            for i in range(len(gps_times_ns)):
+                idx = np.searchsorted(ds_times_ns, gps_times_ns[i])
+                if idx >= n:
+                    idx = n - 1
+                elif idx > 0 and (abs(ds_times_ns[idx - 1] - gps_times_ns[i]) <
+                                  abs(ds_times_ns[idx] - gps_times_ns[i])):
+                    idx -= 1
+                lat_out[idx] = lat_gps[i]
+                lon_out[idx] = lon_gps[i]
+                t_out[idx] = gps_times_ns[i] / 1e9  # seconds since 1970-01-01
+
+            ds['LATITUDE_GPS'] = (('time',), lat_out, {
+                'long_name': 'latitude of each GPS location',
                 'standard_name': 'latitude',
                 'units': 'degrees_north',
                 'observation_type': 'measured',
             })
-            ds['LONGITUDE_GPS'] = (('N_GPS',), lon_gps[valid], {
-                'long_name': 'GPS longitude',
+            ds['LONGITUDE_GPS'] = (('time',), lon_out, {
+                'long_name': 'longitude of each GPS location',
                 'standard_name': 'longitude',
                 'units': 'degrees_east',
                 'observation_type': 'measured',
             })
-            ds['TIME_GPS'] = (('N_GPS',), t_gps[valid], {
-                'long_name': 'GPS time',
-                'standard_name': 'time',
+            ds['TIME_GPS'] = (('time',), t_out, {
+                'long_name': 'time of each GPS location',
+                'calendar': 'gregorian',
+                'units': 'seconds since 1970-01-01T00:00:00Z',
                 'observation_type': 'measured',
             })
-            _log.info('Added %d GPS fixes as LATITUDE_GPS/LONGITUDE_GPS/TIME_GPS',
-                      valid.sum())
+            n_gps = int(np.sum(np.isfinite(lat_out)))
+            _log.info('Added %d GPS fixes as LATITUDE_GPS/LONGITUDE_GPS/TIME_GPS on N_MEASUREMENTS',
+                      n_gps)
         except Exception:
             _log.warning('Could not extract GPS fix variables from gli data',
                          exc_info=True)

@@ -1453,14 +1453,14 @@ def _save_dataset(ds, filename, deployment, **kwargs):
                 if new != old:
                     ds[var].attrs['coordinates'] = new
 
-    # CF §2.2: TIME_GPS (on N_GPS dimension) must be float, not int64.
-    # Add encoding here so callers don't need to know about it.
+    # TIME_GPS is stored as float64 seconds since epoch; ensure the units
+    # attribute propagates correctly as netCDF encoding.
     if 'TIME_GPS' in ds:
         enc = dict(kwargs.get('encoding', {}))
         if 'TIME_GPS' not in enc:
             enc['TIME_GPS'] = {
-                'units': 'seconds since 1970-01-01T00:00:00Z',
                 'dtype': 'float64',
+                '_FillValue': -1.0,
             }
             kwargs = {**kwargs, 'encoding': enc}
 
