@@ -650,7 +650,7 @@ def nmea2deg(nmea):
     """
     Convert a NMEA float to a decimal degree float.  e.g. -12640.3232 = -126.6721
     """
-    deg = np.fix(nmea / 100) + np.sign(nmea) * np.remainder(np.abs(nmea), 100) / 60
+    deg = np.trunc(nmea / 100) + np.sign(nmea) * np.remainder(np.abs(nmea), 100) / 60
     return deg
 
 
