@@ -1018,7 +1018,7 @@ BUILTIN_METHODS = {
 #: binary_to_timeseries (depth_from_pressure → get_glider_depth, etc.).
 #: The dispatcher silently skips these rather than warning about them.
 _EXPLICITLY_HANDLED_METHODS = frozenset(
-    {'depth_from_pressure', 'find_profiles'}
+    {'depth_from_pressure', 'find_profiles', 'gps_fixes_from_nav'}
 )
 
 #: processing_method names that replace get_derived_eos_raw.  When any of

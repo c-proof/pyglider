@@ -725,24 +725,35 @@ def raw_to_timeseries(
     ds = utils.fill_metadata(ds, deployment['metadata'], device_data,
                              varnames=varnames)
 
-    # OG 1.0: add mandatory GPS fix variables on N_MEASUREMENTS dimension (sparse)
-    if deployment.get('output_dimension') == 'N_MEASUREMENTS':
+    # GPS fix variables: compute once, assign to all variables that specify
+    # processing_method: gps_fixes_from_nav.  Source columns and per-variable
+    # attributes come entirely from the YAML — no hard-coded trigger here.
+    gps_var_names = [
+        name for name, attrs in ncvar.items()
+        if isinstance(attrs, dict)
+        and isinstance(attrs.get('processing_method'), dict)
+        and 'gps_fixes_from_nav' in attrs['processing_method']
+    ]
+    if gps_var_names:
         try:
+            # Use source columns from the first entry (they must all agree).
+            first_inputs = ncvar[gps_var_names[0]]['processing_method']['gps_fixes_from_nav'] or {}
+            lat_col = first_inputs.get('lat_source', 'Lat')
+            lon_col = first_inputs.get('lon_source', 'Lon')
+
             gli_raw = pl.read_parquet(f'{indir}/{id}-rawgli.parquet')
             if 'DeadReckoning' in gli_raw.columns:
                 gli_gps = gli_raw.filter(pl.col('DeadReckoning') == 0)
             else:
                 gli_gps = gli_raw.filter(pl.col('NavState') != 116)
-            gli_gps = gli_gps.drop_nulls(subset=['Lat', 'Lon'])
-            lat_gps = utils.nmea2deg(gli_gps['Lat'].to_numpy())
-            lon_gps = utils.nmea2deg(gli_gps['Lon'].to_numpy())
+            gli_gps = gli_gps.drop_nulls(subset=[lat_col, lon_col])
+            lat_gps = utils.nmea2deg(gli_gps[lat_col].to_numpy())
+            lon_gps = utils.nmea2deg(gli_gps[lon_col].to_numpy())
             t_gps = gli_gps['time'].to_numpy().astype('datetime64[ns]')
             valid = np.isfinite(lat_gps) & np.isfinite(lon_gps) & (lat_gps != 0) & (lon_gps != 0)
-            lat_gps = lat_gps[valid]
-            lon_gps = lon_gps[valid]
-            t_gps = t_gps[valid]
+            lat_gps, lon_gps, t_gps = lat_gps[valid], lon_gps[valid], t_gps[valid]
 
-            # Map GPS fixes onto N_MEASUREMENTS time grid (NaN elsewhere)
+            # Map GPS fixes onto the sensor time grid (NaN elsewhere).
             n = len(ds['time'])
             ds_times_ns = ds['time'].values.astype(np.int64)
             gps_times_ns = t_gps.astype(np.int64)
@@ -760,27 +771,23 @@ def raw_to_timeseries(
                 lon_out[idx] = lon_gps[i]
                 t_out[idx] = gps_times_ns[i] / 1e9  # seconds since 1970-01-01
 
-            ds['LATITUDE_GPS'] = (('time',), lat_out, {
-                'long_name': 'latitude of each GPS location',
-                'standard_name': 'latitude',
-                'units': 'degrees_north',
-                'observation_type': 'measured',
-            })
-            ds['LONGITUDE_GPS'] = (('time',), lon_out, {
-                'long_name': 'longitude of each GPS location',
-                'standard_name': 'longitude',
-                'units': 'degrees_east',
-                'observation_type': 'measured',
-            })
-            ds['TIME_GPS'] = (('time',), t_out, {
-                'long_name': 'time of each GPS location',
-                'calendar': 'gregorian',
-                'units': 'seconds since 1970-01-01T00:00:00Z',
-                'observation_type': 'measured',
-            })
+            role_data = {'latitude': lat_out, 'longitude': lon_out, 'time': t_out}
+
+            for varname in gps_var_names:
+                inputs = ncvar[varname]['processing_method']['gps_fixes_from_nav'] or {}
+                role = inputs.get('role')
+                if role not in role_data:
+                    _log.warning('gps_fixes_from_nav: unknown role %r for %s; skipping', role, varname)
+                    continue
+                var_attrs = {k: v for k, v in ncvar[varname].items()
+                             if k not in ('processing_method', 'processing_role',
+                                          'average_method', 'source', 'coordinates')}
+                var_attrs = utils.fill_required_attrs(var_attrs)
+                ds[varname] = (('time',), role_data[role], var_attrs)
+
             n_gps = int(np.sum(np.isfinite(lat_out)))
-            _log.info('Added %d GPS fixes as LATITUDE_GPS/LONGITUDE_GPS/TIME_GPS on N_MEASUREMENTS',
-                      n_gps)
+            _log.info('Added %d GPS fixes via gps_fixes_from_nav for %s',
+                      n_gps, gps_var_names)
         except Exception:
             _log.warning('Could not extract GPS fix variables from gli data',
                          exc_info=True)
