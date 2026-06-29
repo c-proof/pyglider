@@ -246,16 +246,16 @@ def make_gridfiles(
         Name of gridded netCDF file. The gridded netCDF file has coordinates of
         'depth' and 'profile', so each variable is gridded in depth bins and by
         profile number.  Each profile has a time, latitude, and longitude.
-        If deploymentyaml is a list, data is parsed for deployment information, 
+        If deploymentyaml is a list, data is parsed for deployment information,
         with subsequent files overwriting previous files.
 
-    Note: 
-    By default, the arithmetic mean is used to bin all variables, except for those with 
+    Note:
+    By default, the arithmetic mean is used to bin all variables, except for those with
     an average_method attribute inherited from the timeseries. This attribute is specified
-    in the YAML configuration file when the timeseries is created. For example, if a variable 
-    has average_method: geometric mean, the geometric mean is used when gridding that variable. 
+    in the YAML configuration file when the timeseries is created. For example, if a variable
+    has average_method: geometric mean, the geometric mean is used when gridding that variable.
     Variables with average_method: QC_protocol are treated as discrete quality flags rather than
-    continuous data, and the maximum flag within each bin is used for gridding (e.g., if any 
+    continuous data, and the maximum flag within each bin is used for gridding (e.g., if any
     value in a bin is QC3, the gridded bin is assigned QC3).
     """
     try:
@@ -276,7 +276,7 @@ def make_gridfiles(
     if maskfunction is not None:
         ds = maskfunction(ds)
 
-    ds = ds.where(ds.time > np.datetime64(starttime), drop=True)
+    ds = ds.sel(time=slice(np.datetime64(starttime), None))
     _log.info(f'Working on: {inname}')
     _log.debug(str(ds))
     _log.debug(str(ds.time[0]))
