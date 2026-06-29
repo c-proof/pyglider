@@ -1833,7 +1833,7 @@ def flag_CTD_data(
         _log.info('Adding conductivity_QC variable to dataset')
 
         ts["conductivity_QC"] = xr.DataArray(
-            np.ones(ts["conductivity"].shape, dtype=int),
+            np.ones(ts["conductivity"].shape, dtype=np.int8),
             dims=ts["conductivity"].dims,
             coords=ts["conductivity"].coords,
         )
@@ -1841,7 +1841,7 @@ def flag_CTD_data(
     if "salinity_QC" not in ts.data_vars:
         _log.info('Adding salinity_QC variable to dataset')
         ts["salinity_QC"] = xr.DataArray(
-            np.ones(ts["salinity"].shape, dtype=int),
+            np.ones(ts["salinity"].shape, dtype=np.int8),
             dims=ts["salinity"].dims,
             coords=ts["salinity"].coords,
         )
@@ -1849,7 +1849,7 @@ def flag_CTD_data(
     if "temperature_QC" not in ts.data_vars:
         _log.info('Adding temperature_QC variable to dataset')
         ts["temperature_QC"] = xr.DataArray(
-            np.ones(ts["temperature"].shape, dtype=int),
+            np.ones(ts["temperature"].shape, dtype=np.int8),
             dims=ts["temperature"].dims,
             coords=ts["temperature"].coords,
         )
