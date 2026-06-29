@@ -1,11 +1,14 @@
-from zipfile import ZipFile
+import tarfile
 
 import pooch
 
 
 def get_example_data(outdir='./'):
     """
-    Get example data sets and configuration files
+    Get example data sets and configuration files.
+
+    Downloads ``example-data.tar.gz`` from the pyglider documentation site and
+    extracts it into *outdir*, creating ``outdir/example-data/``.
 
     Parameters
     ----------
@@ -14,14 +17,13 @@ def get_example_data(outdir='./'):
         ``outdir/example-data/``.  Default is to unpack in the
         current directory.
     """
-    zipfile = pooch.retrieve(
-        'https://cproof.uvic.ca/pyglider-example-data/pyglider-example-data.zip',
-        known_hash='5643a5301530e8dd60060a357cd9ed88eb1e84d761710c2a4013bc3c1817a859',
+    tarball = pooch.retrieve(
+        'https://pyglider.readthedocs.io/en/stable/example-data.tar.gz',
+        known_hash=None,
     )
 
-    with ZipFile(zipfile, 'r') as zipObj:
-        # Extract all the contents of zip file in outdir
-        zipObj.extractall(outdir)
+    with tarfile.open(tarball, 'r:gz') as tf:
+        tf.extractall(outdir)
 
 
 __all__ = ['get_example_data']

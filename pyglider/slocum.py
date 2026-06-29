@@ -768,7 +768,7 @@ def raw_to_timeseries(
             _log.debug('DBD sensorname %s', sensorname)
             val = convert(dbd[sensorname])
             val = _dbd2ebd(dbd, ds, val)
-            ncvar['method'] = 'linear fill'
+            ncvar[name]['method'] = 'linear fill'
         # make the attributes:
         ncvar[name].pop('coordinates', None)
         attrs = ncvar[name]
@@ -809,6 +809,8 @@ def raw_to_timeseries(
         os.mkdir(outdir)
     except:
         pass
+    ds = utils.make_scalar_variables(ds, deployment)
+    ds = utils.make_sensor_variables(ds, deployment)
     outname = outdir + '/' + ds.attrs['deployment_name'] + '.nc'
     _log.info('writing %s', outname)
     ds.to_netcdf(
@@ -891,28 +893,38 @@ def binary_to_timeseries(
 
     ncvar = deployment['netcdf_variables']
     device_data = deployment['glider_devices']
+
+    # resolve role → variable-name mapping early so it can be used throughout
+    varnames = utils._get_varnames(deployment)
+    time_name = varnames.get('time', 'time')
+    lat_name = varnames.get('latitude', 'latitude')
+    lon_name = varnames.get('longitude', 'longitude')
+
     thenames = list(ncvar.keys())
-    thenames.remove('time')
+    thenames.remove(time_name)
 
     # build a new data set based on info in `deployment.`
     # We will use ebd.m_present_time as the interpolant if the
     # variable is in dbd.
     ds = xr.Dataset()
     attr = {}
-    name = 'time'
-    for atts in ncvar[name].keys():
+    for atts in ncvar[time_name].keys():
         if (atts != 'coordinates') & (atts != 'units') & (atts != 'calendar'):
-            attr[atts] = ncvar[name][atts]
+            attr[atts] = ncvar[time_name][atts]
+    # Build sensor list from variables that have a physical source.
+    # Variables with processing_method (derived quantities) have no source and
+    # are excluded here; they are also skipped in the main loop below.
     sensors = [time_base]
-
-    baseind = None
-    for nn, name in enumerate(thenames):
+    time_base_found = False
+    for name in thenames:
+        if 'source' not in ncvar[name]:
+            continue
         sensorname = ncvar[name]['source']
-        if not sensorname == time_base:
-            sensors.append(sensorname)
+        if sensorname == time_base:
+            time_base_found = True
         else:
-            baseind = nn
-    if not baseind:
+            sensors.append(sensorname)
+    if not time_base_found:
         raise RuntimeError('no time source specified.')
 
     # get the dbd file
@@ -921,21 +933,33 @@ def binary_to_timeseries(
                              cacheDir=cachedir)
     # get the data, with `time_base` as the time source that
     # all other variables are synced to:
-    data = list(dbd.get_sync(*sensors))
-    # get the time:
-    time = data.pop(0)
+    data_raw = list(dbd.get_sync(*sensors))
+    # data_raw[0] = timestamps; data_raw[1] = time_base values;
+    # data_raw[2..] = remaining sensors in thenames order (skipping processing_method)
+    time = data_raw.pop(0)
     ds['time'] = (('time'), time, attr)
-    ds['latitude'] = (('time'), np.zeros(len(time)))
-    ds['longitude'] = (('time'), np.zeros(len(time)))
-    # get the time_base data:
-    basedata = data.pop(0)
-    # slot the time_base variable into the right place in the
-    # data list:
-    data.insert(baseind, basedata)
+    ds[lat_name] = (('time'), np.zeros(len(time)))
+    ds[lon_name] = (('time'), np.zeros(len(time)))
+    basedata = data_raw.pop(0)  # time_base sensor values
 
-    for nn, name in enumerate(thenames):
+    # Map variable name → raw data.  Iterate thenames in order; each sourced
+    # non-time_base variable consumes one element from the remaining data_raw.
+    name_to_data = {}
+    remaining = iter(data_raw)
+    for name in thenames:
+        if 'source' not in ncvar[name]:
+            continue
+        sensorname = ncvar[name]['source']
+        if sensorname == time_base:
+            name_to_data[name] = basedata
+        else:
+            name_to_data[name] = next(remaining)
+
+    for name in thenames:
         _log.info('working on %s', name)
-        if 'method' in ncvar[name].keys():
+        if 'method' in ncvar[name].keys() or 'processing_method' in ncvar[name].keys():
+            continue
+        if 'source' not in ncvar[name]:
             continue
         # variables that are in the data set or can be interpolated from it
         if 'conversion' in ncvar[name].keys():
@@ -947,7 +971,7 @@ def binary_to_timeseries(
         _log.info('names: %s %s', name, sensorname)
         if sensorname in dbd.parameterNames['sci']:
             _log.debug('Sci sensorname %s', sensorname)
-            val = data[nn]
+            val = name_to_data[name]
 
             # interpolate only over those gaps that are smaller than 'maxgap'
             # in seconds
@@ -960,9 +984,9 @@ def binary_to_timeseries(
             val = convert(val)
         elif sensorname in dbd.parameterNames['eng']:
             _log.debug('Eng sensorname %s', sensorname)
-            val = data[nn]
+            val = name_to_data[name]
             val = convert(val)
-            ncvar['method'] = 'linear fill'
+            ncvar[name]['method'] = 'linear fill'
         else:
             ValueError(f'{sensorname} not in science or eng parameter names')
 
@@ -972,20 +996,45 @@ def binary_to_timeseries(
         attrs = utils.fill_required_attrs(attrs)
         ds[name] = (('time'), val, attrs)
 
-    if 'pressure' in ds:
-        _log.info(f'Getting glider depths')
+    pressure_name = varnames.get('pressure', 'pressure')
+    if pressure_name in ds:
+        _log.info('Getting glider depths')
         _log.debug(ds)
-        _log.debug(f'HERE, {ds.pressure[0:100]}')
-        ds = utils.get_glider_depth(ds)
-        _log.debug(ds.depth.values[:100])
-        _log.debug(ds.depth.values[2000:2100])
-    try:
-        ds = utils.get_distance_over_ground(ds)
-    except:
-        pass
+        _log.debug(f'HERE, {ds[pressure_name][0:100]}')
+        ds = utils.get_glider_depth(ds, varnames=varnames)
+        depth_name = varnames.get('depth', 'depth')
+        _log.debug(ds[depth_name].values[:100])
+        _log.debug(ds[depth_name].values[2000:2100])
+    # Only call the legacy helper when no processing_method entry covers it;
+    # OG 1.0 YAMLs compute DISTANCE_OVER_GROUND via _dispatch_processing_methods
+    has_dog_method = any(
+        isinstance(a, dict) and 'processing_method' in a
+        and 'distance_over_ground' in a['processing_method']
+        for a in ncvar.values()
+    )
+    if not has_dog_method:
+        try:
+            ds = utils.get_distance_over_ground(ds, varnames=varnames)
+        except Exception:
+            pass
 
-    if ('temperature' in ds) and ('conductivity' in ds) and ('pressure' in ds):
-        ds = utils.get_derived_eos_raw(ds)
+    # Dispatch processing_method derived variables (PSAL, SIGMA0, etc.).
+    # These are processed in YAML order so dependencies are satisfied.
+    ds = utils._dispatch_processing_methods(ds, ncvar)
+
+    # Only fall back to get_derived_eos_raw (GDAC-style, writes 'salinity' etc.)
+    # when the YAML has no processing_method entries for thermodynamic variables.
+    cond_name = varnames.get('conductivity', 'conductivity')
+    temp_name = varnames.get('temperature', 'temperature')
+    has_thermo_methods = any(
+        isinstance(a, dict) and 'processing_method' in a
+        and any(m in utils._THERMO_METHODS for m in a['processing_method'])
+        for a in ncvar.values()
+    )
+    if not has_thermo_methods and all(
+        n in ds for n in (temp_name, cond_name, pressure_name)
+    ):
+        ds = utils.get_derived_eos_raw(ds, varnames=varnames)
 
     # screen out-of-range times; these won't convert:
     ds['time'] = ds.time.where((ds.time > 0) & (ds.time < 6.4e9), np.nan)
@@ -993,31 +1042,89 @@ def binary_to_timeseries(
     ds['time'] = (ds.time * 1e9).astype('datetime64[ns]')
     ds['time'].attrs = attr
 
-    ds = utils.fill_metadata(ds, deployment['metadata'], device_data)
+    ds = utils.fill_metadata(ds, deployment['metadata'], device_data, varnames=varnames)
 
-    _log.debug('Long')
-    _log.debug(ds.longitude.values[-2000:])
+    # OG 1.0: add mandatory GPS fix variables on N_MEASUREMENTS dimension (sparse)
+    if deployment.get('output_dimension') == 'N_MEASUREMENTS':
+        try:
+            t_gps, lat_gps = dbd.get('m_gps_lat')
+            _, lon_gps = dbd.get('m_gps_lon')
+            valid = np.isfinite(lat_gps) & np.isfinite(lon_gps) & (lat_gps != 0) & (lon_gps != 0)
+            t_gps = t_gps[valid]
+            lat_gps = lat_gps[valid]
+            lon_gps = lon_gps[valid]
+
+            # Map GPS fixes onto N_MEASUREMENTS time grid (NaN elsewhere)
+            n = len(ds['time'])
+            ds_times_ns = ds['time'].values.astype(np.int64)
+            gps_times_ns = (t_gps * 1e9).astype(np.int64)
+            lat_out = np.full(n, np.nan)
+            lon_out = np.full(n, np.nan)
+            t_out = np.full(n, np.nan)
+            for i in range(len(gps_times_ns)):
+                idx = np.searchsorted(ds_times_ns, gps_times_ns[i])
+                if idx >= n:
+                    idx = n - 1
+                elif idx > 0 and (abs(ds_times_ns[idx - 1] - gps_times_ns[i]) <
+                                  abs(ds_times_ns[idx] - gps_times_ns[i])):
+                    idx -= 1
+                lat_out[idx] = lat_gps[i]
+                lon_out[idx] = lon_gps[i]
+                t_out[idx] = t_gps[i]  # already in seconds since epoch
+
+            ds['LATITUDE_GPS'] = (('time',), lat_out, {
+                'long_name': 'latitude of each GPS location',
+                'standard_name': 'latitude',
+                'units': 'degrees_north',
+                'observation_type': 'measured',
+            })
+            ds['LONGITUDE_GPS'] = (('time',), lon_out, {
+                'long_name': 'longitude of each GPS location',
+                'standard_name': 'longitude',
+                'units': 'degrees_east',
+                'observation_type': 'measured',
+            })
+            ds['TIME_GPS'] = (('time',), t_out, {
+                'long_name': 'time of each GPS location',
+                'calendar': 'gregorian',
+                'units': 'seconds since 1970-01-01T00:00:00Z',
+                'observation_type': 'measured',
+            })
+            n_gps = int(np.sum(np.isfinite(lat_out)))
+            _log.info('Added %d GPS fixes as LATITUDE_GPS/LONGITUDE_GPS/TIME_GPS on N_MEASUREMENTS',
+                      n_gps)
+        except Exception:
+            _log.warning('Could not extract GPS fix variables from binary data', exc_info=True)
 
     if (profile_filt_time is not None) and (profile_min_time is not None):
         ds = utils.get_profiles_new(
-            ds, filt_time=profile_filt_time, profile_min_time=profile_min_time
+            ds, filt_time=profile_filt_time, profile_min_time=profile_min_time,
+            varnames=varnames,
         )
+        # Apply YAML attrs (e.g. vocabulary) to profile variables now that
+        # they exist in ds.  _dispatch_processing_methods couldn't do it
+        # earlier because get_profiles_new must run after time conversion.
+        ds = utils._apply_explicit_yaml_attrs(ds, ncvar)
 
     try:
         os.mkdir(outdir)
     except:
         pass
+    ds = utils.make_scalar_variables(ds, deployment)
+    ds = utils.make_sensor_variables(ds, deployment)
     outname = outdir + '/' + ds.attrs['deployment_name'] + fnamesuffix + '.nc'
     _log.info('writing %s', outname)
     # convert time back to float64 seconds for ERDDAP etc happiness, as they won't take ns
     # as a unit:
-    ds.to_netcdf(
+    utils._save_dataset(
+        ds,
         outname,
-        'w',
+        deployment,
+        mode='w',
         encoding={
             'time': {
                 'units': 'seconds since 1970-01-01T00:00:00Z',
-                '_FillValue': np.nan,
+                '_FillValue': False,
                 'dtype': 'float64',
             }
         },

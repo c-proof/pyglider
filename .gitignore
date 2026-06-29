@@ -4,6 +4,21 @@ _build
 docs/pyglider
 dist
 
+# test pipeline output directories (generated, not committed)
+tests/example-data/**/*-test/
+tests/data/l0-profiles/
+tests/data/l0-timeseries-og10/
+tests/data/realtime_rawnc/
+
+report.json
+_*.ipynb
+
 *.png
 .DS_Store
 pyglider/_version.py
+# generated during docs build
+docs/_downloads/
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml

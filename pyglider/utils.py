@@ -12,14 +12,14 @@ import xarray as xr
 import yaml
 from scipy.signal import argrelextrema
 from scipy import signal
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 from pyglider._version import __version__
 
 _log = logging.getLogger(__name__)
 
 
-def get_distance_over_ground(ds):
+def get_distance_over_ground(ds, varnames=None):
     """
     Add a distance over ground variable to a netcdf structure
 
@@ -28,32 +28,40 @@ def get_distance_over_ground(ds):
     ds : `xarray.Dataset`
         Must have variable ``latitude`` and ``longitude`` indexed
         by ``time`` dimension.
+    varnames : dict, optional
+        Role → variable-name mapping from :func:`_get_varnames`.  Uses
+        roles ``latitude`` and ``longitude``.  Defaults to those literal
+        names when absent.
 
     Returns
     -------
     ds : `.xarray.Dataset`
         With ``distance_over_ground`` key.
     """
+    vn = varnames or {}
+    lat = vn.get('latitude', 'latitude')
+    lon = vn.get('longitude', 'longitude')
 
-    good = ~np.isnan(ds.latitude + ds.longitude)
+    good = ~np.isnan(ds[lat] + ds[lon])
     if np.any(good):
-        dist = gsw.distance(ds.longitude[good].values, ds.latitude[good].values) / 1000
+        dist = gsw.distance(ds[lon][good].values, ds[lat][good].values) / 1000
         dist = np.roll(np.append(dist, 0), 1)
         dist = np.cumsum(dist)
         dist = np.interp(ds.time, ds.time[good], dist)
     else:
-        dist = 0 * ds.latitude.values
+        dist = 0 * ds[lat].values
     attr = {
         'long_name': 'distance over ground flown since mission start',
         'method': 'get_distance_over_ground',
         'units': 'km',
-        'sources': 'latitude longitude',
+        'sources': f'{lat} {lon}',
+        'coordinates': 'time latitude longitude depth',
     }
     ds['distance_over_ground'] = (('time'), dist, attr)
     return ds
 
 
-def get_glider_depth(ds):
+def get_glider_depth(ds, varnames=None):
     """
     Get glider depth from pressure sensor.
 
@@ -62,30 +70,40 @@ def get_glider_depth(ds):
     ds : `xarray.Dataset`
         Must have variables ``pressure`` and ``latitude`` indexed
         by ``time`` dimension.  Assume pressure sensor in dbar.
+    varnames : dict, optional
+        Role → variable-name mapping from :func:`_get_varnames`.  Uses
+        roles ``pressure``, ``latitude``, and ``depth`` (output).
+        Defaults to those literal names when absent.
 
     Returns
     -------
     ds : `.xarray.Dataset`
-        With ``depth`` key.
+        With depth variable (named per ``varnames['depth']``, default
+        ``'depth'``) added.
 
     """
-    good = np.where(~np.isnan(ds.pressure))[0]
-    ds['depth'] = ds.pressure
+    vn = varnames or {}
+    pressure = vn.get('pressure', 'pressure')
+    latitude = vn.get('latitude', 'latitude')
+    depth = vn.get('depth', 'depth')
+
+    good = np.where(~np.isnan(ds[pressure]))[0]
+    ds[depth] = ds[pressure]
     try:
-        meanlat = ds.latitude.mean(skipna=True)
-        ds['depth'].values = -gsw.z_from_p(
-            ds.pressure.values, ds.latitude.fillna(meanlat).values
+        meanlat = ds[latitude].mean(skipna=True)
+        ds[depth].values = -gsw.z_from_p(
+            ds[pressure].values, ds[latitude].fillna(meanlat).values
         )
     except AttributeError:
         pass
     # now we really want to know where it is, so interpolate:
     if len(good) > 0:
-        ds['depth'].values = np.interp(
-            np.arange(len(ds.depth)), good, ds['depth'].values[good]
+        ds[depth].values = np.interp(
+            np.arange(len(ds[depth])), good, ds[depth].values[good]
         )
 
     attr = {
-        'source': 'pressure',
+        'source': pressure,
         'long_name': 'glider depth',
         'standard_name': 'depth',
         'units': 'm',
@@ -101,7 +119,7 @@ def get_glider_depth(ds):
         'reference_datum': 'surface',
         'positive': 'down',
     }
-    ds['depth'].attrs = attr
+    ds[depth].attrs = attr
     return ds
 
 
@@ -151,6 +169,7 @@ def get_profiles(ds, min_dp=10.0, inversion=3.0, filt_length=7, min_nsamples=14)
             ('min_dp', min_dp),
             ('filt_length', filt_length),
             ('min_nsamples', min_nsamples),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     ds['profile_index'] = (('time'), profile, attrs)
@@ -162,13 +181,15 @@ def get_profiles(ds, min_dp=10.0, inversion=3.0, filt_length=7, min_nsamples=14)
             ('comment', '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
             ('sources', 'time pressure'),
             ('method', 'get_profiles'),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     ds['profile_direction'] = (('time'), direction, attrs)
     return ds
 
 
-def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
+def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300,
+                     varnames=None):
     """
     Find profiles in a glider timeseries:
 
@@ -185,19 +206,28 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
         where *dt* is the median time between samples in the time series.
     profile_min_time : float, default=300
         Minimum time length of profile in s.
+    varnames : dict, optional
+        Role → variable-name mapping from :func:`_get_varnames`.  Uses
+        roles ``pressure`` and ``profile_index`` (output).  Defaults to
+        those literal names when absent.
     """
+    vn = varnames or {}
+    pressure = vn.get('pressure', 'pressure')
+    profile_index = vn.get('profile_index', 'profile_index')
+    profile_direction = vn.get('profile_direction', 'profile_direction')
 
-    if 'pressure' not in ds:
+    if pressure not in ds:
         _log.warning(
-            'No "pressure" variable in the data set; not searching for profiles'
+            'No "%s" variable in the data set; not searching for profiles',
+            pressure,
         )
         return ds
 
-    profile = ds.pressure.values * 0
-    direction = ds.pressure.values * 0
+    profile = ds[pressure].values * 0
+    direction = ds[pressure].values * 0
     pronum = 1
 
-    good = np.where(np.isfinite(ds.pressure))[0]
+    good = np.where(np.isfinite(ds[pressure]))[0]
     dt = float(
         np.median(np.diff(ds.time.values[good[:200000]]).astype(np.float64)) * 1e-9
     )
@@ -208,10 +238,10 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
     _log.info('Filt Len  %d, dt %f, min_n %d', filt_length, dt, min_nsamples)
     if filt_length > 1:
         p = np.convolve(
-            ds.pressure.values[good], np.ones(filt_length) / filt_length, 'same'
+            ds[pressure].values[good], np.ones(filt_length) / filt_length, 'same'
         )
     else:
-        p = ds.pressure.values[good]
+        p = ds[pressure].values[good]
     decim = int(filt_length / 3)
     if decim < 2:
         decim = 2
@@ -230,7 +260,7 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
     _log.debug(f'mins: {len(mins)} {mins} , maxs: {len(maxs)} {maxs}')
 
     pronum = 0
-    p = ds.pressure
+    p = ds[pressure]
     nmin = 0
     nmax = 0
     while (nmin < len(mins)) and (nmax < len(maxs)):
@@ -270,29 +300,31 @@ def get_profiles_new(ds, min_dp=10.0, filt_time=100, profile_min_time=300):
             ('long_name', 'profile index'),
             ('units', '1'),
             ('comment', 'N = inside profile N, N + 0.5 = between profiles N and N + 1'),
-            ('sources', 'time pressure'),
+            ('sources', f'time {pressure}'),
             ('method', 'get_profiles_new'),
             ('min_dp', min_dp),
             ('filt_length', filt_length),
             ('min_nsamples', min_nsamples),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
-    ds['profile_index'] = (('time'), profile, attrs)
+    ds[profile_index] = (('time'), profile, attrs)
 
     attrs = collections.OrderedDict(
         [
             ('long_name', 'glider vertical speed direction'),
             ('units', '1'),
             ('comment', '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
-            ('sources', 'time pressure'),
+            ('sources', f'time {pressure}'),
             ('method', 'get_profiles_new'),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
-    ds['profile_direction'] = (('time'), direction, attrs)
+    ds[profile_direction] = (('time'), direction, attrs)
     return ds
 
 
-def get_derived_eos_raw(ds):
+def get_derived_eos_raw(ds, varnames=None):
     """
     Calculate salinity, potential density, density, and potential temperature
 
@@ -301,6 +333,13 @@ def get_derived_eos_raw(ds):
     ds : `xarray.Dataset`
         Must have *time* coordinate and *temperature*, *conductivity*, *pressure*,
         and *latitude* and *longitude* as variables.
+    varnames : dict, optional
+        Role → variable-name mapping from :func:`_get_varnames`.  Uses roles
+        ``conductivity``, ``temperature``, ``pressure``, ``latitude``, and
+        ``longitude`` for inputs.  Output variables are always written as
+        ``salinity``, ``potential_density``, ``density``, and
+        ``potential_temperature`` (IOOS GDAC convention); for OG 1.0 use
+        ``processing_method`` in the deployment YAML instead.
 
     Returns
     -------
@@ -328,22 +367,28 @@ def get_derived_eos_raw(ds):
             ds.salinity, ds.temperature, ds.pressure).values)
 
     """
+    vn = varnames or {}
+    conductivity = vn.get('conductivity', 'conductivity')
+    temperature = vn.get('temperature', 'temperature')
+    pressure = vn.get('pressure', 'pressure')
+    latitude = vn.get('latitude', 'latitude')
+    longitude = vn.get('longitude', 'longitude')
 
     # GPCTD and slocum ctd require a scale factor of 10 for conductivity.
     # Legato does not
-    if 'S m' in ds.conductivity.units:
-        r = 10 * ds.conductivity
-    elif 'mS cm' in ds.conductivity.units:
-        r = ds.conductivity
+    if 'S m' in ds[conductivity].units:
+        r = 10 * ds[conductivity]
+    elif 'mS cm' in ds[conductivity].units:
+        r = ds[conductivity]
     else:
         raise ValueError(
             'Could not parse conductivity units in yaml. '
             "Expected 'S m-1' or 'mS cm-1'. "
-            'Check yaml entry netcdf_variables: conductivity: units'
+            f'Check yaml entry netcdf_variables: {conductivity}: units'
         )
     ds['salinity'] = (
         ('time'),
-        gsw.conversions.SP_from_C(r, ds.temperature, ds.pressure).values,
+        gsw.conversions.SP_from_C(r, ds[temperature], ds[pressure]).values,
     )
     attrs = collections.OrderedDict(
         [
@@ -351,7 +396,7 @@ def get_derived_eos_raw(ds):
             ('standard_name', 'sea_water_practical_salinity'),
             ('units', '1e-3'),
             ('comment', 'raw, uncorrected salinity'),
-            ('sources', 'conductivity temperature pressure'),
+            ('sources', f'{conductivity} {temperature} {pressure}'),
             ('method', 'get_derived_eos_raw'),
             ('observation_type', 'calulated'),
             ('instrument', 'instrument_ctd'),
@@ -360,14 +405,15 @@ def get_derived_eos_raw(ds):
             ('accuracy', 0.01),
             ('precision', 0.01),
             ('resolution', 0.001),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     attrs = fill_required_attrs(attrs)
     ds['salinity'].attrs = attrs
-    long = ds.longitude.fillna(ds.longitude.mean(skipna=True))
-    lat = ds.latitude.fillna(ds.latitude.mean(skipna=True))
-    sa = gsw.SA_from_SP(ds['salinity'], ds['pressure'], long, lat)
-    ct = gsw.CT_from_t(sa, ds['temperature'], ds['pressure'])
+    long = ds[longitude].fillna(ds[longitude].mean(skipna=True))
+    lat = ds[latitude].fillna(ds[latitude].mean(skipna=True))
+    sa = gsw.SA_from_SP(ds['salinity'], ds[pressure], long, lat)
+    ct = gsw.CT_from_t(sa, ds[temperature], ds[pressure])
     ds['potential_density'] = (('time'), 1000 + gsw.density.sigma0(sa, ct).values)
     attrs = collections.OrderedDict(
         [
@@ -375,13 +421,14 @@ def get_derived_eos_raw(ds):
             ('standard_name', 'sea_water_potential_density'),
             ('units', 'kg m-3'),
             ('comment', 'raw, uncorrected salinity'),
-            ('sources', 'salinity temperature pressure'),
+            ('sources', f'salinity {temperature} {pressure}'),
             ('method', 'get_derived_eos_raw'),
             ('observation_type', 'calulated'),
             ('instrument', 'instrument_ctd'),
             ('accuracy', 0.01),
             ('precision', 0.01),
             ('resolution', 0.001),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     attrs = fill_required_attrs(attrs)
@@ -389,7 +436,7 @@ def get_derived_eos_raw(ds):
 
     ds['density'] = (
         ('time'),
-        gsw.density.rho(ds.salinity, ds.temperature, ds.pressure).values,
+        gsw.density.rho(ds.salinity, ds[temperature], ds[pressure]).values,
     )
     attrs = collections.OrderedDict(
         [
@@ -398,7 +445,7 @@ def get_derived_eos_raw(ds):
             ('units', 'kg m-3'),
             ('comment', 'raw, uncorrected salinity'),
             ('observation_type', 'calulated'),
-            ('sources', 'salinity temperature pressure'),
+            ('sources', f'salinity {temperature} {pressure}'),
             ('instrument', 'instrument_ctd'),
             ('method', 'get_derived_eos_raw'),
             ('valid_min', 990.0),
@@ -406,13 +453,14 @@ def get_derived_eos_raw(ds):
             ('accuracy', 0.01),
             ('precision', 0.01),
             ('resolution', 0.001),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     attrs = fill_required_attrs(attrs)
     ds['density'].attrs = attrs
     ds['potential_temperature'] = (
         ('time'),
-        gsw.conversions.pt0_from_t(ds.salinity, ds.temperature, ds.pressure).values,
+        gsw.conversions.pt0_from_t(ds.salinity, ds[temperature], ds[pressure]).values,
     )
     attrs = collections.OrderedDict(
         [
@@ -420,13 +468,14 @@ def get_derived_eos_raw(ds):
             ('standard_name', 'sea_water_potential_temperature'),
             ('units', 'Celsius'),
             ('comment', 'raw, uncorrected salinity'),
-            ('sources', 'salinity temperature pressure'),
+            ('sources', f'salinity {temperature} {pressure}'),
             ('observation_type', 'calulated'),
             ('method', 'get_derived_eos_raw'),
             ('instrument', 'instrument_ctd'),
             ('accuracy', 0.002),
             ('precision', 0.001),
             ('resolution', 0.0001),
+            ('coordinates', 'time latitude longitude depth'),
         ]
     )
     attrs = fill_required_attrs(attrs)
@@ -506,19 +555,23 @@ def get_file_id(ds):
     return id
 
 
-def fill_metadata(ds, metadata, sensor_data):
+def fill_metadata(ds, metadata, sensor_data, varnames=None):
     """
     Add metadata to a Dataset
 
     Parameters
     ----------
     ds : `xarray.Dataset`
-        Dataset must have *longtidue*, *latitude*, and *time* values
+        Dataset must have *longitude*, *latitude*, and *time* values
     metadata : dict
         dictionary of attributes to add to the global attributes.  Usually
         taken from *deployment.yml* file.
     sensor_data : dict
         dictionary of device data to add to the global attributes.
+    varnames : dict, optional
+        Role → variable-name mapping from :func:`_get_varnames`.  Uses roles
+        ``latitude`` and ``longitude``.  Defaults to those literal names when
+        absent.
 
     Returns
     -------
@@ -527,12 +580,15 @@ def fill_metadata(ds, metadata, sensor_data):
 
 
     """
-    good = ~np.isnan(ds.latitude.values + ds.longitude.values)
+    vn = varnames or {}
+    lat = vn.get('latitude', 'latitude')
+    lon = vn.get('longitude', 'longitude')
+    good = ~np.isnan(ds[lat].values + ds[lon].values)
     if np.any(good):
-        ds.attrs['geospatial_lat_max'] = np.max(ds.latitude.values[good])
-        ds.attrs['geospatial_lat_min'] = np.min(ds.latitude.values[good])
-        ds.attrs['geospatial_lon_max'] = np.max(ds.longitude.values[good])
-        ds.attrs['geospatial_lon_min'] = np.min(ds.longitude.values[good])
+        ds.attrs['geospatial_lat_max'] = np.max(ds[lat].values[good])
+        ds.attrs['geospatial_lat_min'] = np.min(ds[lat].values[good])
+        ds.attrs['geospatial_lon_max'] = np.max(ds[lon].values[good])
+        ds.attrs['geospatial_lon_min'] = np.min(ds[lon].values[good])
     else:
         ds.attrs['geospatial_lat_max'] = np.nan
         ds.attrs['geospatial_lat_min'] = np.nan
@@ -551,19 +607,28 @@ def fill_metadata(ds, metadata, sensor_data):
     ds.attrs['cdm_data_type'] = 'Trajectory'
     ds.attrs['Conventions'] = 'CF-1.8'
     ds.attrs['standard_name_vocabulary'] = 'CF Standard Name Table v72'
-    ds.attrs['date_created'] = str(np.datetime64('now')) + 'Z'
-    ds.attrs['date_issued'] = str(np.datetime64('now')) + 'Z'
+    _now = datetime.now(tz=timezone.utc).strftime('%Y%m%dT%H%M%S')
+    ds.attrs['date_created'] = _now
+    ds.attrs['date_issued'] = _now
     ds.attrs['date_modified'] = ' '
     ds.attrs['id'] = get_file_id(ds)
     ds.attrs['title'] = ds.attrs['id']
 
     dt = ds.time.values
-    ds.attrs['time_coverage_start'] = '%s' % dt[0]
-    ds.attrs['time_coverage_end'] = '%s' % dt[-1]
+    ds.attrs['time_coverage_start'] = datetime.fromtimestamp(
+        int(dt[0].astype('datetime64[s]').astype('int64')), tz=timezone.utc
+    ).strftime('%Y%m%dT%H%M%S')
+    ds.attrs['time_coverage_end'] = datetime.fromtimestamp(
+        int(dt[-1].astype('datetime64[s]').astype('int64')), tz=timezone.utc
+    ).strftime('%Y%m%dT%H%M%S')
 
     # make sure this is ISO readable....
     ds.attrs['deployment_start'] = str(dt[0])[:19]
     ds.attrs['deployment_end'] = str(dt[-1])[:19]
+
+    # OG 1.0 requires start_date in YYYYmmddTHHMMss format
+    _ts = int(dt[0].astype('datetime64[s]').astype('int64'))
+    ds.attrs['start_date'] = datetime.fromtimestamp(_ts, tz=timezone.utc).strftime('%Y%m%dT%H%M%S')
 
     ds.attrs['processing_level'] = (
         'Level 0 (L0) processed data timeseries; no corrections or data screening'
@@ -585,7 +650,7 @@ def nmea2deg(nmea):
     """
     Convert a NMEA float to a decimal degree float.  e.g. -12640.3232 = -126.6721
     """
-    deg = np.fix(nmea / 100) + np.sign(nmea) * np.remainder(np.abs(nmea), 100) / 60
+    deg = np.trunc(nmea / 100) + np.sign(nmea) * np.remainder(np.abs(nmea), 100) / 60
     return deg
 
 
@@ -771,6 +836,660 @@ def example_gridplot(
         fig.savefig(outname, dpi=dpi)
 
 
+def _get_varnames(deployment):
+    """
+    Build a role → variable-name mapping from the deployment YAML.
+
+    Each entry in ``netcdf_variables`` that carries a ``processing_role``
+    attribute contributes a ``{role: varname}`` pair.  For YAML files that
+    follow the IOOS GDAC convention (no explicit ``processing_role``), any
+    variable whose name matches a known role is mapped to itself so that
+    existing processing code continues to work without changes.
+
+    Parameters
+    ----------
+    deployment : dict
+        Deployment metadata loaded from the YAML file.
+
+    Returns
+    -------
+    varnames : dict
+        Mapping of role string to the actual variable name used in the
+        dataset, e.g. ``{'pressure': 'PRES', 'temperature': 'TEMP', ...}``.
+
+    Notes
+    -----
+    **Required roles** — looked up directly by the pipeline; must be declared
+    with ``processing_role`` when non-standard variable names are used:
+    ``time``, ``latitude``, ``longitude``, ``pressure``, ``depth``,
+    ``profile_index``.
+
+    **Legacy fallback roles** — only used when no ``processing_method`` covers
+    the relevant derived variable; do not need ``processing_role`` if
+    ``processing_method`` entries name their inputs explicitly:
+    ``temperature``, ``conductivity``, ``salinity``, ``profile_direction``,
+    ``oxygen_concentration``.
+    """
+    known_roles = {
+        'time', 'latitude', 'longitude', 'pressure', 'temperature',
+        'conductivity', 'salinity', 'depth', 'profile_index',
+        'profile_direction', 'oxygen_concentration',
+    }
+    ncvar = deployment.get('netcdf_variables', {})
+    varnames = {}
+    for name, attrs in ncvar.items():
+        if not isinstance(attrs, dict):
+            continue
+        role = attrs.get('processing_role')
+        if role:
+            varnames[role] = name
+    # GDAC fallback: if variable name is itself a known role and no explicit
+    # mapping was found for that role, use the name as its own mapping
+    for role in known_roles:
+        if role not in varnames and role in ncvar:
+            varnames[role] = role
+    return varnames
+
+
+def _resolve_role(ds, varnames, role):
+    """
+    Resolve a processing role to its variable name and verify it exists in *ds*.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to check against.
+    varnames : dict
+        Role → variable-name mapping from :func:`_get_varnames`.
+    role : str
+        The role to look up (e.g. ``'latitude'``, ``'depth'``).
+
+    Returns
+    -------
+    str
+        The variable name in *ds* that corresponds to *role*.
+
+    Raises
+    ------
+    ValueError
+        If the resolved name is not present in *ds*.  The message names the
+        role, the resolved variable name, and how to fix the YAML.
+    """
+    name = varnames.get(role, role)
+    if name not in ds:
+        raise ValueError(
+            f"Role '{role}' resolved to variable '{name}' but '{name}' is not "
+            f"in the dataset.  Add `processing_role: {role}` to the correct "
+            f"variable in netcdf_variables of your deployment YAML."
+        )
+    return name
+
+
+def _practical_salinity(ds, inputs):
+    """Compute practical salinity from conductivity, temperature, pressure."""
+    cond = ds[inputs['conductivity']]
+    temp = ds[inputs['temperature']]
+    pres = ds[inputs['pressure']]
+    units = cond.attrs.get('units', '')
+    if 'S m' in units:
+        r = 10 * cond
+    elif 'mS cm' in units:
+        r = cond
+    else:
+        raise ValueError(
+            f"Cannot parse conductivity units '{units}'. "
+            "Expected 'S m-1' or 'mS cm-1'."
+        )
+    return xr.DataArray(
+        gsw.conversions.SP_from_C(r, temp, pres).values, dims=('time',)
+    )
+
+
+def _potential_temperature(ds, inputs):
+    """Compute potential temperature from salinity, temperature, pressure."""
+    sal = ds[inputs['salinity']]
+    temp = ds[inputs['temperature']]
+    pres = ds[inputs['pressure']]
+    return xr.DataArray(
+        gsw.conversions.pt0_from_t(sal, temp, pres).values, dims=('time',)
+    )
+
+
+def _potential_density_sigma0(ds, inputs):
+    """Compute sigma0 (sigma_theta, potential density anomaly referenced to 0 dbar)
+    from S, T, P, lat, lon.  Returns rho_0 - 1000 in kg/m³."""
+    sal = ds[inputs['salinity']]
+    temp = ds[inputs['temperature']]
+    pres = ds[inputs['pressure']]
+    lat = ds[inputs['latitude']]
+    lon = ds[inputs['longitude']]
+    lat = lat.fillna(lat.mean(skipna=True))
+    lon = lon.fillna(lon.mean(skipna=True))
+    sa = gsw.SA_from_SP(sal, pres, lon, lat)
+    ct = gsw.CT_from_t(sa, temp, pres)
+    return xr.DataArray(
+        gsw.density.sigma0(sa, ct).values, dims=('time',)
+    )
+
+
+def _density_method(ds, inputs):
+    """Compute in-situ density from S, T, P, lat, lon."""
+    sal = ds[inputs['salinity']]
+    temp = ds[inputs['temperature']]
+    pres = ds[inputs['pressure']]
+    lat = ds[inputs['latitude']]
+    lon = ds[inputs['longitude']]
+    lat = lat.fillna(lat.mean(skipna=True))
+    lon = lon.fillna(lon.mean(skipna=True))
+    sa = gsw.SA_from_SP(sal, pres, lon, lat)
+    ct = gsw.CT_from_t(sa, temp, pres)
+    return xr.DataArray(
+        gsw.density.rho(sa, ct, pres).values, dims=('time',)
+    )
+
+
+#: Built-in processing_method callables.  Each function takes ``(ds, inputs)``
+#: where *inputs* maps argument name → variable name in *ds*, and returns an
+#: ``xr.DataArray`` with dim ``'time'``.
+def _distance_over_ground_method(ds, inputs):
+    """Compute cumulative distance over ground from latitude and longitude."""
+    lat = ds[inputs['latitude']]
+    lon = ds[inputs['longitude']]
+    good = ~np.isnan(lat + lon)
+    if np.any(good):
+        dist = gsw.distance(lon[good].values, lat[good].values) / 1000
+        dist = np.roll(np.append(dist, 0), 1)
+        dist = np.cumsum(dist)
+        dist = np.interp(ds.time, ds.time[good], dist)
+    else:
+        dist = 0 * lat.values
+    return xr.DataArray(dist, dims=('time',))
+
+
+BUILTIN_METHODS = {
+    'practical_salinity': _practical_salinity,
+    'potential_temperature': _potential_temperature,
+    'potential_density_sigma0': _potential_density_sigma0,
+    'density': _density_method,
+    'distance_over_ground': _distance_over_ground_method,
+}
+
+#: processing_method names that are handled by explicit utility calls in
+#: binary_to_timeseries (depth_from_pressure → get_glider_depth, etc.).
+#: The dispatcher silently skips these rather than warning about them.
+_EXPLICITLY_HANDLED_METHODS = frozenset(
+    {'depth_from_pressure', 'find_profiles', 'gps_fixes_from_nav'}
+)
+
+#: processing_method names that replace get_derived_eos_raw.  When any of
+#: these appear in the YAML, get_derived_eos_raw is suppressed.
+_THERMO_METHODS = frozenset(
+    {'practical_salinity', 'potential_temperature',
+     'potential_density_sigma0', 'density'}
+)
+
+
+def _dispatch_processing_methods(ds, ncvar):
+    """
+    Compute all variables in *ncvar* that carry a ``processing_method`` entry.
+
+    Variables are processed in YAML order, so later entries can depend on
+    earlier ones (e.g. ``POTENTIAL_TEMPERATURE`` uses ``PSAL`` which must be
+    computed first).  Methods already handled by explicit utility calls
+    (``depth_from_pressure``, ``find_profiles``) are not recomputed, but any
+    YAML attributes (e.g. ``vocabulary``, ``long_name``) are applied to the
+    variable if it already exists in *ds* — so callers should invoke the
+    explicit utility functions before calling this dispatcher.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset containing measured variables.
+    ncvar : dict
+        Mapping of variable name → YAML attributes (``netcdf_variables``).
+
+    Returns
+    -------
+    ds : xarray.Dataset
+        Dataset with dispatched derived variables added.
+    """
+    for varname, attrs in ncvar.items():
+        if not isinstance(attrs, dict) or 'processing_method' not in attrs:
+            continue
+        method_spec = attrs['processing_method']
+        method_name = next(iter(method_spec))
+        inputs = method_spec[method_name] or {}
+
+        if method_name in _EXPLICITLY_HANDLED_METHODS:
+            _log.debug(
+                'Skipping %s for %s (handled by explicit utility call)',
+                method_name, varname,
+            )
+            # Apply YAML attrs to the variable if it was already computed by
+            # the explicit utility call (e.g. vocabulary, long_name, units).
+            if varname in ds:
+                extra_attrs = {k: v for k, v in attrs.items()
+                               if k not in _EXPLICIT_ATTR_SKIP}
+                # CF §2.5: valid_min/valid_max must have the same dtype as the variable.
+                var_dtype = ds[varname].dtype
+                for bound in ('valid_min', 'valid_max'):
+                    if bound in extra_attrs:
+                        extra_attrs[bound] = var_dtype.type(extra_attrs[bound])
+                ds[varname].attrs.update(extra_attrs)
+            continue
+
+        if method_name not in BUILTIN_METHODS:
+            _log.warning(
+                'Unknown processing_method %r for variable %s; skipping',
+                method_name, varname,
+            )
+            continue
+
+        _log.info('Computing %s via processing_method %s', varname, method_name)
+        try:
+            result = BUILTIN_METHODS[method_name](ds, inputs)
+        except KeyError as exc:
+            _log.warning(
+                'Missing input %s for %s via %s; skipping',
+                exc, varname, method_name,
+            )
+            continue
+
+        var_attrs = {
+            k: v for k, v in attrs.items()
+            if k not in ('processing_method', 'processing_role', 'average_method',
+                         'source', 'coordinates')
+        }
+        # record provenance — overwrite any generic comment from the YAML
+        var_attrs['method'] = method_name
+        var_attrs['sources'] = ' '.join(inputs.values())
+        var_attrs['comment'] = (
+            f'Computed by {method_name} from '
+            + ', '.join(f'{role}={name}' for role, name in inputs.items())
+        )
+        var_attrs = fill_required_attrs(var_attrs)
+        ds[varname] = (('time',), result.values, var_attrs)
+
+    return ds
+
+
+_EXPLICIT_ATTR_SKIP = frozenset(
+    ('processing_method', 'processing_role', 'average_method', 'source', 'coordinates')
+)
+
+
+def _apply_explicit_yaml_attrs(ds, ncvar):
+    """
+    Apply YAML attrs to variables that were computed by explicitly-handled
+    processing methods (e.g. ``find_profiles``).
+
+    ``_dispatch_processing_methods`` skips recomputing these variables, and
+    also applies their YAML attrs at that point — but only if the variable
+    already exists in *ds*.  When the explicit utility call happens *after*
+    the dispatcher (as with ``get_profiles_new`` in the slocum pipeline, where
+    it must run after time is converted to datetime64), the attrs are not
+    applied.  Call this function after the late explicit call to fill the gap.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+    ncvar : dict
+        ``netcdf_variables`` mapping from the deployment YAML.
+
+    Returns
+    -------
+    ds : xarray.Dataset
+    """
+    for varname, attrs in ncvar.items():
+        if not isinstance(attrs, dict) or 'processing_method' not in attrs:
+            continue
+        method_name = next(iter(attrs['processing_method']))
+        if method_name not in _EXPLICITLY_HANDLED_METHODS:
+            continue
+        if varname in ds:
+            extra_attrs = {k: v for k, v in attrs.items()
+                           if k not in _EXPLICIT_ATTR_SKIP}
+            # CF §2.5: valid_min/valid_max must have the same dtype as the variable.
+            var_dtype = ds[varname].dtype
+            for bound in ('valid_min', 'valid_max'):
+                if bound in extra_attrs:
+                    extra_attrs[bound] = var_dtype.type(extra_attrs[bound])
+            ds[varname].attrs.update(extra_attrs)
+    return ds
+
+
+def _load_dataset(filename):
+    """
+    Open a netCDF dataset and normalise the primary dimension to ``time``.
+
+    Files saved with a custom ``output_dimension`` (e.g. ``N_MEASUREMENTS``
+    for OG 1.0) carry their time coordinate under a different dimension name.
+    This function detects that case via ``standard_name: time`` on the
+    coordinate variable and renames both the dimension and (if necessary) the
+    coordinate back to ``time`` so the rest of the processing pipeline can use
+    a single consistent name.
+
+    Parameters
+    ----------
+    filename : str or Path
+        Path to the netCDF file.
+
+    Returns
+    -------
+    ds : xarray.Dataset
+        Dataset with ``time`` as the primary dimension and coordinate.
+    """
+    ds = xr.open_dataset(filename)
+    if 'time' not in ds.dims:
+        for var in ds.coords:
+            if ds[var].attrs.get('standard_name') == 'time' and len(ds[var].dims) == 1:
+                time_dim = ds[var].dims[0]
+                if var == 'time':
+                    # coord is already 'time' but the dimension has a different name
+                    # (e.g. N_MEASUREMENTS); promote it with swap_dims
+                    ds = ds.swap_dims({time_dim: 'time'})
+                else:
+                    # coord variable has a non-standard name (e.g. TIME); rename it
+                    # first, then promote it as the dimension index via swap_dims
+                    ds = ds.rename({var: 'time'}).swap_dims({time_dim: 'time'})
+                break
+    return ds
+
+
+def make_sensor_variables(ds, deployment):
+    """
+    Add OG 1.0 sensor metadata scalar variables from the ``glider_devices``
+    section of the deployment YAML.
+
+    For each device entry that contains a ``sensor_name`` key, a dimensionless
+    ``int`` variable is created in *ds* with that name.  This satisfies the
+    OG 1.0 requirement that every ``sensor`` attribute on a data variable must
+    refer to an existing scalar variable in the file.
+
+    If no entry has ``sensor_name`` the function returns *ds* unchanged, so
+    existing YAMLs without it continue to work.
+
+    YAML example::
+
+        glider_devices:
+          ctd:
+            sensor_name: SENSOR_CTD_9507   # netCDF variable name
+            long_name:   CTD Metadata
+            make_model:  Seabird SlocumCTD
+            maker:       Seabird Scientific
+            model:       SlocumCTD
+            type:        CTD
+            type_vocabulary: "https://vocab.nerc.ac.uk/collection/L05/current"
+            serial:      '9507'            # → sensor_serial_number
+            calibration_date: "2022-01-01" # → sensor_calibration_date
+            Thermal_lag_constants_[alpha,tau]: [0.2, 2]   # pyglider only
+            dTdC: 0                                        # pyglider only
+
+    The following keys are consumed by pyglider and **not** written as netCDF
+    attributes: ``sensor_name``, ``Thermal_lag_constants_*``, ``dTdC``.
+
+    The following keys are **renamed** on output:
+
+    * ``make``             → ``maker``  (if ``maker`` is not already present)
+    * ``serial``           → ``sensor_serial_number``
+    * ``calibration_date`` → ``sensor_calibration_date``
+
+    ``coverage_content_type = "referenceInformation"`` is always added.
+    ``platform`` is set to the value of ``metadata.platform`` when available.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+    deployment : dict
+        Parsed deployment YAML.
+
+    Returns
+    -------
+    ds : xarray.Dataset
+    """
+    devices = deployment.get('glider_devices', {})
+    if not devices:
+        return ds
+
+    # internal keys consumed by pyglider, never written as netCDF attributes
+    _SKIP = {'sensor_name', 'dTdC'}
+
+    # rename map: YAML key → netCDF attribute name
+    _RENAME = {
+        'make':             'maker',
+        'serial':           'sensor_serial_number',
+        'calibration_date': 'sensor_calibration_date',
+    }
+
+    platform_val = deployment.get('metadata', {}).get('platform', '')
+
+    for _device_key, device in devices.items():
+        sensor_name = device.get('sensor_name')
+        if not sensor_name:
+            continue
+
+        attrs = {}
+        attrs['coverage_content_type'] = 'referenceInformation'
+        if platform_val:
+            attrs['platform'] = platform_val
+
+        for k, v in device.items():
+            # skip pyglider-internal keys
+            if k in _SKIP:
+                continue
+            if k.startswith('Thermal_lag_constants'):
+                continue
+            # rename
+            out_key = _RENAME.get(k, k)
+            # if the entry already has 'maker', don't let 'make' overwrite it
+            if out_key == 'maker' and 'maker' in attrs:
+                continue
+            attrs[out_key] = v
+
+        ds[sensor_name] = xr.Variable([], -127, attrs=attrs)
+        ds[sensor_name].encoding['dtype'] = 'int8'
+        ds[sensor_name].encoding['_FillValue'] = -127
+        _log.info('Added sensor variable %s', sensor_name)
+
+    return ds
+
+
+def make_scalar_variables(ds, deployment):
+    """
+    Add dimensionless (scalar) variables to *ds* from the ``scalar_variables``
+    section of the deployment YAML.
+
+    If the ``scalar_variables`` key is absent the function returns *ds*
+    unchanged, so existing YAMLs without it continue to work without
+    modification.
+
+    Each entry under ``scalar_variables`` must supply its value via one of:
+
+    ``value``
+        A literal scalar (string or number).
+    ``from_metadata``
+        The name of a key in ``deployment['metadata']`` whose value to use.
+
+    If both are present, ``value`` takes precedence.  If neither is present
+    the variable is skipped with a warning.
+
+    For variables whose ``units`` attribute contains ``'seconds since'``, a
+    string value is automatically converted to a float count of seconds since
+    the epoch given in ``units`` (defaulting to 1970-01-01T00:00:00Z).
+
+    All remaining keys in the entry (``long_name``, ``units``, ``comment``,
+    etc.) become netCDF variable attributes.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to add scalar variables to.
+    deployment : dict
+        Parsed deployment YAML (from :func:`_get_deployment`).
+
+    Returns
+    -------
+    ds : xarray.Dataset
+        Dataset with any scalar variables added.
+    """
+    scalar_vars = deployment.get('scalar_variables')
+    if not scalar_vars:
+        return ds
+
+    metadata = deployment.get('metadata', {})
+
+    for varname, entry in scalar_vars.items():
+        entry = dict(entry)  # don't mutate the YAML dict
+
+        # --- resolve value ---
+        if 'value' in entry:
+            val = entry.pop('value')
+            entry.pop('from_metadata', None)  # ignore if both present
+        elif 'from_metadata' in entry:
+            meta_key = entry.pop('from_metadata')
+            if meta_key not in metadata:
+                _log.warning(
+                    'scalar_variables: metadata key %r not found for %s; skipping',
+                    meta_key, varname,
+                )
+                continue
+            val = metadata[meta_key]
+        else:
+            _log.warning(
+                'scalar_variables: no value or from_metadata for %s; skipping', varname
+            )
+            continue
+
+        # --- time conversion ---
+        units = entry.get('units', '')
+        if 'seconds since' in units and isinstance(val, str):
+            try:
+                # parse the reference epoch from the units string, e.g.
+                # "seconds since 1970-01-01T00:00:00Z"
+                ref_str = units.split('seconds since', 1)[1].strip().rstrip('Z')
+                epoch = np.datetime64(ref_str)
+                val = float(
+                    (np.datetime64(val) - epoch) / np.timedelta64(1, 's')
+                )
+            except Exception:
+                _log.warning(
+                    'scalar_variables: could not convert %r to epoch seconds for %s; skipping',
+                    val, varname,
+                )
+                continue
+
+        # remaining keys become attributes
+        ds[varname] = ([], val, entry)
+        _log.info('Added scalar variable %s = %r', varname, val)
+
+    return ds
+
+
+def _save_dataset(ds, filename, deployment, **kwargs):
+    """
+    Write a dataset to netCDF, renaming the time dimension when required.
+
+    The deployment YAML may specify ``output_dimension`` (e.g.
+    ``N_MEASUREMENTS`` for OG 1.0).  If set, the ``time`` dimension is renamed
+    to ``output_dimension`` before writing so the file conforms to the target
+    convention.  Internal processing always works with ``time``; this rename
+    only affects what is written to disk.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset whose primary dimension is ``time``.
+    filename : str or Path
+        Output file path.
+    deployment : dict
+        Deployment metadata loaded from the YAML file.  The optional key
+        ``output_dimension`` controls the dimension name written to the file
+        (default: ``'time'``).
+    **kwargs
+        Passed through to :func:`xarray.Dataset.to_netcdf`.
+    """
+    output_dim = deployment.get('output_dimension', 'time')
+    time_name = _get_varnames(deployment).get('time', 'time')
+
+    # If the encoding dict references 'time', update the key to match the
+    # output variable name before any renaming takes place.
+    if time_name != 'time' and 'encoding' in kwargs:
+        enc = dict(kwargs['encoding'])
+        if 'time' in enc:
+            enc[time_name] = enc.pop('time')
+        kwargs = {**kwargs, 'encoding': enc}
+
+    if output_dim != 'time':
+        ds = ds.rename_dims({'time': output_dim})
+    if time_name != 'time':
+        # rename the coordinate variable (dim was already renamed above if needed)
+        ds = ds.rename({'time': time_name})
+
+    # Promote lat/lon/depth to xarray coordinates so xarray automatically writes
+    # the CF 'coordinates' attribute on every data variable (CF §9.1 trajectory).
+    vn = _get_varnames(deployment)
+    aux_coords = [
+        vn.get('latitude', 'latitude'),
+        vn.get('longitude', 'longitude'),
+        vn.get('depth', 'depth'),
+    ]
+    aux_coords = [c for c in aux_coords if c in ds.data_vars]
+    if aux_coords:
+        ds = ds.set_coords(aux_coords)
+
+    # Fix any hardcoded lowercase coordinate names in 'coordinates' attrs that
+    # were set before the rename (e.g. by get_profiles_new).
+    if time_name != 'time':
+        _coord_name_map = {
+            'time': time_name,
+            'latitude': vn.get('latitude', 'latitude'),
+            'longitude': vn.get('longitude', 'longitude'),
+            'depth': vn.get('depth', 'depth'),
+        }
+        for var in list(ds.data_vars) + list(ds.coords):
+            if 'coordinates' in ds[var].attrs:
+                old = ds[var].attrs['coordinates']
+                new = ' '.join(_coord_name_map.get(n, n) for n in old.split())
+                if new != old:
+                    ds[var].attrs['coordinates'] = new
+
+    # TIME_GPS is stored as float64 seconds since epoch; ensure the units
+    # attribute propagates correctly as netCDF encoding.
+    if 'TIME_GPS' in ds:
+        enc = dict(kwargs.get('encoding', {}))
+        if 'TIME_GPS' not in enc:
+            enc['TIME_GPS'] = {
+                'dtype': 'float64',
+                '_FillValue': -1.0,
+            }
+            kwargs = {**kwargs, 'encoding': enc}
+
+    # CF §9.8: trajectory files require a scalar variable with cf_role = trajectory_id.
+    # OG 1.0 requires the variable to be named TRAJECTORY (uppercase); other
+    # conventions use lowercase 'trajectory'.
+    traj_varname = 'TRAJECTORY' if output_dim == 'N_MEASUREMENTS' else 'trajectory'
+    if traj_varname not in ds:
+        traj_id = ds.attrs.get('deployment_name', '')
+        ds[traj_varname] = traj_id
+        ds[traj_varname].attrs = {
+            'cf_role': 'trajectory_id',
+            'long_name': 'Trajectory/Deployment Name',
+            'comment': (
+                'A trajectory is a single deployment of a glider and may '
+                'span multiple data files.'
+            ),
+        }
+
+    ds.to_netcdf(filename, **kwargs)
+    # CF §2.5.1: coordinate variables must not have _FillValue.
+    # xarray may write one regardless of encoding, so remove it after writing.
+    import netCDF4
+    time_var = time_name if time_name != 'time' else output_dim if output_dim != 'time' else 'time'
+    with netCDF4.Dataset(filename, 'r+') as nc:
+        if '_FillValue' in nc.variables[time_var].ncattrs():
+            nc.variables[time_var].delncattr('_FillValue')
+
+
 def _get_deployment(deploymentyaml):
     """
     Take the list of files in *deploymentyaml* and parse them
@@ -797,7 +1516,6 @@ def _any_newer(dirname, filename):
     """
     filename = Path(filename)
     dirname = Path(dirname)
-    print(filename, filename.exists())
     if not filename.exists():
         return True
 
@@ -815,7 +1533,7 @@ def _any_newer(dirname, filename):
 def _get_glider_name_slocum(current_directory):
     glider = current_directory.parts[-2]
     mission = current_directory.parts[-1]
-    print(f'Glider {glider} and mission: {mission}')
+    _log.info(f'Glider {glider} and mission: {mission}')
     slocum_glider = glider[4:]
     if slocum_glider[-4:-3].isnumeric():
         slocum_glider = slocum_glider[:-4] + '_' + slocum_glider[-4:]
@@ -1115,7 +1833,7 @@ def flag_CTD_data(
         _log.info('Adding conductivity_QC variable to dataset')
 
         ts["conductivity_QC"] = xr.DataArray(
-            np.ones(ts["conductivity"].shape, dtype=int),
+            np.ones(ts["conductivity"].shape, dtype=np.int8),
             dims=ts["conductivity"].dims,
             coords=ts["conductivity"].coords,
         )
@@ -1123,7 +1841,7 @@ def flag_CTD_data(
     if "salinity_QC" not in ts.data_vars:
         _log.info('Adding salinity_QC variable to dataset')
         ts["salinity_QC"] = xr.DataArray(
-            np.ones(ts["salinity"].shape, dtype=int),
+            np.ones(ts["salinity"].shape, dtype=np.int8),
             dims=ts["salinity"].dims,
             coords=ts["salinity"].coords,
         )
@@ -1131,7 +1849,7 @@ def flag_CTD_data(
     if "temperature_QC" not in ts.data_vars:
         _log.info('Adding temperature_QC variable to dataset')
         ts["temperature_QC"] = xr.DataArray(
-            np.ones(ts["temperature"].shape, dtype=int),
+            np.ones(ts["temperature"].shape, dtype=np.int8),
             dims=ts["temperature"].dims,
             coords=ts["temperature"].coords,
         )
@@ -1461,5 +2179,11 @@ __all__ = [
     'apply_thermal_lag',
     'flag_CTD_data',
     'adjust_CTD',
-    'maskQC4'
+    'maskQC4',
+    '_get_varnames',
+    '_resolve_role',
+    '_load_dataset',
+    '_save_dataset',
+    '_dispatch_processing_methods',
+    'BUILTIN_METHODS',
 ]

@@ -8,7 +8,7 @@ jobs:
       # Note: netcdf artifacts are uploaded for 3.12 only (see "Upload netcdf artifacts" step)
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: mamba setup enviroment
@@ -33,6 +33,12 @@ jobs:
       - name: Process seaexplorer-legato-flntu-arod-ad2cp
         shell: micromamba-shell {0}
         run: which python; cd tests/example-data/example-seaexplorer-legato-flntu-arod-ad2cp; make clean-all; python process_deploymentRealTime.py
+      - name: Process seaexplorer OG 1.0
+        shell: micromamba-shell {0}
+        run: which python; cd tests/example-data/example-seaexplorer; python process_deploymentRealtime_og10.py
+      - name: Process slocum OG 1.0
+        shell: micromamba-shell {0}
+        run: which python; cd tests/example-data/example-slocum; python process_deploymentRealtime_og10.py
       - name: Run tests
         shell: micromamba-shell {0}
         run: which python; pytest --cov --cov-report xml

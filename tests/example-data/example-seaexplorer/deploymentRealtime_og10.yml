@@ -1,0 +1,467 @@
+# OG 1.0 compliant deployment YAML for dfo-eva035-20190718
+# Based on tests/example-data/example-seaexplorer/deploymentRealtime.yml
+#
+# Key differences from IOOS GDAC format:
+#   - output_dimension: N_MEASUREMENTS (instead of time as dimension)
+#   - Variable names follow OG 1.0 vocabulary (uppercase, e.g. CNDC, TEMP, PRES)
+#   - processing_role: maps output variable name to its role in the pipeline
+#   - processing_method: specifies how derived variables are computed and from which inputs
+#   - QC variables are auto-named as {varname}_QC
+
+output_dimension: N_MEASUREMENTS
+output_conventions: OG-1.0
+
+metadata:
+  acknowledgement: Funding from Fisheries and Oceans Canada, Canadian Foundation
+                   for Innovation, BC Knowledge Development Fund
+  comment:        "Explorer Seamount cruise on Tully"
+  contributor_name: James Pegg, Jody Klymak, Tetjana Ross
+  contributor_email: jpegg@uvic.ca, jklymak@uvic.ca, tross@uvic.ca
+  contributor_role: Technical Coordinator, PI, PI
+  contributor_role_vocabulary: "http://vocab.nerc.ac.uk/collection/W08/current/CONT0005/,http://vocab.nerc.ac.uk/collection/W08/current/CONT0004/,http://vocab.nerc.ac.uk/collection/W08/current/CONT0004/"
+  creator_email: jklymak@uvic.ca
+  creator_name:  Jody Klymak
+  creator_url:   http://cproof.uvic.ca
+  data_mode: 'R'
+  deployment_id: '1'
+  deployment_name: 'dfo-eva035-20190718'
+  deployment_start: '2019-07-18'
+  deployment_end: '2019-12-30'
+  glider_name: dfo-eva035
+  glider_serial: '035'
+  glider_model: SeaExplorer
+  glider_instrument_name: seaexplorer
+  glider_wmo: '999999'
+  institution: C-PROOF
+  contributing_institutions: C-PROOF
+  contributing_institutions_role: Operator
+  contributing_institutions_role_vocabulary: "http://vocab.nerc.ac.uk/collection/W08/current/CONT0003/"
+  keywords: "AUVS, Autonomous Underwater Vehicles, Oceans, Ocean Pressure,
+             Water Pressure, Oceans, Ocean Temperature, Water Temperature,
+             Oceans, Salinity/Density, Conductivity, Oceans,
+             Salinity/Density, Density, Oceans, Salinity/Density, Salinity"
+  keywords_vocabulary: GCMD Science Keywords
+  license: "This data may be redistributed and used without restriction or
+            warranty"
+  metadata_link: "https://cproof.uvic.ca"
+  metadata_conventions: CF-1.10, ACDD-1.3, OG-1.0
+  Conventions: CF-1.10, ACDD-1.3, OG-1.0
+  naming_authority: "ca.uvic.cproof"
+  platform:         "sub-surface gliders"
+  platform_vocabulary: "http://vocab.nerc.ac.uk/collection/L06/current/27/"
+  platform_type:    "SeaExplorer Glider"
+  processing_level: "Data provided as is with no expressed or implied
+                     assurance of quality assurance or quality control."
+  project: ExplorerSeamount19
+  project_url: http://cproof.uvic.ca
+  publisher_email: jklymak@uvic.ca
+  publisher_name:  Jody Klymak
+  publisher_url:   http://cproof.uvic.ca
+  references:     cproof toolbox URL
+  rtqc_method:    "No QC applied"
+  sea_name:   BC Coastal Waters
+  source:     Observational data from a profiling glider.
+  standard_name_vocabulary: CF Standard Name Table v83
+  summary: Short deployment off Tully near Explorer Seamount.
+  transmission_system: IRRIDIUM
+  wmo_id: "999999"
+  deployment_latitude: "48.91"
+  deployment_longitude: "-130.61"
+
+
+glider_devices:
+  pressure:
+    make: Micron
+    model: Pressure
+    serial: '104702'
+  ctd:
+    sensor_name: SENSOR_CTD
+    long_name: CTD Metadata
+    make_model: Seabird GPCTD
+    maker: Seabird Scientific
+    model: GPCTD
+    type: CTD
+    type_vocabulary: "https://vocab.nerc.ac.uk/collection/L05/current"
+    # pyglider-only fields (used for processing, not written to netCDF):
+    make: Seabird
+    serial: '0278'
+    factory_calibrated: "Yes"
+    calibration_date: "02/11/2018"
+    calibration_report: " "
+    Thermal_lag_constants_[alpha,tau]: [0.34, 4.6]
+    dTdC: 0
+    comment: 'Constants were found using dfo-bb046-20220707.'
+  optics:
+    sensor_name: SENSOR_FLUOROMETER
+    long_name: Fluorometer Metadata
+    make_model: Wetlabs FLBBCDSLC
+    maker: Wetlabs
+    model: FLBBCDSLC
+    type: fluorometer_chla
+    type_vocabulary: "http://vocab.nerc.ac.uk/collection/R25/current/"
+    # pyglider-only:
+    make: Wetlabs
+    serial: '4741'
+  oxygen:
+    make: AROD_FT
+    model: Optode4831
+    serial: '0022'
+
+
+netcdf_variables:
+
+  timebase:
+    source:       GPCTD_TEMPERATURE
+
+  # -------------------------------------------------------------------------
+  # Coordinates — processing_role tells the pipeline what each variable is
+  # -------------------------------------------------------------------------
+
+  TIME:
+    source:        time
+    processing_role: time
+    long_name:     Time elapsed since 1970-01-01T00:00:00Z
+    standard_name: time
+    calendar:      gregorian
+    units:         seconds since 1970-01-01T00:00:00Z
+    axis:          T
+    observation_type: measured
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/TIME/
+
+  LATITUDE:
+    source:        NAV_LATITUDE
+    processing_role: latitude
+    long_name:     Latitude north (WGS84)
+    standard_name: latitude
+    units:         degrees_north
+    axis:          Y
+    conversion:    nmea2deg
+    comment:       "Estimated between surface fixes"
+    observation_type: measured
+    reference:     WGS84
+    valid_max:     90.0
+    valid_min:     -90.0
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/LAT/
+
+  LONGITUDE:
+    source:        NAV_LONGITUDE
+    processing_role: longitude
+    long_name:     Longitude east (WGS84)
+    standard_name: longitude
+    units:         degrees_east
+    axis:          X
+    conversion:    nmea2deg
+    comment:       "Estimated between surface fixes"
+    observation_type: measured
+    reference:     WGS84
+    valid_max:     180.0
+    valid_min:     -180.0
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/LON/
+
+  # -------------------------------------------------------------------------
+  # Measured CTD variables
+  # -------------------------------------------------------------------------
+
+  CNDC:
+    source:        GPCTD_CONDUCTIVITY
+    processing_role: conductivity
+    long_name:     Electrical conductivity of the water body by CTD
+    standard_name: sea_water_electrical_conductivity
+    units:         S m-1
+    sensor:        SENSOR_CTD
+    valid_min:     0.0
+    valid_max:     10.0
+    observation_type: measured
+    accuracy:      0.0003
+    precision:     0.0001
+    resolution:    0.00002
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/CNDC/
+
+  TEMP:
+    source:        GPCTD_TEMPERATURE
+    processing_role: temperature
+    long_name:     Temperature of the water body by CTD
+    standard_name: sea_water_temperature
+    units:         degree_C
+    sensor:        SENSOR_CTD
+    valid_min:     -5.0
+    valid_max:     50.0
+    observation_type: measured
+    accuracy:      0.002
+    precision:     0.001
+    resolution:    0.0002
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/TEMP/
+
+  PRES:
+    source:        GPCTD_PRESSURE
+    processing_role: pressure
+    long_name:     Pressure (measured variable)
+    standard_name: sea_water_pressure
+    units:         dbar
+    sensor:        SENSOR_CTD
+    valid_min:     0.0
+    valid_max:     2000.0
+    positive:      down
+    reference_datum: sea-surface
+    observation_type: measured
+    accuracy:      1.0
+    precision:     2.0
+    resolution:    0.02
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/PRES/
+
+  # -------------------------------------------------------------------------
+  # Derived coordinate variables — processing_method specifies inputs
+  # -------------------------------------------------------------------------
+
+  DEPTH:
+    processing_method:
+      depth_from_pressure:
+        pressure: PRES
+        latitude: LATITUDE
+    processing_role: depth
+    long_name:     Depth below surface of the water body
+    standard_name: depth
+    units:         m
+    axis:          Z
+    positive:      down
+    reference_datum: sea-surface
+    observation_type: calculated
+    valid_min:     0.0
+    valid_max:     2000.0
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/DEPTH/
+
+  PROFILE_NUMBER:
+    processing_method:
+      find_profiles:
+        pressure: PRES
+    processing_role: profile_index
+    long_name:     Profile number
+    comment:       "PROFILE_NUMBER increments by one each time the glider starts
+                    an ascending or descending profile."
+    valid_min:     1
+    valid_max:     2147483647
+
+  PROFILE_DIRECTION:
+    processing_method:
+      find_profiles:
+        pressure: PRES
+    processing_role: profile_direction
+    long_name:     Vertical direction of profile
+    comment:       "1 = descending, -1 = ascending, 0 = not in a profile"
+
+  DISTANCE_OVER_GROUND:
+    processing_method:
+      distance_over_ground:
+        latitude: LATITUDE
+        longitude: LONGITUDE
+    long_name:     Distance over ground flown since mission start
+    units:         km
+
+  # -------------------------------------------------------------------------
+  # Sparse GPS fix variables (non-NaN only at actual surface fixes)
+  # -------------------------------------------------------------------------
+
+  LATITUDE_GPS:
+    processing_method:
+      gps_fixes_from_nav:
+        role:       latitude
+        lat_source: Lat
+        lon_source: Lon
+    long_name:     Latitude of each GPS surface fix
+    standard_name: latitude
+    units:         degrees_north
+    observation_type: measured
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/LAT/
+
+  LONGITUDE_GPS:
+    processing_method:
+      gps_fixes_from_nav:
+        role:       longitude
+        lat_source: Lat
+        lon_source: Lon
+    long_name:     Longitude of each GPS surface fix
+    standard_name: longitude
+    units:         degrees_east
+    observation_type: measured
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/LON/
+
+  TIME_GPS:
+    processing_method:
+      gps_fixes_from_nav:
+        role:       time
+        lat_source: Lat
+        lon_source: Lon
+    long_name:     Time of each GPS surface fix
+    calendar:      gregorian
+    units:         seconds since 1970-01-01T00:00:00Z
+    observation_type: measured
+
+  # -------------------------------------------------------------------------
+  # Derived thermodynamic variables (TEOS-10)
+  # -------------------------------------------------------------------------
+
+  PSAL:
+    processing_method:
+      practical_salinity:
+        conductivity: CNDC
+        temperature:  TEMP
+        pressure:     PRES
+    long_name:     Sea water practical salinity
+    standard_name: sea_water_practical_salinity
+    units:         "1"
+    comment:       "raw, uncorrected salinity"
+    valid_min:     0.0
+    valid_max:     40.0
+    observation_type: calculated
+    sensor:        SENSOR_CTD
+    accuracy:      0.01
+    precision:     0.01
+    resolution:    0.001
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/PSAL/
+
+  THETA:
+    processing_method:
+      potential_temperature:
+        salinity:     PSAL
+        temperature:  TEMP
+        pressure:     PRES
+    long_name:     Water potential temperature
+    standard_name: sea_water_potential_temperature
+    units:         degree_C
+    observation_type: calculated
+    accuracy:      0.002
+    precision:     0.001
+    resolution:    0.0001
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/THETA/
+
+  SIGTHETA:
+    processing_method:
+      potential_density_sigma0:
+        salinity:     PSAL
+        temperature:  TEMP
+        pressure:     PRES
+        latitude:     LATITUDE
+        longitude:    LONGITUDE
+    long_name:     Water potential density referenced to surface
+    standard_name: sea_water_potential_density
+    units:         kg m-3
+    observation_type: calculated
+    accuracy:      0.01
+    precision:     0.01
+    resolution:    0.001
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/SIGTHETA/
+
+  DENSITY:
+    processing_method:
+      density:
+        salinity:     PSAL
+        temperature:  TEMP
+        pressure:     PRES
+        latitude:     LATITUDE
+        longitude:    LONGITUDE
+    long_name:     Density
+    standard_name: sea_water_density
+    units:         kg m-3
+    observation_type: calculated
+    valid_min:     990.0
+    valid_max:     1040.0
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/DENSITY/
+
+  # -------------------------------------------------------------------------
+  # Other measured variables
+  # -------------------------------------------------------------------------
+
+  HEADING:
+    source:        Heading
+    long_name:     Glider heading angle
+    standard_name: platform_orientation
+    units:         degrees
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/HEADING/
+
+  PITCH:
+    source:        Pitch
+    long_name:     Glider pitch angle
+    standard_name: platform_pitch_angle
+    units:         degrees
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/PITCH/
+
+  ROLL:
+    source:        Roll
+    long_name:     Glider roll angle
+    standard_name: platform_roll_angle
+    units:         degrees
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/ROLL/
+
+  CHLA:
+    source:        FLBBCD_CHL_SCALED
+    long_name:     Chlorophyll-a concentration
+    standard_name: mass_concentration_of_chlorophyll_a_in_sea_water
+    units:         mg m-3
+    sensor:        SENSOR_FLUOROMETER
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/CHLA/
+
+  CDOM:
+    source:        FLBBCD_CDOM_SCALED
+    long_name:     CDOM
+    units:         ppb
+    sensor:        SENSOR_FLUOROMETER
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/CDOM/
+
+  BBP700:
+    source:        FLBBCD_BB_700_SCALED
+    long_name:     700 nm wavelength backscatter
+    units:         "1"
+    sensor:        SENSOR_FLUOROMETER
+    vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/BBP700/
+
+  # -------------------------------------------------------------------------
+  # QC variables
+  # -------------------------------------------------------------------------
+
+  CNDC_QC:
+    average_method: QC_protocol
+
+  TEMP_QC:
+    average_method: QC_protocol
+
+  PRES_QC:
+    average_method: QC_protocol
+
+  PSAL_QC:
+    average_method: QC_protocol
+
+  DENSITY_QC:
+    average_method: QC_protocol
+
+  CHLA_QC:
+    average_method: QC_protocol
+
+
+scalar_variables:
+
+  PLATFORM_MODEL:
+    from_metadata: glider_model
+    long_name: Glider model name
+
+  WMO_IDENTIFIER:
+    from_metadata: glider_wmo
+    long_name: WMO identifier
+
+  PLATFORM_SERIAL_NUMBER:
+    from_metadata: glider_serial
+    long_name: Glider serial number
+
+  DEPLOYMENT_TIME:
+    from_metadata: deployment_start
+    long_name: Deployment start time
+    units: seconds since 1970-01-01T00:00:00Z
+
+  DEPLOYMENT_LATITUDE:
+    from_metadata: deployment_latitude
+    long_name: Deployment latitude
+    units: degrees_north
+
+  DEPLOYMENT_LONGITUDE:
+    from_metadata: deployment_longitude
+    long_name: Deployment longitude
+    units: degrees_east

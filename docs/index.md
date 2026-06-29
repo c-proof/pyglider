@@ -28,6 +28,7 @@ maxdepth: 1
 Install
 getting-started-seaexplorer
 getting-started-slocum
+og10-yaml
 pyglider/pyglider
 adjust_CTD
 development
@@ -35,9 +36,9 @@ development
 
 ## Acknowledgements
 
-- Slocum binary translator based on
-  <https://gitlab.oceantrack.org/ocean-gliders-canada/dinkum/tree/seabBranch_py3>
-- Processing steps closely follow the work by SOCIB
-  <https://github.com/socib/glider_toolbox>
+- [dbdreader](https://dbdreader.readthedocs.io/en/latest/) is used to read Slocum binary files
+- Processing steps closely follow the work by SOCIB <https://github.com/socib/glider_toolbox>
 - Rutger's description of the Slocum binary files is very helpful: <https://github.com/kerfoot/spt/wiki/Slocum-Glider-Data-File-Primer>
 - The metadata format for NGDAC is here: <https://ioos.github.io/ioosngdac>
+- OG 1.0 data format is: <https://oceangliderscommunity.github.io/OG-format-user-manual/OG_Format.html>
+- CF compliance is checked with the [compliance-checker](https://github.com/ioos/compliance-checker) package, and the OG 1.0 compliance is checked with the [OG-format-compliance-checker](https://github.com/uw-farlab/cc-plugin-og) plugin.
