@@ -140,6 +140,65 @@ to its named inputs.  The inputs are references to other variable names in
 | `depth_from_pressure` | depth (m) | `pressure`, `latitude` |
 | `find_profiles` | profile index and direction | `pressure` |
 | `distance_over_ground` | cumulative distance | `latitude`, `longitude` |
+| `gps_fixes_from_nav` | sparse GPS fix variable (SeaExplorer only) | `role`, `lat_source`, `lon_source` |
+
+### GPS fix variables (SeaExplorer OG 1.0)
+
+OG 1.0 requires three sparse variables that record the glider's actual GPS surface
+fixes: `LATITUDE_GPS`, `LONGITUDE_GPS`, and `TIME_GPS`.  These are non-NaN only at
+the measurement timestamps that are closest to a real GPS fix; all other values are
+NaN.  They are derived from the SeaExplorer navigation (gli) files, not from the
+sensor payload.
+
+Use `processing_method: gps_fixes_from_nav` to declare them in the YAML.  Three
+separate entries are needed, one per output variable, each with a `role` input that
+selects which array to write (`latitude`, `longitude`, or `time`).  The `lat_source`
+and `lon_source` inputs name the NMEA-format columns in the gli file (almost always
+`Lat` and `Lon`).
+
+```yaml
+LATITUDE_GPS:
+  processing_method:
+    gps_fixes_from_nav:
+      role:       latitude
+      lat_source: Lat
+      lon_source: Lon
+  long_name:     Latitude of each GPS surface fix
+  standard_name: latitude
+  units:         degrees_north
+  observation_type: measured
+  vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/LAT/
+
+LONGITUDE_GPS:
+  processing_method:
+    gps_fixes_from_nav:
+      role:       longitude
+      lat_source: Lat
+      lon_source: Lon
+  long_name:     Longitude of each GPS surface fix
+  standard_name: longitude
+  units:         degrees_east
+  observation_type: measured
+  vocabulary:    http://vocab.nerc.ac.uk/collection/OG1/current/LON/
+
+TIME_GPS:
+  processing_method:
+    gps_fixes_from_nav:
+      role:       time
+      lat_source: Lat
+      lon_source: Lon
+  long_name:     Time of each GPS surface fix
+  calendar:      gregorian
+  units:         seconds since 1970-01-01T00:00:00Z
+  observation_type: measured
+```
+
+Pyglider reads the merged gli parquet file, filters to rows where `DeadReckoning`
+is 0 (or `NavState` is not 116 when `DeadReckoning` is absent), converts NMEA
+coordinates to decimal degrees, and maps each fix to the nearest timestamp on the
+sensor time grid.  The three variables are produced in one pass; the `role` input
+determines which result is assigned to each YAML entry.  All other YAML attributes
+(units, long_name, vocabulary, etc.) are written to the variable as usual.
 
 ### Custom methods
 

@@ -986,7 +986,6 @@ def parse_surfacing_logfile(fn):
         pl.col('lon').map_elements(lambda x: utils.nmea2deg(x) if x is not None else None, return_dtype=pl.Float64).alias('lon'),
     )
 
-    print(out[['time', 'lat', 'lon']])
     return out
 
 def add_latlon_to_gridfiles(outname, df):

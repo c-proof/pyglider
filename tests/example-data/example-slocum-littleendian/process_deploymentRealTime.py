@@ -11,6 +11,8 @@ import locale
 
 logging.basicConfig(level='INFO')
 
+_log = logging.getLogger(__name__)
+
 binarydir  = './realtime_raw/'
 rawdir     = './realtime_rawnc/'
 cacdir     = './cac/'
@@ -43,7 +45,7 @@ if True:
     # merge individual netcdf files into single netcdf files *.ebd.nc and *.dbd.nc
     slocum.merge_rawnc(rawdir, rawdir, deploymentyaml,
             scisuffix=scisuffix, glidersuffix=glidersuffix)
-print('Done merge')
+_log.info('Done merge')
 
 if True:
     # Make level-1 timeseries netcdf file from the raw files...

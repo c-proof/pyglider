@@ -8,9 +8,7 @@ from datetime import datetime
 import bitstring
 
 try:
-#    print('PYTHON!!')
-#    import dbdreader_python as dbdreader
-    import dbdreader as dbdreader
+    import dbdreader
 
     have_dbdreader = True
 except ImportError:

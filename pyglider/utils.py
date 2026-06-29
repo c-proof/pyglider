@@ -1516,7 +1516,6 @@ def _any_newer(dirname, filename):
     """
     filename = Path(filename)
     dirname = Path(dirname)
-    print(filename, filename.exists())
     if not filename.exists():
         return True
 
@@ -1534,7 +1533,7 @@ def _any_newer(dirname, filename):
 def _get_glider_name_slocum(current_directory):
     glider = current_directory.parts[-2]
     mission = current_directory.parts[-1]
-    print(f'Glider {glider} and mission: {mission}')
+    _log.info(f'Glider {glider} and mission: {mission}')
     slocum_glider = glider[4:]
     if slocum_glider[-4:-3].isnumeric():
         slocum_glider = slocum_glider[:-4] + '_' + slocum_glider[-4:]

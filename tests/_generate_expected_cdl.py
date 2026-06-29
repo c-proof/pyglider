@@ -33,6 +33,9 @@ import pyglider.ncprocess as ncprocess
 import pyglider.slocum as slocum
 from pyglider.process_adjusted import run_process_adjusted
 
+import logging
+
+_log = logging.getLogger(__name__)
 
 SKIP_ATTRS = {'date_created', 'date_issued', 'history'}
 
@@ -61,7 +64,7 @@ def save_golden(nc_path: Path, golden_nc_path: Path) -> None:
     cdl_path = golden_nc_path.with_suffix('.cdl')
     with open(cdl_path, 'w') as f:
         subprocess.run(['ncdump', '-h', str(golden_nc_path)], stdout=f, check=True)
-    print(f'wrote {golden_nc_path} and {cdl_path}')
+    _log.info(f'wrote {golden_nc_path} and {cdl_path}')
 
 
 def remove_old_yaml(expected_dir: Path) -> None:
@@ -69,7 +72,7 @@ def remove_old_yaml(expected_dir: Path) -> None:
     removed = list(expected_dir.rglob('*.yml'))
     for p in removed:
         p.unlink()
-        print(f'removed {p}')
+        _log.info(f'removed {p}')
 
 
 if __name__ == '__main__':
@@ -184,7 +187,7 @@ if __name__ == '__main__':
 
     for nc_src, nc_dst in todo.items():
         if not nc_src.exists():
-            print(f'SKIP (NC not found): {nc_src}')
+            _log.info(f'SKIP (NC not found): {nc_src}')
             continue
         save_golden(nc_src, nc_dst)
 
