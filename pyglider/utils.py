@@ -868,12 +868,12 @@ def _get_varnames(deployment):
     the relevant derived variable; do not need ``processing_role`` if
     ``processing_method`` entries name their inputs explicitly:
     ``temperature``, ``conductivity``, ``salinity``, ``profile_direction``,
-    ``oxygen_concentration``.
+    ``oxygen_concentration``, ``distance_over_ground``.
     """
     known_roles = {
         'time', 'latitude', 'longitude', 'pressure', 'temperature',
         'conductivity', 'salinity', 'depth', 'profile_index',
-        'profile_direction', 'oxygen_concentration',
+        'profile_direction', 'oxygen_concentration', "distance_over_ground", 
     }
     ncvar = deployment.get('netcdf_variables', {})
     varnames = {}

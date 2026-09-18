@@ -234,6 +234,9 @@ def make_gridfiles(
     dz : float, default = 1
         Vertical grid spacing in meters.
 
+    starttime : str, default = '1970-01-01'
+        Start time for gridding.  Data before this time is ignored.
+
     maskfunction : callable or None, optional
         Function applied to the dataset before gridding,
         usually to choose what data will be set to NaN based on quality flags.
@@ -250,7 +253,10 @@ def make_gridfiles(
         with subsequent files overwriting previous files.
 
     Note:
-    By default, the arithmetic mean is used to bin all variables, except for those with
+    By default, the arithmetic mean is used to bin all variables, except for
+    distance_over_ground (never gridded), some profile variables 
+    (profile_start_time, profile_end_time, and profile_direction, 
+    which are gridded using min, max, and mode, respectively), or variables with
     an average_method attribute inherited from the timeseries. This attribute is specified
     in the YAML configuration file when the timeseries is created. For example, if a variable
     has average_method: geometric mean, the geometric mean is used when gridding that variable.
@@ -272,6 +278,8 @@ def make_gridfiles(
     profile_index_varname = utils._resolve_role(ds, varnames, 'profile_index')
     lat_varname = utils._resolve_role(ds, varnames, 'latitude')
     lon_varname = utils._resolve_role(ds, varnames, 'longitude')
+    profile_direction_varname = utils._resolve_role(ds, varnames, 'profile_direction')
+    dog_varname = utils._resolve_role(ds, varnames, 'distance_over_ground')
 
     if maskfunction is not None:
         ds = maskfunction(ds)
@@ -315,27 +323,36 @@ def make_gridfiles(
     )
     dsout[depth_varname].attrs = {
         'units': 'm',
-        'long_name': 'Depth',
+        'long_name': ds[depth_varname].attrs.get('long_name', 'Depth'),
         'standard_name': 'depth',
         'positive': 'down',
         'source': ds[depth_varname].attrs.get('source', ''),
         'coverage_content_type': 'coordinate',
         'comment': 'center of depth bins',
     }
+    dsout['profile'].attrs = ds[profile_index_varname].attrs
 
-    # Bin by profile index, for the mean time, lat, and lon values for each profile
+
+ # Bin by profile index, for the mean time, lat, and lon values for each profile
     ds['time_1970'] = xr.DataArray(
         ds.time.values.astype(np.float64), dims=['time'], attrs={}
     )
 
-    for td in ('time_1970', lon_varname, lat_varname):
+    for td in ('time_1970', lon_varname, lat_varname, profile_direction_varname):
 
         good = np.where(~np.isnan(ds[td]) & (ds[profile_index_varname] % 1 == 0))[0]
         if len(good) > 1:
+            if td == profile_direction_varname:
+                method = (lambda x: stats.mode(x, keepdims=True, nan_policy='omit')[0][0])
+                ds[td].attrs["average_method"] = "mode"
+            else:
+                method = 'mean'
+                ds[td].attrs["average_method"] = "arithmetic mean"
+
             dat, xedges, binnumber = stats.binned_statistic(
                 ds[profile_index_varname].values[good],
                 ds[td].values[good],
-                statistic='mean',
+                statistic=method,
                 bins=[profile_bins],
             )
             if td == 'time_1970':
@@ -350,41 +367,51 @@ def make_gridfiles(
     # Bin by profile index, for the profile start (min) and end (max) times
     profile_lookup = {'profile_time_start': "min", 'profile_time_end': "max"}
     good = np.where(~np.isnan(ds['time']) & (ds[profile_index_varname] % 1 == 0))[0]
-    for td, bin_stat in profile_lookup.items():
-        _log.debug(f'td, bin_stat {td}, {bin_stat}')
+    for td, method in profile_lookup.items():
+        _log.debug(f'td, method {td}, {method}')
+        attrs = profile_meta.get(td, {})
+        attrs['average_method'] = method
+
         dat, xedges, binnumber = stats.binned_statistic(
             ds[profile_index_varname].values[good],
             ds['time_1970'].values[good],
-            statistic=bin_stat,
+            statistic=method,
             bins=[profile_bins],
         )
         dat = dat.astype('timedelta64[ns]') + np.datetime64('1970-01-01T00:00:00')
         _log.info(f'{td} {len(dat)}')
-        dsout[td] = ((xdimname), dat, profile_meta.get(td, {}))
+        dsout[td] = ((xdimname), dat, attrs)
 
     ds = ds.drop_vars('time_1970')
-    _log.info(f'Done times!')
+    _log.info('Done times!')
 
 
-    skip_vars = {'time', lat_varname, lon_varname, depth_varname, profile_index_varname}
+    skip_vars = {
+        'time', lat_varname, lon_varname, depth_varname, profile_index_varname, 
+        profile_direction_varname, dog_varname
+    }
     for k in ds.keys():
         if k in skip_vars or 'time' in k:
             continue
         if not np.issubdtype(ds[k].dtype, np.number):
             continue
+        if 'average_method' in ds[k].attrs.keys() and ds[k].attrs['average_method'] == 'none':
+            _log.debug('Skipping %s because average_method is none', k)
+            continue
         _log.info('Gridding %s', k)
         good = np.where(~np.isnan(ds[k]) & (ds[profile_index_varname] % 1 == 0))[0]
         if len(good) <= 0:
             continue
-        if 'QC_protocol' in ds[k].attrs.values():
-            method = np.nanmax
         else:
-            if 'average_method' in ds[k].attrs.values():
+            if 'average_method' in ds[k].attrs.keys():
                 method = ds[k].attrs['average_method']
                 if method == 'geometric mean':
                     method = stats.gmean
+                if method == 'QC_protocol':
+                    method = np.nanmax
             else:
                 method = 'mean'
+                ds[k].attrs['average_method'] = 'arithmetic mean'
 
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds[profile_index_varname].values[good],
@@ -410,12 +437,12 @@ def make_gridfiles(
         dsout['u'].attrs = profile_meta['u']
         dsout['v'] = dsout.water_velocity_northward.mean(axis=0)
         dsout['v'].attrs = profile_meta['v']
-        dsout = dsout.drop(['water_velocity_eastward', 'water_velocity_northward'])
+        dsout = dsout.drop_vars(['water_velocity_eastward', 'water_velocity_northward'])
     dsout.attrs = ds.attrs
     dsout.attrs.pop('cdm_data_type')
 
     # fix to be ISO parsable:
-    if len(dsout.attrs['deployment_start']) > 18:
+    if len(dsout.attrs.get("deployment_start", "")) > 18:
         dsout.attrs['deployment_start'] = dsout.attrs['deployment_start'][:19]
         dsout.attrs['deployment_end'] = dsout.attrs['deployment_end'][:19]
         dsout.attrs['time_coverage_start'] = dsout.attrs['time_coverage_start'][:19]

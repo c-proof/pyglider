@@ -260,6 +260,7 @@ netcdf_variables:
       distance_over_ground:
         latitude: LATITUDE
         longitude: LONGITUDE
+    processing_role: distance_over_ground
     long_name:     Distance over ground flown since mission start
     units:         km
   

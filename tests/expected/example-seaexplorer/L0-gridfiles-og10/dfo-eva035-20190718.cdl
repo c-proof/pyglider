@@ -3,14 +3,26 @@ dimensions:
 	time = 22 ;
 	DEPTH = 1100 ;
 variables:
+	double PROFILE_DIRECTION(time) ;
+		PROFILE_DIRECTION:_FillValue = NaN ;
+		PROFILE_DIRECTION:long_name = "Vertical direction of profile" ;
+		PROFILE_DIRECTION:units = "1" ;
+		PROFILE_DIRECTION:comment = "1 = descending, -1 = ascending, 0 = not in a profile" ;
+		PROFILE_DIRECTION:sources = "time PRES" ;
+		PROFILE_DIRECTION:method = "get_profiles_new" ;
+		PROFILE_DIRECTION:average_method = "mode" ;
+		PROFILE_DIRECTION:coverage_content_type = "physicalMeasurement" ;
+		PROFILE_DIRECTION:coordinates = "LATITUDE LONGITUDE profile" ;
 	double profile_time_start(time) ;
 		profile_time_start:_FillValue = NaN ;
+		profile_time_start:average_method = "min" ;
 		profile_time_start:coverage_content_type = "physicalMeasurement" ;
 		profile_time_start:coordinates = "LATITUDE LONGITUDE profile" ;
 		profile_time_start:units = "seconds since 1970-01-01T00:00:00+00:00" ;
 		profile_time_start:calendar = "gregorian" ;
 	double profile_time_end(time) ;
 		profile_time_end:_FillValue = NaN ;
+		profile_time_end:average_method = "max" ;
 		profile_time_end:coverage_content_type = "physicalMeasurement" ;
 		profile_time_end:coordinates = "LATITUDE LONGITUDE profile" ;
 		profile_time_end:units = "seconds since 1970-01-01T00:00:00+00:00" ;
@@ -33,6 +45,7 @@ variables:
 		CNDC:comment = " " ;
 		CNDC:platform = "platform" ;
 		CNDC:ancillary_variables = " " ;
+		CNDC:average_method = "arithmetic mean" ;
 		CNDC:coverage_content_type = "physicalMeasurement" ;
 		CNDC:coordinates = "LATITUDE LONGITUDE profile" ;
 	double TEMP(DEPTH, time) ;
@@ -53,6 +66,7 @@ variables:
 		TEMP:comment = " " ;
 		TEMP:platform = "platform" ;
 		TEMP:ancillary_variables = " " ;
+		TEMP:average_method = "arithmetic mean" ;
 		TEMP:coverage_content_type = "physicalMeasurement" ;
 		TEMP:coordinates = "LATITUDE LONGITUDE profile" ;
 	double PRES(DEPTH, time) ;
@@ -75,6 +89,7 @@ variables:
 		PRES:comment = " " ;
 		PRES:platform = "platform" ;
 		PRES:ancillary_variables = " " ;
+		PRES:average_method = "arithmetic mean" ;
 		PRES:coverage_content_type = "physicalMeasurement" ;
 		PRES:coordinates = "LATITUDE LONGITUDE profile" ;
 	double HEADING(DEPTH, time) ;
@@ -90,6 +105,7 @@ variables:
 		HEADING:platform = "platform" ;
 		HEADING:resolution = " " ;
 		HEADING:ancillary_variables = " " ;
+		HEADING:average_method = "arithmetic mean" ;
 		HEADING:coverage_content_type = "physicalMeasurement" ;
 		HEADING:coordinates = "LATITUDE LONGITUDE profile" ;
 	double PITCH(DEPTH, time) ;
@@ -105,6 +121,7 @@ variables:
 		PITCH:platform = "platform" ;
 		PITCH:resolution = " " ;
 		PITCH:ancillary_variables = " " ;
+		PITCH:average_method = "arithmetic mean" ;
 		PITCH:coverage_content_type = "physicalMeasurement" ;
 		PITCH:coordinates = "LATITUDE LONGITUDE profile" ;
 	double ROLL(DEPTH, time) ;
@@ -120,6 +137,7 @@ variables:
 		ROLL:platform = "platform" ;
 		ROLL:resolution = " " ;
 		ROLL:ancillary_variables = " " ;
+		ROLL:average_method = "arithmetic mean" ;
 		ROLL:coverage_content_type = "physicalMeasurement" ;
 		ROLL:coordinates = "LATITUDE LONGITUDE profile" ;
 	double CHLA(DEPTH, time) ;
@@ -136,6 +154,7 @@ variables:
 		CHLA:platform = "platform" ;
 		CHLA:resolution = " " ;
 		CHLA:ancillary_variables = " " ;
+		CHLA:average_method = "arithmetic mean" ;
 		CHLA:coverage_content_type = "physicalMeasurement" ;
 		CHLA:coordinates = "LATITUDE LONGITUDE profile" ;
 	double CDOM(DEPTH, time) ;
@@ -151,6 +170,7 @@ variables:
 		CDOM:platform = "platform" ;
 		CDOM:resolution = " " ;
 		CDOM:ancillary_variables = " " ;
+		CDOM:average_method = "arithmetic mean" ;
 		CDOM:coverage_content_type = "physicalMeasurement" ;
 		CDOM:coordinates = "LATITUDE LONGITUDE profile" ;
 	double BBP700(DEPTH, time) ;
@@ -166,31 +186,9 @@ variables:
 		BBP700:platform = "platform" ;
 		BBP700:resolution = " " ;
 		BBP700:ancillary_variables = " " ;
+		BBP700:average_method = "arithmetic mean" ;
 		BBP700:coverage_content_type = "physicalMeasurement" ;
 		BBP700:coordinates = "LATITUDE LONGITUDE profile" ;
-	double PROFILE_DIRECTION(DEPTH, time) ;
-		PROFILE_DIRECTION:_FillValue = NaN ;
-		PROFILE_DIRECTION:long_name = "Vertical direction of profile" ;
-		PROFILE_DIRECTION:units = "1" ;
-		PROFILE_DIRECTION:comment = "1 = descending, -1 = ascending, 0 = not in a profile" ;
-		PROFILE_DIRECTION:sources = "time PRES" ;
-		PROFILE_DIRECTION:method = "get_profiles_new" ;
-		PROFILE_DIRECTION:coverage_content_type = "physicalMeasurement" ;
-		PROFILE_DIRECTION:coordinates = "LATITUDE LONGITUDE profile" ;
-	double DISTANCE_OVER_GROUND(DEPTH, time) ;
-		DISTANCE_OVER_GROUND:_FillValue = NaN ;
-		DISTANCE_OVER_GROUND:long_name = "Distance over ground flown since mission start" ;
-		DISTANCE_OVER_GROUND:units = "km" ;
-		DISTANCE_OVER_GROUND:method = "distance_over_ground" ;
-		DISTANCE_OVER_GROUND:sources = "LATITUDE LONGITUDE" ;
-		DISTANCE_OVER_GROUND:comment = "Computed by distance_over_ground from latitude=LATITUDE, longitude=LONGITUDE" ;
-		DISTANCE_OVER_GROUND:accuracy = " " ;
-		DISTANCE_OVER_GROUND:precision = " " ;
-		DISTANCE_OVER_GROUND:platform = "platform" ;
-		DISTANCE_OVER_GROUND:resolution = " " ;
-		DISTANCE_OVER_GROUND:ancillary_variables = " " ;
-		DISTANCE_OVER_GROUND:coverage_content_type = "physicalMeasurement" ;
-		DISTANCE_OVER_GROUND:coordinates = "LATITUDE LONGITUDE profile" ;
 	double PSAL(DEPTH, time) ;
 		PSAL:_FillValue = NaN ;
 		PSAL:long_name = "Sea water practical salinity" ;
@@ -209,6 +207,7 @@ variables:
 		PSAL:sources = "CNDC TEMP PRES" ;
 		PSAL:platform = "platform" ;
 		PSAL:ancillary_variables = " " ;
+		PSAL:average_method = "arithmetic mean" ;
 		PSAL:coverage_content_type = "physicalMeasurement" ;
 		PSAL:coordinates = "LATITUDE LONGITUDE profile" ;
 	double THETA(DEPTH, time) ;
@@ -226,6 +225,7 @@ variables:
 		THETA:comment = "Computed by potential_temperature from salinity=PSAL, temperature=TEMP, pressure=PRES" ;
 		THETA:platform = "platform" ;
 		THETA:ancillary_variables = " " ;
+		THETA:average_method = "arithmetic mean" ;
 		THETA:coverage_content_type = "physicalMeasurement" ;
 		THETA:coordinates = "LATITUDE LONGITUDE profile" ;
 	double SIGTHETA(DEPTH, time) ;
@@ -243,6 +243,7 @@ variables:
 		SIGTHETA:comment = "Computed by potential_density_sigma0 from salinity=PSAL, temperature=TEMP, pressure=PRES, latitude=LATITUDE, longitude=LONGITUDE" ;
 		SIGTHETA:platform = "platform" ;
 		SIGTHETA:ancillary_variables = " " ;
+		SIGTHETA:average_method = "arithmetic mean" ;
 		SIGTHETA:coverage_content_type = "physicalMeasurement" ;
 		SIGTHETA:coordinates = "LATITUDE LONGITUDE profile" ;
 	double DENSITY(DEPTH, time) ;
@@ -262,6 +263,7 @@ variables:
 		DENSITY:platform = "platform" ;
 		DENSITY:resolution = " " ;
 		DENSITY:ancillary_variables = " " ;
+		DENSITY:average_method = "arithmetic mean" ;
 		DENSITY:coverage_content_type = "physicalMeasurement" ;
 		DENSITY:coordinates = "LATITUDE LONGITUDE profile" ;
 	double LATITUDE_GPS(DEPTH, time) ;
@@ -277,6 +279,7 @@ variables:
 		LATITUDE_GPS:platform = "platform" ;
 		LATITUDE_GPS:resolution = " " ;
 		LATITUDE_GPS:ancillary_variables = " " ;
+		LATITUDE_GPS:average_method = "arithmetic mean" ;
 		LATITUDE_GPS:coverage_content_type = "physicalMeasurement" ;
 		LATITUDE_GPS:coordinates = "LATITUDE LONGITUDE profile" ;
 	double LONGITUDE_GPS(DEPTH, time) ;
@@ -292,6 +295,7 @@ variables:
 		LONGITUDE_GPS:platform = "platform" ;
 		LONGITUDE_GPS:resolution = " " ;
 		LONGITUDE_GPS:ancillary_variables = " " ;
+		LONGITUDE_GPS:average_method = "arithmetic mean" ;
 		LONGITUDE_GPS:coverage_content_type = "physicalMeasurement" ;
 		LONGITUDE_GPS:coordinates = "LATITUDE LONGITUDE profile" ;
 	int mission_number ;
@@ -340,6 +344,7 @@ variables:
 		LONGITUDE:platform = "platform" ;
 		LONGITUDE:resolution = " " ;
 		LONGITUDE:ancillary_variables = " " ;
+		LONGITUDE:average_method = "arithmetic mean" ;
 	double LATITUDE(time) ;
 		LATITUDE:_FillValue = NaN ;
 		LATITUDE:source = "NAV_LATITUDE" ;
@@ -360,6 +365,7 @@ variables:
 		LATITUDE:platform = "platform" ;
 		LATITUDE:resolution = " " ;
 		LATITUDE:ancillary_variables = " " ;
+		LATITUDE:average_method = "arithmetic mean" ;
 
 // global attributes:
 		:Conventions = "CF-1.8" ;

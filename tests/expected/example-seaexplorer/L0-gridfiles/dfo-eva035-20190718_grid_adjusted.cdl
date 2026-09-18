@@ -3,6 +3,16 @@ dimensions:
 	time = 22 ;
 	depth = 1100 ;
 variables:
+	double profile_direction(time) ;
+		profile_direction:_FillValue = NaN ;
+		profile_direction:long_name = "glider vertical speed direction" ;
+		profile_direction:units = "1" ;
+		profile_direction:comment = "-1 = ascending, 0 = inflecting or stalled, 1 = descending" ;
+		profile_direction:sources = "time pressure" ;
+		profile_direction:method = "get_profiles_new" ;
+		profile_direction:average_method = "mode" ;
+		profile_direction:coverage_content_type = "physicalMeasurement" ;
+		profile_direction:coordinates = "latitude longitude profile" ;
 	double profile_time_start(time) ;
 		profile_time_start:_FillValue = NaN ;
 		profile_time_start:comment = "Timestamp corresponding to the start of the profile" ;
@@ -10,6 +20,7 @@ variables:
 		profile_time_start:observation_type = "calculated" ;
 		profile_time_start:platform = "platform" ;
 		profile_time_start:standard_name = "time" ;
+		profile_time_start:average_method = "min" ;
 		profile_time_start:coverage_content_type = "physicalMeasurement" ;
 		profile_time_start:coordinates = "latitude longitude profile" ;
 		profile_time_start:units = "seconds since 1970-01-01T00:00:00+00:00" ;
@@ -21,6 +32,7 @@ variables:
 		profile_time_end:observation_type = "calculated" ;
 		profile_time_end:platform = "platform" ;
 		profile_time_end:standard_name = "time" ;
+		profile_time_end:average_method = "max" ;
 		profile_time_end:coverage_content_type = "physicalMeasurement" ;
 		profile_time_end:coordinates = "latitude longitude profile" ;
 		profile_time_end:units = "seconds since 1970-01-01T00:00:00+00:00" ;
@@ -37,6 +49,7 @@ variables:
 		heading:platform = "platform" ;
 		heading:resolution = " " ;
 		heading:ancillary_variables = " " ;
+		heading:average_method = "arithmetic mean" ;
 		heading:coverage_content_type = "physicalMeasurement" ;
 		heading:coordinates = "latitude longitude profile" ;
 	double pitch(depth, time) ;
@@ -51,6 +64,7 @@ variables:
 		pitch:platform = "platform" ;
 		pitch:resolution = " " ;
 		pitch:ancillary_variables = " " ;
+		pitch:average_method = "arithmetic mean" ;
 		pitch:coverage_content_type = "physicalMeasurement" ;
 		pitch:coordinates = "latitude longitude profile" ;
 	double roll(depth, time) ;
@@ -65,6 +79,7 @@ variables:
 		roll:platform = "platform" ;
 		roll:resolution = " " ;
 		roll:ancillary_variables = " " ;
+		roll:average_method = "arithmetic mean" ;
 		roll:coverage_content_type = "physicalMeasurement" ;
 		roll:coordinates = "latitude longitude profile" ;
 	double conductivity(depth, time) ;
@@ -83,6 +98,7 @@ variables:
 		conductivity:comment = "raw conductivity" ;
 		conductivity:platform = "platform" ;
 		conductivity:ancillary_variables = " " ;
+		conductivity:average_method = "arithmetic mean" ;
 		conductivity:coverage_content_type = "physicalMeasurement" ;
 		conductivity:coordinates = "latitude longitude profile" ;
 	double temperature(depth, time) ;
@@ -101,6 +117,7 @@ variables:
 		temperature:comment = "raw temperature [degC]" ;
 		temperature:platform = "platform" ;
 		temperature:ancillary_variables = " " ;
+		temperature:average_method = "arithmetic mean" ;
 		temperature:coverage_content_type = "physicalMeasurement" ;
 		temperature:coordinates = "latitude longitude profile" ;
 	double pressure(depth, time) ;
@@ -121,6 +138,7 @@ variables:
 		pressure:comment = "ctd pressure sensor" ;
 		pressure:platform = "platform" ;
 		pressure:ancillary_variables = " " ;
+		pressure:average_method = "arithmetic mean" ;
 		pressure:coverage_content_type = "physicalMeasurement" ;
 		pressure:coordinates = "latitude longitude profile" ;
 	double chlorophyll(depth, time) ;
@@ -135,6 +153,7 @@ variables:
 		chlorophyll:platform = "platform" ;
 		chlorophyll:resolution = " " ;
 		chlorophyll:ancillary_variables = " " ;
+		chlorophyll:average_method = "arithmetic mean" ;
 		chlorophyll:coverage_content_type = "physicalMeasurement" ;
 		chlorophyll:coordinates = "latitude longitude profile" ;
 	double cdom(depth, time) ;
@@ -148,6 +167,7 @@ variables:
 		cdom:platform = "platform" ;
 		cdom:resolution = " " ;
 		cdom:ancillary_variables = " " ;
+		cdom:average_method = "arithmetic mean" ;
 		cdom:coverage_content_type = "physicalMeasurement" ;
 		cdom:coordinates = "latitude longitude profile" ;
 	double backscatter_700(depth, time) ;
@@ -161,6 +181,7 @@ variables:
 		backscatter_700:platform = "platform" ;
 		backscatter_700:resolution = " " ;
 		backscatter_700:ancillary_variables = " " ;
+		backscatter_700:average_method = "arithmetic mean" ;
 		backscatter_700:coverage_content_type = "physicalMeasurement" ;
 		backscatter_700:coordinates = "latitude longitude profile" ;
 	double oxygen_concentration(depth, time) ;
@@ -176,6 +197,7 @@ variables:
 		oxygen_concentration:platform = "platform" ;
 		oxygen_concentration:resolution = " " ;
 		oxygen_concentration:ancillary_variables = " " ;
+		oxygen_concentration:average_method = "arithmetic mean" ;
 		oxygen_concentration:coverage_content_type = "physicalMeasurement" ;
 		oxygen_concentration:coordinates = "latitude longitude profile" ;
 	double temperature_oxygen(depth, time) ;
@@ -191,25 +213,9 @@ variables:
 		temperature_oxygen:platform = "platform" ;
 		temperature_oxygen:resolution = " " ;
 		temperature_oxygen:ancillary_variables = " " ;
+		temperature_oxygen:average_method = "arithmetic mean" ;
 		temperature_oxygen:coverage_content_type = "physicalMeasurement" ;
 		temperature_oxygen:coordinates = "latitude longitude profile" ;
-	double distance_over_ground(depth, time) ;
-		distance_over_ground:_FillValue = NaN ;
-		distance_over_ground:long_name = "distance over ground flown since mission start" ;
-		distance_over_ground:method = "get_distance_over_ground" ;
-		distance_over_ground:units = "km" ;
-		distance_over_ground:sources = "latitude longitude" ;
-		distance_over_ground:coverage_content_type = "physicalMeasurement" ;
-		distance_over_ground:coordinates = "latitude longitude profile" ;
-	double profile_direction(depth, time) ;
-		profile_direction:_FillValue = NaN ;
-		profile_direction:long_name = "glider vertical speed direction" ;
-		profile_direction:units = "1" ;
-		profile_direction:comment = "-1 = ascending, 0 = inflecting or stalled, 1 = descending" ;
-		profile_direction:sources = "time pressure" ;
-		profile_direction:method = "get_profiles_new" ;
-		profile_direction:coverage_content_type = "physicalMeasurement" ;
-		profile_direction:coordinates = "latitude longitude profile" ;
 	double salinity(depth, time) ;
 		salinity:_FillValue = NaN ;
 		salinity:long_name = "water salinity" ;
@@ -227,6 +233,7 @@ variables:
 		salinity:resolution = 0.001 ;
 		salinity:platform = "platform" ;
 		salinity:ancillary_variables = " " ;
+		salinity:average_method = "arithmetic mean" ;
 		salinity:coverage_content_type = "physicalMeasurement" ;
 		salinity:coordinates = "latitude longitude profile" ;
 	double potential_density(depth, time) ;
@@ -245,6 +252,7 @@ variables:
 		potential_density:platform = "platform" ;
 		potential_density:ancillary_variables = " " ;
 		potential_density:history = "calculated using raw salinity and temperature" ;
+		potential_density:average_method = "arithmetic mean" ;
 		potential_density:coverage_content_type = "physicalMeasurement" ;
 		potential_density:coordinates = "latitude longitude profile" ;
 	double density(depth, time) ;
@@ -264,6 +272,7 @@ variables:
 		density:resolution = 0.001 ;
 		density:platform = "platform" ;
 		density:ancillary_variables = " " ;
+		density:average_method = "arithmetic mean" ;
 		density:coverage_content_type = "physicalMeasurement" ;
 		density:coordinates = "latitude longitude profile" ;
 	double potential_temperature(depth, time) ;
@@ -282,6 +291,7 @@ variables:
 		potential_temperature:platform = "platform" ;
 		potential_temperature:ancillary_variables = " " ;
 		potential_temperature:history = "calculated using raw salinity and temperature" ;
+		potential_temperature:average_method = "arithmetic mean" ;
 		potential_temperature:coverage_content_type = "physicalMeasurement" ;
 		potential_temperature:coordinates = "latitude longitude profile" ;
 	double conductivity_QC(depth, time) ;
@@ -321,6 +331,7 @@ variables:
 		temperature_adjusted:comment = "equivalent to raw temperature" ;
 		temperature_adjusted:platform = "platform" ;
 		temperature_adjusted:ancillary_variables = " " ;
+		temperature_adjusted:average_method = "arithmetic mean" ;
 		temperature_adjusted:coverage_content_type = "physicalMeasurement" ;
 		temperature_adjusted:coordinates = "latitude longitude profile" ;
 	double salinity_adjusted(depth, time) ;
@@ -341,6 +352,7 @@ variables:
 		salinity_adjusted:platform = "platform" ;
 		salinity_adjusted:ancillary_variables = " " ;
 		salinity_adjusted:history = "adjusted salinity [psu] using thermal lag correction (alpha=0.34, tau=4.6)" ;
+		salinity_adjusted:average_method = "arithmetic mean" ;
 		salinity_adjusted:coverage_content_type = "physicalMeasurement" ;
 		salinity_adjusted:coordinates = "latitude longitude profile" ;
 	double temperature_adjusted_QC(depth, time) ;
@@ -369,6 +381,7 @@ variables:
 		potential_density_adjusted:_FillValue = NaN ;
 		potential_density_adjusted:history = "calculated using salinity_adjusted and temperature_adjusted" ;
 		potential_density_adjusted:sources = "salinity_adjusted temperature_adjusted pressure" ;
+		potential_density_adjusted:average_method = "arithmetic mean" ;
 		potential_density_adjusted:coverage_content_type = "physicalMeasurement" ;
 		potential_density_adjusted:coordinates = "latitude longitude profile" ;
 	double potential_density_adjusted_QC(depth, time) ;
@@ -382,6 +395,7 @@ variables:
 		potential_temperature_adjusted:_FillValue = NaN ;
 		potential_temperature_adjusted:history = "calculated using salinity_adjusted and temperature_adjusted" ;
 		potential_temperature_adjusted:sources = "salinity_adjusted temperature_adjusted pressure" ;
+		potential_temperature_adjusted:average_method = "arithmetic mean" ;
 		potential_temperature_adjusted:coverage_content_type = "physicalMeasurement" ;
 		potential_temperature_adjusted:coordinates = "latitude longitude profile" ;
 	double potential_temperature_adjusted_QC(depth, time) ;
@@ -429,6 +443,7 @@ variables:
 		longitude:precision = " " ;
 		longitude:resolution = " " ;
 		longitude:ancillary_variables = " " ;
+		longitude:average_method = "arithmetic mean" ;
 	double latitude(time) ;
 		latitude:_FillValue = NaN ;
 		latitude:source = "NAV_LATITUDE" ;
@@ -448,6 +463,7 @@ variables:
 		latitude:precision = " " ;
 		latitude:resolution = " " ;
 		latitude:ancillary_variables = " " ;
+		latitude:average_method = "arithmetic mean" ;
 
 // global attributes:
 		:Conventions = "CF-1.8" ;
