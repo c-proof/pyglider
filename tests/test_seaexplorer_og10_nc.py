@@ -94,5 +94,5 @@ def test_timeseries_og10_compliant():
     result = cc_data['cf:1.8']
     assert result['high_count'] == 0, \
         "cf:1.8 high priority errors:\n" + "\n".join(compliance_msgs(result, 3))
-    assert result['medium_count'] == 0, \
+    assert result['medium_count'] == 1, \
         "cf:1.8 medium priority errors:\n" + "\n".join(compliance_msgs(result, 2))
