@@ -20,7 +20,7 @@ jobs:
             python=${{ matrix.python-version }}
       - name: Conda info
         shell: micromamba-shell {0}
-        run: conda info; conda list
+        run: micromamba info; micromamba list
       - name: install pyglider source
         shell: micromamba-shell {0}
         run: which pip; pip install -e .

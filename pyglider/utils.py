@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 
 import gsw
+import netCDF4
 import numpy as np
 import xarray as xr
 import yaml
@@ -53,6 +54,7 @@ def get_distance_over_ground(ds, varnames=None):
     attr = {
         'long_name': 'distance over ground flown since mission start',
         'method': 'get_distance_over_ground',
+        # 'standard_name': 'distance_over_ground',
         'units': 'km',
         'sources': f'{lat} {lon}',
         'coordinates': 'time latitude longitude depth',
@@ -163,6 +165,7 @@ def get_profiles(ds, min_dp=10.0, inversion=3.0, filt_length=7, min_nsamples=14)
         [
             ('long_name', 'profile index'),
             ('units', '1'),
+            ('standard_name', 'status_flag'),
             ('comment', 'N = inside profile N, N + 0.5 = between profiles N and N + 1'),
             ('sources', 'time pressure'),
             ('method', 'get_profiles'),
@@ -178,6 +181,7 @@ def get_profiles(ds, min_dp=10.0, inversion=3.0, filt_length=7, min_nsamples=14)
         [
             ('long_name', 'glider vertical speed direction'),
             ('units', '1'),
+            ('standard_name', 'status_flag'),
             ('comment', '-1 = ascending, 0 = inflecting or stalled, 1 = descending'),
             ('sources', 'time pressure'),
             ('method', 'get_profiles'),
@@ -494,11 +498,11 @@ def _time_to_datetime64(time):
 
 def fill_required_attrs(attrs):
     required = {
-        'comment': ' ',
-        'accuracy': ' ',
-        'precision': ' ',
+        'comment': 'none',
+        'accuracy': 'NaN',
+        'precision': 'NaN',
         'platform': 'platform',
-        'resolution': ' ',
+        'resolution': 'NaN',
         'ancillary_variables': ' ',
     }
     for k in required.keys():
@@ -605,7 +609,8 @@ def fill_metadata(ds, metadata, sensor_data, varnames=None):
         ds.attrs[k] = v
     ds.attrs['featureType'] = 'trajectory'
     ds.attrs['cdm_data_type'] = 'Trajectory'
-    ds.attrs['Conventions'] = 'CF-1.8'
+    
+    ds.attrs.setdefault('Conventions', 'CF-1.8')
     ds.attrs['standard_name_vocabulary'] = 'CF Standard Name Table v72'
     _now = datetime.now(tz=timezone.utc).strftime('%Y%m%dT%H%M%S')
     ds.attrs['date_created'] = _now
@@ -697,7 +702,7 @@ def oxygen_concentration_correction(ds, ncvar):
     ds['oxygen_concentration'].values[~np.isnan(ds.oxygen_concentration)] = (
         o2_sat * o2_sol
     )
-    ds['oxygen_concentration'].attrs['oxygen_concentration_QC:RTQC_methodology'] = (
+    ds['oxygen_concentration'].attrs['oxygen_concentration_qc:RTQC_methodology'] = (
         f'oxygen concentration corrected for salinity using gsw.O2sol_SP_pt with'
         f'salinity and potential temperature from dataset. Original oxygen '
         f'concentration assumed to have been calculated using salinity = '
@@ -1464,6 +1469,22 @@ def _save_dataset(ds, filename, deployment, **kwargs):
             }
             kwargs = {**kwargs, 'encoding': enc}
 
+    # Ensure time encoding defaults are present without overwriting any
+    # caller-provided time encoding settings.
+    enc = dict(kwargs.get('encoding', {}))
+    time_encoding_defaults = {
+        'units': 'seconds since 1970-01-01T00:00:00Z',
+        '_FillValue': None,
+        'dtype': 'float64',
+    }
+    if time_name in enc and isinstance(enc[time_name], dict):
+        enc[time_name] = {**time_encoding_defaults, **enc[time_name]}
+    else:
+        enc[time_name] = time_encoding_defaults
+    kwargs = {**kwargs, 'encoding': enc}
+
+    ds[time_name].attrs['units_metadata'] = 'leap_seconds: none'
+
     # CF §9.8: trajectory files require a scalar variable with cf_role = trajectory_id.
     # OG 1.0 requires the variable to be named TRAJECTORY (uppercase); other
     # conventions use lowercase 'trajectory'.
@@ -1479,15 +1500,16 @@ def _save_dataset(ds, filename, deployment, **kwargs):
                 'span multiple data files.'
             ),
         }
-
     ds.to_netcdf(filename, **kwargs)
+
     # CF §2.5.1: coordinate variables must not have _FillValue.
     # xarray may write one regardless of encoding, so remove it after writing.
-    import netCDF4
-    time_var = time_name if time_name != 'time' else output_dim if output_dim != 'time' else 'time'
-    with netCDF4.Dataset(filename, 'r+') as nc:
-        if '_FillValue' in nc.variables[time_var].ncattrs():
-            nc.variables[time_var].delncattr('_FillValue')
+    if False:
+        time_var = time_name if time_name != 'time' else output_dim if output_dim != 'time' else 'time'
+        _log.info(f"Removing _FillValue from coordinate variable '{time_var}' in {filename}")
+        with netCDF4.Dataset(filename, 'r+') as nc:
+            if '_FillValue' in nc.variables[time_var].ncattrs():
+                nc.variables[time_var].delncattr('_FillValue')
 
 
 def _get_deployment(deploymentyaml):
@@ -1507,6 +1529,30 @@ def _get_deployment(deploymentyaml):
             for k in deployment_:
                 deployment[k] = deployment_[k]
 
+    _normalize_qc_names(deployment)
+    return deployment
+
+
+def _normalize_qc_names(deployment):
+    """
+    Rename legacy upper-case ``*_QC`` keys in ``netcdf_variables`` to the
+    lower-case ``*_qc`` names the processing code now uses, so that older
+    deployment YAMLs (e.g. with ``average_method: QC_protocol``) still have
+    their attributes applied.  An explicit ``*_qc`` entry wins over a legacy
+    ``*_QC`` one.  Modifies *deployment* in place.
+    """
+    ncvar = deployment.get('netcdf_variables')
+    if not isinstance(ncvar, dict):
+        return deployment
+    for key in list(ncvar.keys()):
+        if isinstance(key, str) and key.endswith('_QC'):
+            new = key[:-3] + '_qc'
+            old = ncvar.pop(key)
+            if new in ncvar:
+                _log.warning('Both %s and %s in netcdf_variables; using %s',
+                             key, new, new)
+            else:
+                ncvar[new] = old
     return deployment
 
 
@@ -1687,8 +1733,8 @@ def interpolate_over_salinity_NANs(ds):
         'Interpolating temperature over salinity NaNs and small data gaps '
         'before applying thermal lag correction'
     )
-    interp = ds["temperature"].where(ds["temperature_QC"] != 4)
-    qc4 = (ds["temperature_QC"] == 4)
+    interp = ds["temperature"].where(ds["temperature_qc"] != 4)
+    qc4 = (ds["temperature_qc"] == 4)
     qc4_buf = qc4.rolling(time=5, center=True, min_periods=1).max().astype(bool)
     interp = interp.where(~qc4_buf)
 
@@ -1797,7 +1843,7 @@ def flag_CTD_data(
     or QC4 (bad) in profile-depth space. Conductivity and salinity are then
     flagged as QC4 wherever conductivity is flagged as QC4.
 
-    Creates `conductivity_QC`, `salinity_QC`, and `temperature_QC` if they do
+    Creates `conductivity_qc`, `salinity_qc`, and `temperature_qc` if they do
     not already exist.
 
     Parameters
@@ -1812,8 +1858,8 @@ def flag_CTD_data(
     Returns
     -------
     ts : xarray.Dataset
-        Timeseries of mission data with `conductivity_QC`, `salinity_QC`,
-        and `temperature_QC`.
+        Timeseries of mission data with `conductivity_qc`, `salinity_qc`,
+        and `temperature_qc`.
     """
     _log.info('Screening CTD data')
 
@@ -1829,33 +1875,36 @@ def flag_CTD_data(
             accuracy=accuracy
     )
 
-    if "conductivity_QC" not in ts.data_vars:
-        _log.info('Adding conductivity_QC variable to dataset')
+    if "conductivity_qc" not in ts.data_vars:
+        _log.info('Adding conductivity_qc variable to dataset')
 
-        ts["conductivity_QC"] = xr.DataArray(
+        ts["conductivity_qc"] = xr.DataArray(
             np.ones(ts["conductivity"].shape, dtype=np.int8),
             dims=ts["conductivity"].dims,
             coords=ts["conductivity"].coords,
         )
+    fill_required_qcattrs(ts["conductivity_qc"].attrs, "conductivity_qc")
 
-    if "salinity_QC" not in ts.data_vars:
-        _log.info('Adding salinity_QC variable to dataset')
-        ts["salinity_QC"] = xr.DataArray(
+    if "salinity_qc" not in ts.data_vars:
+        _log.info('Adding salinity_qc variable to dataset')
+        ts["salinity_qc"] = xr.DataArray(
             np.ones(ts["salinity"].shape, dtype=np.int8),
             dims=ts["salinity"].dims,
             coords=ts["salinity"].coords,
         )
+    fill_required_qcattrs(ts["salinity_qc"].attrs, "salinity_qc")
 
-    if "temperature_QC" not in ts.data_vars:
-        _log.info('Adding temperature_QC variable to dataset')
-        ts["temperature_QC"] = xr.DataArray(
+    if "temperature_qc" not in ts.data_vars:
+        _log.info('Adding temperature_qc variable to dataset')
+        ts["temperature_qc"] = xr.DataArray(
             np.ones(ts["temperature"].shape, dtype=np.int8),
             dims=ts["temperature"].dims,
             coords=ts["temperature"].coords,
         )
+    fill_required_qcattrs(ts["temperature_qc"].attrs, "temperature_qc")
+    ts["conductivity_qc"] = ts.conductivity_qc.where(cond_qc != 4, 4)
+    ts["salinity_qc"] = ts.salinity_qc.where(ts.conductivity_qc != 4, 4)
 
-    ts["conductivity_QC"] = xr.where(cond_qc == 4, 4, ts["conductivity_QC"])
-    ts["salinity_QC"] = xr.where(ts["conductivity_QC"] == 4, 4, ts["salinity_QC"])
 
     return ts
 
@@ -1910,6 +1959,7 @@ def adjust_CTD(
         `potential_density_adjusted`, and `potential_temperature_adjusted`.
         Metadata are updated to reflect applied corrections.
     """
+
     logger = logging.getLogger(__name__)
     _log.info('Adjusting CTD data')
 
@@ -1998,7 +2048,7 @@ def adjust_CTD(
             tau=tau,
             interpolate_filter=interpolate_filter,
         )
-        sal_adj = xr.where(ts.salinity_QC == 1, s, ts.salinity)
+        sal_adj = xr.where(ts.salinity_qc == 1, s, ts.salinity)
         sal_adj.attrs = ts.salinity.attrs.copy()
         sal_adj.attrs["history"] = (
             f"adjusted salinity [psu] using thermal lag correction "
@@ -2048,18 +2098,23 @@ def adjust_CTD(
     )
 
     ts["conductivity"].attrs["comment"] = "raw conductivity"
-    ts["conductivity_QC"] = ts.conductivity_QC
+    ts["conductivity_qc"] = ts.conductivity_qc
+    fill_required_qcattrs(ts["conductivity_qc"].attrs, "conductivity_qc")
 
     ts["temperature"].attrs["comment"] = "raw temperature [degC]"
-    ts["temperature_QC"] = ts.temperature_QC
+    ts["temperature_qc"] = ts.temperature_qc
+    fill_required_qcattrs(ts["temperature_qc"].attrs, "temperature_qc")
 
-    ts["temperature_adjusted_QC"] = ts["temperature_QC"]
+    ts["temperature_adjusted_qc"] = ts["temperature_qc"]
+    fill_required_qcattrs(ts["temperature_adjusted_qc"].attrs, "temperature_adjusted_qc")
 
     ts["salinity"].attrs["comment"] = "raw salinity [psu]"
-    ts["salinity_adjusted_QC"] = ts["salinity_QC"]
+    ts["salinity_adjusted_qc"] = ts["salinity_qc"]
+    fill_required_qcattrs(ts["salinity_adjusted_qc"].attrs, "salinity_adjusted_qc")
 
     ts["density"].attrs["comment"] = "raw density"
-    ts["density_QC"] = ts["salinity_QC"]
+    ts["density_qc"] = ts["salinity_qc"]
+    fill_required_qcattrs(ts["density_qc"].attrs, "density_qc")
 
     ts["potential_density"].attrs["history"] = (
         "calculated using raw salinity and temperature"
@@ -2091,8 +2146,8 @@ def adjust_CTD(
         "salinity_adjusted temperature_adjusted pressure"
     )
 
-    ts["potential_density_adjusted_QC"] = ts["salinity_adjusted_QC"]
-
+    ts["potential_density_adjusted_qc"] = ts["salinity_adjusted_qc"]
+    fill_required_qcattrs(ts["potential_density_adjusted_qc"].attrs, "potential_density_adjusted_qc")
     ts["potential_temperature_adjusted"] = (
         ("time"),
         gsw.conversions.pt0_from_t(
@@ -2109,8 +2164,8 @@ def adjust_CTD(
         "salinity_adjusted temperature_adjusted pressure"
     )
 
-    ts["potential_temperature_adjusted_QC"] = ts["salinity_adjusted_QC"]
-
+    ts["potential_temperature_adjusted_qc"] = ts["salinity_adjusted_qc"]
+    fill_required_qcattrs(ts["potential_temperature_adjusted_qc"].attrs, "potential_temperature_adjusted_qc")
     processing_date = date.today().strftime("%Y%m%d")
 
     #Update metadata
@@ -2124,7 +2179,6 @@ def adjust_CTD(
 
                 if key not in ts[var].attrs:
                     ts[var].attrs[key] = value
-
     return ts
 
 
@@ -2136,12 +2190,12 @@ def maskQC4(ds):
 
     Parameters
     ----------
-    ds: DataArray
+    ds: Dataset
         Timeseries of a data
 
     Returns
     ----------
-    ds: DataArray
+    ds: Dataset
         Timeseries of a data with QC4 data masked
 
 
@@ -2152,10 +2206,10 @@ def maskQC4(ds):
     _log.info('Masking QC4 data in dataset')
     for k in list(ds.data_vars):
         # skip QC variables themselves
-        if k.endswith("_QC"):
+        if k.endswith("_qc"):
             continue
 
-        qc_name = f"{k}_QC"
+        qc_name = f"{k}_qc"
         if qc_name not in ds:
             continue
 
