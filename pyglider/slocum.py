@@ -967,6 +967,9 @@ def binary_to_timeseries(
         else:
             convert = utils._passthrough
 
+        linear_gain = ncvar[name].get('linear_gain', 1.0)
+        linear_offset = ncvar[name].get('linear_offset', 0.0)
+
         sensorname = ncvar[name]['source']
         _log.info('names: %s %s', name, sensorname)
         if sensorname in dbd.parameterNames['sci']:
@@ -982,6 +985,10 @@ def binary_to_timeseries(
 
             val = utils._zero_screen(val)
             val = convert(val)
+            if (linear_gain != 1.0) or (linear_offset != 0.0):
+                val = val * linear_gain + linear_offset
+                ncvar[name]['linear_correction'] = f'{linear_gain}x + {linear_offset}'
+
         elif sensorname in dbd.parameterNames['eng']:
             _log.debug('Eng sensorname %s', sensorname)
             val = name_to_data[name]
@@ -1131,13 +1138,6 @@ def binary_to_timeseries(
         outname,
         deployment,
         mode='w',
-        encoding={
-            'time': {
-                'units': 'seconds since 1970-01-01T00:00:00Z',
-                '_FillValue': False,
-                'dtype': 'float64',
-            }
-        },
     )
 
     return outname

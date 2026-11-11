@@ -174,6 +174,7 @@ def extract_timeseries_profiles(inname, outdir, deploymentyaml, force=False):
                 # CF §2.5.1: coordinate variables must not have _FillValue
                 dss['time'].encoding.pop('_FillValue', None)
                 dss['time'].attrs.pop('_FillValue', None)
+                dss['time'].attrs['units_metadata'] = 'leap seconds: none'
                 dss.to_netcdf(
                     outname,
                     encoding={
@@ -376,15 +377,15 @@ def make_gridfiles(
         good = np.where(~np.isnan(ds[k]) & (ds[profile_index_varname] % 1 == 0))[0]
         if len(good) <= 0:
             continue
-        if 'QC_protocol' in ds[k].attrs.values():
-            method = np.nanmax
+        if 'average_method' in ds[k].attrs.keys():
+            method = ds[k].attrs['average_method']
+            if method == 'geometric mean':
+                method = stats.gmean
+            if method == 'QC_protocol':
+                method = np.nanmax
         else:
-            if 'average_method' in ds[k].attrs.values():
-                method = ds[k].attrs['average_method']
-                if method == 'geometric mean':
-                    method = stats.gmean
-            else:
-                method = 'mean'
+            method = 'mean'
+        _log.debug(f'Gridding using method {method} for {k}')
 
         dat, xedges, yedges, binnumber = stats.binned_statistic_2d(
             ds[profile_index_varname].values[good],
