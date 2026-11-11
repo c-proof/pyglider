@@ -1529,6 +1529,30 @@ def _get_deployment(deploymentyaml):
             for k in deployment_:
                 deployment[k] = deployment_[k]
 
+    _normalize_qc_names(deployment)
+    return deployment
+
+
+def _normalize_qc_names(deployment):
+    """
+    Rename legacy upper-case ``*_QC`` keys in ``netcdf_variables`` to the
+    lower-case ``*_qc`` names the processing code now uses, so that older
+    deployment YAMLs (e.g. with ``average_method: QC_protocol``) still have
+    their attributes applied.  An explicit ``*_qc`` entry wins over a legacy
+    ``*_QC`` one.  Modifies *deployment* in place.
+    """
+    ncvar = deployment.get('netcdf_variables')
+    if not isinstance(ncvar, dict):
+        return deployment
+    for key in list(ncvar.keys()):
+        if isinstance(key, str) and key.endswith('_QC'):
+            new = key[:-3] + '_qc'
+            old = ncvar.pop(key)
+            if new in ncvar:
+                _log.warning('Both %s and %s in netcdf_variables; using %s',
+                             key, new, new)
+            else:
+                ncvar[new] = old
     return deployment
 
 

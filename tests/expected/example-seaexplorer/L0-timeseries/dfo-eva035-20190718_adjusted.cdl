@@ -267,6 +267,9 @@ variables:
 		conductivity_qc:flag_meanings = "PASS NOT_EVALUATED SUSPECT FAIL MISSING" ;
 		conductivity_qc:standard_name = "quality_flag" ;
 		conductivity_qc:long_name = "Initial flag for {varname}" ;
+		conductivity_qc:average_method = "QC_protocol" ;
+		conductivity_qc:comment = "QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average." ;
+		conductivity_qc:flags = "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data" ;
 		conductivity_qc:coordinates = "depth latitude longitude" ;
 	byte salinity_qc(time) ;
 		salinity_qc:units = "1" ;
@@ -276,6 +279,9 @@ variables:
 		salinity_qc:flag_meanings = "PASS NOT_EVALUATED SUSPECT FAIL MISSING" ;
 		salinity_qc:standard_name = "quality_flag" ;
 		salinity_qc:long_name = "Initial flag for {varname}" ;
+		salinity_qc:average_method = "QC_protocol" ;
+		salinity_qc:comment = "QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average." ;
+		salinity_qc:flags = "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data" ;
 		salinity_qc:coordinates = "depth latitude longitude" ;
 	byte temperature_qc(time) ;
 		temperature_qc:units = "1" ;
@@ -285,6 +291,9 @@ variables:
 		temperature_qc:flag_meanings = "PASS NOT_EVALUATED SUSPECT FAIL MISSING" ;
 		temperature_qc:standard_name = "quality_flag" ;
 		temperature_qc:long_name = "Initial flag for {varname}" ;
+		temperature_qc:average_method = "QC_protocol" ;
+		temperature_qc:comment = "QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average." ;
+		temperature_qc:flags = "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data" ;
 		temperature_qc:coordinates = "depth latitude longitude" ;
 	double temperature_adjusted(time) ;
 		temperature_adjusted:_FillValue = NaN ;
@@ -330,6 +339,9 @@ variables:
 		temperature_adjusted_qc:flag_meanings = "PASS NOT_EVALUATED SUSPECT FAIL MISSING" ;
 		temperature_adjusted_qc:standard_name = "quality_flag" ;
 		temperature_adjusted_qc:long_name = "Initial flag for {varname}" ;
+		temperature_adjusted_qc:average_method = "QC_protocol" ;
+		temperature_adjusted_qc:comment = "QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average." ;
+		temperature_adjusted_qc:flags = "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data" ;
 		temperature_adjusted_qc:coordinates = "depth latitude longitude" ;
 	byte salinity_adjusted_qc(time) ;
 		salinity_adjusted_qc:units = "1" ;
@@ -339,6 +351,9 @@ variables:
 		salinity_adjusted_qc:flag_meanings = "PASS NOT_EVALUATED SUSPECT FAIL MISSING" ;
 		salinity_adjusted_qc:standard_name = "quality_flag" ;
 		salinity_adjusted_qc:long_name = "Initial flag for {varname}" ;
+		salinity_adjusted_qc:average_method = "QC_protocol" ;
+		salinity_adjusted_qc:comment = "QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average." ;
+		salinity_adjusted_qc:flags = "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data" ;
 		salinity_adjusted_qc:coordinates = "depth latitude longitude" ;
 	byte density_qc(time) ;
 		density_qc:units = "1" ;
@@ -348,6 +363,9 @@ variables:
 		density_qc:flag_meanings = "PASS NOT_EVALUATED SUSPECT FAIL MISSING" ;
 		density_qc:standard_name = "quality_flag" ;
 		density_qc:long_name = "Initial flag for {varname}" ;
+		density_qc:average_method = "QC_protocol" ;
+		density_qc:comment = "QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average." ;
+		density_qc:flags = "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data" ;
 		density_qc:coordinates = "depth latitude longitude" ;
 	double potential_density_adjusted(time) ;
 		potential_density_adjusted:_FillValue = NaN ;
@@ -362,6 +380,9 @@ variables:
 		potential_density_adjusted_qc:flag_meanings = "PASS NOT_EVALUATED SUSPECT FAIL MISSING" ;
 		potential_density_adjusted_qc:standard_name = "quality_flag" ;
 		potential_density_adjusted_qc:long_name = "Initial flag for {varname}" ;
+		potential_density_adjusted_qc:average_method = "QC_protocol" ;
+		potential_density_adjusted_qc:comment = "QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average." ;
+		potential_density_adjusted_qc:flags = "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data" ;
 		potential_density_adjusted_qc:coordinates = "depth latitude longitude" ;
 	double potential_temperature_adjusted(time) ;
 		potential_temperature_adjusted:_FillValue = NaN ;
@@ -376,6 +397,9 @@ variables:
 		potential_temperature_adjusted_qc:flag_meanings = "PASS NOT_EVALUATED SUSPECT FAIL MISSING" ;
 		potential_temperature_adjusted_qc:standard_name = "quality_flag" ;
 		potential_temperature_adjusted_qc:long_name = "Initial flag for {varname}" ;
+		potential_temperature_adjusted_qc:average_method = "QC_protocol" ;
+		potential_temperature_adjusted_qc:comment = "QC_protocol is a method of averaging that takes into account the quality flags of the data. It is used to ensure that only good data is used in the average." ;
+		potential_temperature_adjusted_qc:flags = "1 = good data; 3 = bad data, potentially correctable; 4 = bad data; 8 = estimated data" ;
 		potential_temperature_adjusted_qc:coordinates = "depth latitude longitude" ;
 	double time(time) ;
 		time:_FillValue = NaN ;
